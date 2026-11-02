@@ -1,0 +1,5 @@
+.env
+*.db
+receipts/
+__pycache__/
+.venv/

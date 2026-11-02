@@ -1,0 +1,305 @@
+"""
+てがる会計 LINE Bot — LINE Messaging API webhook sunucusu.
+
+Akış:
+  LINE kullanıcısı mesaj / fiş fotoğrafı gönderir
+  → /callback (imza doğrulanır, 200 hemen döner)
+  → arka planda: metin ise parser, fotoğraf ise Claude ile fiş okuma
+  → SQLite'a kayıt → LINE'a hızlı yanıt butonlu cevap
+
+Çalıştırma:  uvicorn app:app --host 0.0.0.0 --port 8000
+"""
+import base64
+import hashlib
+import hmac
+import json
+import os
+import re
+import sqlite3
+from contextlib import closing
+from datetime import date, datetime, timezone, timedelta
+
+import httpx
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
+from fastapi.responses import PlainTextResponse
+
+from parser import parse_text
+
+CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
+CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
+ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+OCR_MODEL = os.environ.get("OCR_MODEL", "claude-sonnet-5-5")
+DB_PATH = os.environ.get("DB_PATH", "tegaru.db")
+
+JST = timezone(timedelta(hours=9))
+LINE_API = "https://api.line.me/v2/bot"
+LINE_DATA_API = "https://api-data.line.me/v2/bot"
+
+app = FastAPI(title="Tegaru Kaikei LINE Bot")
+
+
+# ---------------------------------------------------------------- DB
+def db():
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    return con
+
+
+def init_db():
+    with closing(db()) as con, con:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS entries(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,          -- LINE userId (her kullanıcının kendi defteri)
+                d TEXT NOT NULL,                -- işlem tarihi YYYY-MM-DD
+                kind TEXT NOT NULL CHECK(kind IN ('inc','exp')),
+                store TEXT NOT NULL,
+                amount INTEGER NOT NULL,        -- KDV dahil, yen
+                category TEXT NOT NULL,         -- 勘定科目
+                rate INTEGER NOT NULL,          -- 10 / 8 / 0
+                invoice_no TEXT DEFAULT '',     -- T + 13 hane
+                source TEXT DEFAULT 'LINE',
+                image_path TEXT DEFAULT '',     -- 電子帳簿保存法: görsel saklanır
+                created_at TEXT NOT NULL
+            )"""
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS ix_user_d ON entries(user_id, d)")
+
+
+init_db()
+
+
+def add_entry(user_id: str, e: dict, image_path: str = "") -> int:
+    with closing(db()) as con, con:
+        cur = con.execute(
+            """INSERT INTO entries(user_id,d,kind,store,amount,category,rate,invoice_no,source,image_path,created_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (user_id, e["date"], e["kind"], e["store"], int(e["amount"]), e["category"],
+             int(e["rate"]), e.get("invoice_no", ""), "LINE", image_path,
+             datetime.now(JST).isoformat()),
+        )
+        return cur.lastrowid
+
+
+def undo_last(user_id: str):
+    with closing(db()) as con, con:
+        row = con.execute(
+            "SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)
+        ).fetchone()
+        if row:
+            con.execute("DELETE FROM entries WHERE id=?", (row["id"],))
+        return row
+
+
+def month_summary(user_id: str) -> tuple[int, int]:
+    ym = datetime.now(JST).strftime("%Y-%m")
+    with closing(db()) as con:
+        r = con.execute(
+            """SELECT COALESCE(SUM(CASE WHEN kind='inc' THEN amount END),0) inc,
+                      COALESCE(SUM(CASE WHEN kind='exp' THEN amount END),0) exp
+               FROM entries WHERE user_id=? AND d LIKE ?""",
+            (user_id, ym + "%"),
+        ).fetchone()
+    return r["inc"], r["exp"]
+
+
+# ---------------------------------------------------------------- LINE helpers
+def verify_signature(body: bytes, signature: str) -> bool:
+    mac = hmac.new(CHANNEL_SECRET.encode(), body, hashlib.sha256).digest()
+    return hmac.compare_digest(base64.b64encode(mac).decode(), signature or "")
+
+
+def quick_reply(*labels: str) -> dict:
+    items = []
+    for lb in labels:
+        if lb == "📷 レシート":
+            items.append({"type": "action", "action": {"type": "camera", "label": lb}})
+        else:
+            items.append({"type": "action", "action": {"type": "message", "label": lb, "text": lb}})
+    return {"items": items}
+
+
+def text_msg(text: str, qr: dict | None = None) -> dict:
+    m = {"type": "text", "text": text}
+    if qr:
+        m["quickReply"] = qr
+    return m
+
+
+async def reply(token: str, messages: list[dict]):
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.post(
+            f"{LINE_API}/message/reply",
+            headers={"Authorization": f"Bearer {CHANNEL_TOKEN}"},
+            json={"replyToken": token, "messages": messages[:5]},
+        )
+        if r.status_code != 200:
+            print("LINE reply error", r.status_code, r.text)
+
+
+async def get_image(message_id: str) -> bytes:
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(
+            f"{LINE_DATA_API}/message/{message_id}/content",
+            headers={"Authorization": f"Bearer {CHANNEL_TOKEN}"},
+        )
+        r.raise_for_status()
+        return r.content
+
+
+def yen(n: int) -> str:
+    return f"¥{n:,}"
+
+
+def saved_text(e: dict) -> str:
+    inv = f"登録番号 {e['invoice_no']}" if e.get("invoice_no") else "⚠️ 登録番号なし（仕入税額控除50%）"
+    return (f"登録しました ✅\n"
+            f"{e['store']}  {yen(int(e['amount']))}\n"
+            f"{e['category']}・税率{e['rate']}%・{e['date']}\n{inv}\n\n"
+            f"間違っていたら「取消」を押してください")
+
+
+# ---------------------------------------------------------------- OCR (Claude)
+OCR_PROMPT = """これは日本のレシートまたは領収書の画像です。次のJSONだけを返してください（説明文なし）:
+{"date":"YYYY-MM-DD","store":"店名","amount":税込合計の整数,
+ "rate":10または8（軽減税率の食品が中心なら8、混在なら金額の大きい方）,
+ "invoice_no":"T+13桁の登録番号。無ければ空文字",
+ "category":"旅費交通費|消耗品費|会議費|接待交際費|通信費|地代家賃|水道光熱費|外注工賃|新聞図書費|雑費 のどれか"}
+読み取れない場合は {"error":"理由"} を返してください。"""
+
+
+async def ocr_receipt(img: bytes) -> dict:
+    media = "image/png" if img[:8].startswith(b"\x89PNG") else "image/jpeg"
+    async with httpx.AsyncClient(timeout=60) as c:
+        r = await c.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={
+                "model": OCR_MODEL,
+                "max_tokens": 400,
+                "messages": [{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media,
+                                                 "data": base64.b64encode(img).decode()}},
+                    {"type": "text", "text": OCR_PROMPT},
+                ]}],
+            },
+        )
+        r.raise_for_status()
+        text = "".join(b.get("text", "") for b in r.json()["content"])
+    m = re.search(r"\{.*\}", text, re.S)
+    data = json.loads(m.group(0)) if m else {"error": "JSONなし"}
+    if "error" in data:
+        return data
+    inv = str(data.get("invoice_no", "")).replace("-", "").strip()
+    data["invoice_no"] = inv if re.fullmatch(r"T\d{13}", inv) else ""
+    data["date"] = data.get("date") or date.today().isoformat()
+    data["kind"] = "exp"
+    data["rate"] = 8 if int(data.get("rate", 10)) == 8 else 10
+    return data
+
+
+# ---------------------------------------------------------------- handlers
+QR_AFTER_SAVE = ("取消", "合計", "📷 レシート")
+HELP = ("レシートの写真か「店名 金額」を送ってください。\n"
+        "例：ローソン 540円 軽減\n例：タクシー 2300 T1234567890123\n"
+        "例：入金 330000 合同会社ミナト\n\n「合計」今月の集計　「取消」直前の記録を削除")
+
+
+async def handle_text(user_id: str, token: str, text: str):
+    t = text.strip()
+    if re.match(r"^(取消|取り消し|iptal)", t):
+        row = undo_last(user_id)
+        msg = f"「{row['store']} {yen(row['amount'])}」を取り消しました" if row else "取り消す記録がありません"
+        return await reply(token, [text_msg(msg, quick_reply("合計", "📷 レシート"))])
+    if re.match(r"^(合計|今月|集計)", t):
+        inc, exp = month_summary(user_id)
+        return await reply(token, [text_msg(
+            f"今月の集計\n売上 {yen(inc)}\n経費 {yen(exp)}\n差引 {yen(inc - exp)}",
+            quick_reply("📷 レシート"))])
+    if t in ("レシートを送る", "📷 レシート"):
+        return await reply(token, [text_msg("下のボタンでレシートを撮影するか、写真を送ってください。",
+                                            quick_reply("📷 レシート"))])
+    if re.match(r"^(ヘルプ|使い方|help)", t, re.I):
+        return await reply(token, [text_msg(HELP, quick_reply("📷 レシート", "合計"))])
+
+    e = parse_text(t, datetime.now(JST).date())
+    if not e:
+        return await reply(token, [text_msg("金額が見つかりませんでした。\n" + HELP)])
+    add_entry(user_id, e)
+    await reply(token, [text_msg(saved_text(e), quick_reply(*QR_AFTER_SAVE))])
+
+
+async def handle_image(user_id: str, token: str, message_id: str):
+    try:
+        img = await get_image(message_id)
+        os.makedirs("receipts", exist_ok=True)
+        path = f"receipts/{user_id[-8:]}_{message_id}.jpg"
+        with open(path, "wb") as f:
+            f.write(img)
+        e = await ocr_receipt(img)
+    except Exception as ex:  # ağ / API hatası
+        print("image error", ex)
+        return await reply(token, [text_msg("画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。")])
+    if "error" in e:
+        return await reply(token, [text_msg(f"読み取れませんでした（{e['error']}）。\n「店名 金額」で送ってください。")])
+    add_entry(user_id, e, image_path=path)
+    await reply(token, [text_msg(saved_text(e), quick_reply(*QR_AFTER_SAVE))])
+
+
+async def handle_event(ev: dict):
+    user_id = ev.get("source", {}).get("userId", "")
+    token = ev.get("replyToken")
+    if ev["type"] == "follow":  # arkadaş ekledi
+        return await reply(token, [text_msg("てがる会計へようこそ！\n" + HELP, quick_reply("📷 レシート"))])
+    if ev["type"] != "message" or not user_id:
+        return
+    m = ev["message"]
+    if m["type"] == "text":
+        await handle_text(user_id, token, m["text"])
+    elif m["type"] == "image":
+        await handle_image(user_id, token, m["id"])
+    else:
+        await reply(token, [text_msg("テキストかレシート画像を送ってください。")])
+
+
+@app.post("/callback")
+async def callback(request: Request, bg: BackgroundTasks,
+                   x_line_signature: str = Header(default="")):
+    body = await request.body()
+    if not CHANNEL_SECRET:
+        raise HTTPException(503, "LINE_CHANNEL_SECRET is not set")
+    if not verify_signature(body, x_line_signature):
+        raise HTTPException(400, "invalid signature")
+    for ev in json.loads(body).get("events", []):
+        bg.add_task(handle_event, ev)  # LINE'a hemen 200 dön, işlem arkada
+    return PlainTextResponse("OK")
+
+
+@app.get("/entries/{user_id}")
+def entries(user_id: str, year: str = "2026"):
+    """Web paneli / 確定申告 ekranı için kayıtlar (canlıda kimlik doğrulama ekleyin)."""
+    with closing(db()) as con:
+        rows = con.execute(
+            "SELECT * FROM entries WHERE user_id=? AND d LIKE ? ORDER BY d", (user_id, year + "%")
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.get("/")
+def health():
+    return {"ok": True, "line_configured": bool(CHANNEL_SECRET and CHANNEL_TOKEN),
+            "ocr_configured": bool(ANTHROPIC_KEY)}
+
+
+@app.post("/admin/richmenu")
+async def admin_richmenu(key: str = ""):
+    """Alttaki 3 butonlu menüyü kurar. Render'da kabuk olmadığı için HTTP ile çağrılır:
+    curl -X POST "https://<adres>/admin/richmenu?key=<ADMIN_KEY>" """
+    if not ADMIN_KEY or not hmac.compare_digest(key, ADMIN_KEY):
+        raise HTTPException(403, "bad key")
+    from setup_richmenu import create_and_set
+    with open(os.path.join(os.path.dirname(__file__), "richmenu.png"), "rb") as f:
+        rid = await create_and_set(CHANNEL_TOKEN, f.read())
+    return {"richMenuId": rid}
