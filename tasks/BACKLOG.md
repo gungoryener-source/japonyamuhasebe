@@ -20,12 +20,13 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P2 | todo | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
-| T-016 | P1 | doing (developer, 2026-11-06) | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
+| T-016 | P1 | done (743716d) | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
 | T-012b | P2 | todo | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
 | T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
 | T-019 | P2 | todo | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-020 | P1 | todo | dashboard-next: 確定申告 önizleme sayfası (`/api/v1/pl`, `/api/v1/tax/income`) |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
+| T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
 
 ---
 
@@ -93,6 +94,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-016 · dashboard-next vergi kartı
 - `ConsumptionTax` bileşeni: kayıtsız alımlar satırı (2026-10〜 70%), yöntem seçici (本則/簡易/2割/3割) — hesap mantığı `bot/tax/consumption.py` ile birebir (ileride API'den gelecek, T-005).
 - Kabul: `next build` geçer; aynı örnek veriyle Python motoru ve UI aynı 納付見込額'yı verir (değer README/test notunda).
+- ✅ Yapıldı: `dashboard-next/app/lib/tax.ts` (motorun TS kopyası), ortak örnek `app/lib/tax-example.json`
+  (2026年分: 本則 差引 ¥1,419,500 / 簡易第5種 ¥1,168,000 / 2割 ¥467,200 / 3割 kullanılamaz; 中間納付 ¥520,000 sonrası 本則 納付見込 ¥899,500).
+  Python: `bot/tests/test_tax_card_parity.py`; TS: `npm run check:tax` (Node 22+, CI'a ekleme → T-021).
 
 ## T-017 · 簡易課税 みなし仕入率 doğrulaması
 - tax-watcher birincil kaynakla oranları ✅ yapınca `KANI_RATIO` için her tür adına test ekle.
@@ -105,3 +109,6 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-018 · Token yönetimi
 - Token iptali uç noktası; kullanıcı başına en fazla 5 token (en eskisi silinir — token tablosunda silme serbest, kişisel muhasebe verisi değil). Testler.
+
+## T-021 · CI'da TS vergi eşleşme kontrolü
+- `.github/workflows/ci.yml` dashboard işi: `node-version: "22"` + `npm run check:tax`. Kabul: CI yeşil, kontrol adımı görünür.
