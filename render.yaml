@@ -21,3 +21,7 @@ services:
         value: claude-sonnet-5-5
       - key: ADMIN_KEY
         generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PANEL_URL
+        sync: false

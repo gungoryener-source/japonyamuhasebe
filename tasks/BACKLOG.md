@@ -9,18 +9,20 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
 | T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
 | T-004b | P1 | blocked (Q-03) | `BASIC_DEDUCTION[2026]` (令和8年分) tablosunu ekle + sınır testleri |
-| T-005 | P1 | todo | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
+| T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | todo | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
-| T-008 | P1 | todo | 適格請求書 oluşturma API + PDF |
+| T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | todo | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
-| T-011 | P2 | todo | Fiş görsellerini nesne depolamaya taşıma + 電帳法 arama alanları |
-| T-012 | P2 | todo | CSV dışa aktarma (freee / MF / 弥生 formatları) |
+| T-011 | P2 | todo | Fiş görsellerini nesne depolamaya taşıma (arama uç noktası ✅ `/api/v1/entries`) |
+| T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
 | T-013 | P2 | todo | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | todo | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P2 | todo | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
 | T-016 | P1 | todo | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
+| T-012b | P2 | todo | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
+| T-018 | P1 | todo | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 
 ---
@@ -95,3 +97,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-004b · 令和8年分 基礎控除
 - Q-03 cevaplanınca (TAX_RULES ✅) `bot/tax/income.py` → `BASIC_DEDUCTION[2026]` ve her kademe sınırı için test. `test_basic_deduction_2026_not_verified` testi kaldırılıp yerine gerçek testler gelir.
+
+## T-012b · CSV şablon doğrulaması
+- `bot/export.py` başlıkları ve 税区分 metinleri her yazılımın resmi şablon sayfasıyla karşılaştırılsın (kaynak URL'leri `docs/` altına). Fark varsa düzelt + test.
+
+## T-018 · Token yönetimi
+- Token iptali uç noktası; kullanıcı başına en fazla 5 token (en eskisi silinir — token tablosunda silme serbest, kişisel muhasebe verisi değil). Testler.

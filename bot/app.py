@@ -15,12 +15,11 @@ import hmac
 import json
 import os
 import re
-import sqlite3
-from contextlib import closing
 from datetime import date, datetime, timezone, timedelta
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
 from parser import parse_text
@@ -31,78 +30,26 @@ CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OCR_MODEL = os.environ.get("OCR_MODEL", "claude-sonnet-5-5")
-DB_PATH = os.environ.get("DB_PATH", "tegaru.db")
 
 JST = timezone(timedelta(hours=9))
 LINE_API = "https://api.line.me/v2/bot"
 LINE_DATA_API = "https://api-data.line.me/v2/bot"
 
-app = FastAPI(title="Tegaru Kaikei LINE Bot")
+app = FastAPI(title="Tegaru Kaikei API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()],
+    allow_methods=["GET", "POST", "PUT"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
-# ---------------------------------------------------------------- DB
-def db():
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    return con
-
-
-def init_db():
-    with closing(db()) as con, con:
-        con.execute(
-            """CREATE TABLE IF NOT EXISTS entries(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,          -- LINE userId (her kullanıcının kendi defteri)
-                d TEXT NOT NULL,                -- işlem tarihi YYYY-MM-DD
-                kind TEXT NOT NULL CHECK(kind IN ('inc','exp')),
-                store TEXT NOT NULL,
-                amount INTEGER NOT NULL,        -- KDV dahil, yen
-                category TEXT NOT NULL,         -- 勘定科目
-                rate INTEGER NOT NULL,          -- 10 / 8 / 0
-                invoice_no TEXT DEFAULT '',     -- T + 13 hane
-                source TEXT DEFAULT 'LINE',
-                image_path TEXT DEFAULT '',     -- 電子帳簿保存法: görsel saklanır
-                created_at TEXT NOT NULL
-            )"""
-        )
-        con.execute("CREATE INDEX IF NOT EXISTS ix_user_d ON entries(user_id, d)")
-
+# ---------------------------------------------------------------- DB (store.py)
+from store import add_entry, init_db, issue_token, last_entry, month_summary, undo_last, update_entry  # noqa: E402
+from api import router as api_router  # noqa: E402
 
 init_db()
-
-
-def add_entry(user_id: str, e: dict, image_path: str = "") -> int:
-    with closing(db()) as con, con:
-        cur = con.execute(
-            """INSERT INTO entries(user_id,d,kind,store,amount,category,rate,invoice_no,source,image_path,created_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-            (user_id, e["date"], e["kind"], e["store"], int(e["amount"]), e["category"],
-             int(e["rate"]), e.get("invoice_no", ""), "LINE", image_path,
-             datetime.now(JST).isoformat()),
-        )
-        return cur.lastrowid
-
-
-def undo_last(user_id: str):
-    with closing(db()) as con, con:
-        row = con.execute(
-            "SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)
-        ).fetchone()
-        if row:
-            con.execute("DELETE FROM entries WHERE id=?", (row["id"],))
-        return row
-
-
-def month_summary(user_id: str) -> tuple[int, int]:
-    ym = datetime.now(JST).strftime("%Y-%m")
-    with closing(db()) as con:
-        r = con.execute(
-            """SELECT COALESCE(SUM(CASE WHEN kind='inc' THEN amount END),0) inc,
-                      COALESCE(SUM(CASE WHEN kind='exp' THEN amount END),0) exp
-               FROM entries WHERE user_id=? AND d LIKE ?""",
-            (user_id, ym + "%"),
-        ).fetchone()
-    return r["inc"], r["exp"]
+app.include_router(api_router)
 
 
 # ---------------------------------------------------------------- LINE helpers
@@ -211,7 +158,7 @@ async def ocr_receipt(img: bytes) -> dict:
 QR_AFTER_SAVE = ("取消", "合計", "📷 レシート")
 HELP = ("レシートの写真か「店名 金額」を送ってください。\n"
         "例：ローソン 540円 軽減\n例：タクシー 2300 T1234567890123\n"
-        "例：入金 330000 合同会社ミナト\n\n「合計」今月の集計　「取消」直前の記録を削除")
+        "例：入金 330000 合同会社ミナト\n\n「合計」今月の集計　「取消」直前の記録を削除\n「パネル」ウェブ管理画面の接続コード")
 
 
 async def handle_text(user_id: str, token: str, text: str):
@@ -228,6 +175,13 @@ async def handle_text(user_id: str, token: str, text: str):
     if t in ("レシートを送る", "📷 レシート"):
         return await reply(token, [text_msg("下のボタンでレシートを撮影するか、写真を送ってください。",
                                             quick_reply("📷 レシート"))])
+    if re.match(r"^(パネル|ウェブ|web|panel)$", t, re.I):
+        tok = issue_token(user_id, "line-panel")
+        base = os.environ.get("PANEL_URL", "")
+        link = f"{base}/connect#{tok}" if base else ""
+        msg = ("ウェブ管理画面の接続コードです（他人に見せないでください）:\n" + tok
+               + (f"\n\nこちらから開けます:\n{link}" if link else ""))
+        return await reply(token, [text_msg(msg)])
     if re.match(r"^(ヘルプ|使い方|help)", t, re.I):
         return await reply(token, [text_msg(HELP, quick_reply("📷 レシート", "合計"))])
 
@@ -291,11 +245,8 @@ def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default=
         raise HTTPException(401, "admin key required")
     if not re.fullmatch(r"\d{4}", year):
         raise HTTPException(400, "year must be YYYY")
-    with closing(db()) as con:
-        rows = con.execute(
-            "SELECT * FROM entries WHERE user_id=? AND d LIKE ? ORDER BY d", (user_id, year + "%")
-        ).fetchall()
-    return [dict(r) for r in rows]
+    from store import search_entries
+    return search_entries(user_id, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
 
 
 @app.get("/")

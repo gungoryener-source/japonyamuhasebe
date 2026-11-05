@@ -62,3 +62,12 @@ def test_saved_text_transitional_ratio(bot):
     assert "控除70%" in bot.saved_text({**base, "date": "2026-10-01"})
     assert "登録番号" not in bot.saved_text({**base, "kind": "inc", "date": "2026-10-01"})
     assert "T1234567890123" in bot.saved_text({**base, "invoice_no": "T1234567890123", "date": "2026-10-01"})
+
+
+def test_panel_command_issues_token(bot):
+    import store
+    c = TestClient(bot.app)
+    _post(c, "パネル", user="U9")
+    text = bot.sent[-1][0]["text"]
+    tok = [w for w in text.split() if w.startswith("tk_")][0]
+    assert store.user_for_token(tok) == "U9"
