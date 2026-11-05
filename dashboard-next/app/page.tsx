@@ -6,11 +6,12 @@
  * Gerçek API'ye geçerken yalnızca `MOCK` bölümünü fetch çağrılarıyla değiştirin.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, ApiError, getToken, monthLabel, setToken, type ApiInvoice } from "./lib/api";
 import {
   ArrowDownRight, ArrowUpRight, Bell, Building2, Calculator, Camera, Check, ChevronDown,
   ChevronRight, CircleCheck, Clock, FileText, Home, Landmark, LoaderCircle, Menu, Plus,
-  Receipt, RefreshCw, Search, Settings, ShieldCheck, TriangleAlert, Upload, Wallet, X,
+  LogOut, Receipt, RefreshCw, Search, Settings, ShieldCheck, TriangleAlert, Upload, Wallet, X,
 } from "lucide-react";
 
 /* ============================================================
@@ -80,7 +81,60 @@ const yen = (n: number) => `${n < 0 ? "−" : ""}¥${Math.abs(Math.round(n)).toL
 const pct = (cur: number, prev: number) => ((cur - prev) / Math.abs(prev)) * 100;
 const taxIn = (gross: number, rate: number) => Math.floor((gross * rate) / (100 + rate));
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T00:00:00+09:00").getTime() - new Date(MOCK.today + "T00:00:00+09:00").getTime()) / 86_400_000);
+const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T00:00:00+09:00").getTime() - new Date(new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }) + "T00:00:00+09:00").getTime()) / 86_400_000);
+
+/* ============================================================
+ * DATA (live API or demo)
+ * ============================================================ */
+
+type CashMonth = { m: string; income: number; expense: number };
+type TaxView = { out10: number; out8: number; in10: number; in8: number; interimPaid: number; nextDeadline: string | null };
+type Mode = "loading" | "live" | "demo";
+
+function demoTax(): TaxView {
+  const t = MOCK.tax;
+  return { out10: taxIn(t.sales10, 10), out8: taxIn(t.sales8, 8), in10: taxIn(t.purchase10, 10), in8: taxIn(t.purchase8, 8), interimPaid: t.interimPaid, nextDeadline: t.nextDeadline };
+}
+
+function toInvoice(i: ApiInvoice): Invoice {
+  return {
+    no: i.no, client: i.client, issued: i.issued, due: i.due, amount: i.total,
+    rate: i.subtotal8 > i.subtotal10 ? 8 : 10,
+    status: i.status === "paid" ? "paid" : i.overdue ? "overdue" : "unpaid",
+  };
+}
+
+function useDashboardData() {
+  const [mode, setMode] = useState<Mode>("loading");
+  const [cashflow, setCashflow] = useState<CashMonth[]>(MOCK.cashflow);
+  const [tax, setTax] = useState<TaxView>(demoTax());
+  const [invoices, setInvoices] = useState<Invoice[]>(MOCK.invoices);
+  const [company, setCompany] = useState<Company>(MOCK.companies[0]);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!getToken()) { setMode("demo"); return; }
+    try {
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
+      const [cf, tx, inv, prof] = await Promise.all([api.cashflow(6, end), api.tax(now.getFullYear()), api.invoices(), api.profile()]);
+      setCashflow(cf.map((c) => ({ m: monthLabel(c.month), income: c.income, expense: c.expense })));
+      setTax({ out10: tx.by_rate["10"].output, out8: tx.by_rate["8"].output, in10: tx.by_rate["10"].input, in8: tx.by_rate["8"].input, interimPaid: 0, nextDeadline: null });
+      setInvoices(inv.map(toInvoice));
+      setCompany({ id: prof.user_id, name: prof.business_name || "事業者名未設定", reg: prof.registration_no || "登録番号未設定", fiscal: `${now.getFullYear()}年分` });
+      setError(null);
+      setMode("live");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setToken(null);
+      setError(e instanceof Error ? e.message : String(e));
+      setMode("demo");
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+  return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, reload: load };
+}
 
 /* ============================================================
  * SMALL UI PRIMITIVES
@@ -393,8 +447,8 @@ function Topbar({ onMenu, onSearch, company, setCompany, toast }: {
  * WIDGETS
  * ============================================================ */
 
-function KpiCards() {
-  const cf = MOCK.cashflow;
+function KpiCards({ cashflow }: { cashflow: CashMonth[] }) {
+  const cf = cashflow.length >= 2 ? cashflow : [{ m: "", income: 0, expense: 0 }, ...cashflow, { m: "", income: 0, expense: 0 }].slice(-2);
   const cur = cf[cf.length - 1], prev = cf[cf.length - 2];
   const items = [
     { ja: "売上高", en: "Monthly Revenue", v: cur.income, d: pct(cur.income, prev.income), goodWhenUp: true, icon: Wallet },
@@ -404,20 +458,21 @@ function KpiCards() {
   return (
     <>
       {items.map((k) => {
-        const good = k.goodWhenUp ? k.d >= 0 : k.d <= 0;
-        const Arrow = k.d >= 0 ? ArrowUpRight : ArrowDownRight;
+        const d = Number.isFinite(k.d) ? k.d : 0;
+        const good = k.goodWhenUp ? d >= 0 : d <= 0;
+        const Arrow = d >= 0 ? ArrowUpRight : ArrowDownRight;
         return (
           <section key={k.ja} className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:col-span-2 lg:col-span-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <k.icon size={14} className="text-slate-400" />
               <span className="font-bold text-slate-600">{k.ja}</span>
               <span className="text-[10px] text-slate-400">{k.en}</span>
-              <span className="ml-auto text-[10px] text-slate-400">2026年10月</span>
+              <span className="ml-auto text-[10px] text-slate-400">{cur.m}</span>
             </div>
             <p className="truncate font-mono text-2xl font-semibold tracking-tight text-navy tabular">{yen(k.v)}</p>
             <p className={cx("flex items-center gap-1 text-xs font-bold", good ? "text-mint-600" : "text-rose-600")}>
               <Arrow size={14} />
-              {k.d >= 0 ? "+" : "−"}{Math.abs(k.d).toFixed(0)}%
+              {d >= 0 ? "+" : "−"}{Math.abs(d).toFixed(0)}%
               <span className="font-normal text-slate-400">前月比</span>
             </p>
           </section>
@@ -427,11 +482,11 @@ function KpiCards() {
   );
 }
 
-function CashFlowChart() {
-  const data = MOCK.cashflow;
+function CashFlowChart({ cashflow }: { cashflow: CashMonth[] }) {
+  const data = cashflow;
   const [hover, setHover] = useState<number | null>(null);
   const step = 1_000_000;
-  const max = Math.ceil(Math.max(...data.flatMap((d) => [d.income, d.expense])) / step) * step;
+  const max = Math.max(step, Math.ceil(Math.max(0, ...data.flatMap((d) => [d.income, d.expense])) / step) * step);
   const ticks = Array.from({ length: max / step + 1 }, (_, i) => max - i * step);
   const totalIn = data.reduce((s, d) => s + d.income, 0);
   const totalOut = data.reduce((s, d) => s + d.expense, 0);
@@ -458,7 +513,7 @@ function CashFlowChart() {
           <div className="absolute inset-x-0 top-0 bottom-5 flex flex-col justify-between">
             {ticks.map((t) => <div key={t} className="border-t border-dashed border-slate-200" />)}
           </div>
-          <div className="absolute inset-x-0 top-0 bottom-5 grid grid-cols-6">
+          <div className="absolute inset-x-0 top-0 bottom-5 grid" style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}>
             {data.map((d, i) => (
               <div
                 key={d.m}
@@ -477,7 +532,7 @@ function CashFlowChart() {
                     "pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-lg bg-navy px-3 py-2 text-[11px] text-white shadow-lg",
                     i === 0 ? "left-0" : i === data.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2",
                   )}>
-                    <p className="mb-1 font-bold">2026年{d.m}</p>
+                    <p className="mb-1 font-bold">{d.m}</p>
                     <p className="flex justify-between gap-4"><span className="text-slate-300">入金</span><span className="font-mono tabular">{yen(d.income)}</span></p>
                     <p className="flex justify-between gap-4"><span className="text-slate-300">出金</span><span className="font-mono tabular">{yen(d.expense)}</span></p>
                     <p className="mt-1 flex justify-between gap-4 border-t border-white/15 pt-1"><span className="text-slate-300">収支</span><span className="font-mono text-mint tabular">{yen(d.income - d.expense)}</span></p>
@@ -486,7 +541,7 @@ function CashFlowChart() {
               </div>
             ))}
           </div>
-          <div className="absolute inset-x-0 bottom-0 grid h-5 grid-cols-6 text-center text-[11px] text-slate-500">
+          <div className="absolute inset-x-0 bottom-0 grid h-5 text-center text-[11px] text-slate-500" style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}>
             {data.map((d, i) => <span key={d.m} className={cx("pt-1", i === data.length - 1 && "font-bold text-navy")}>{d.m}</span>)}
           </div>
         </div>
@@ -570,18 +625,17 @@ function QuickActions({ onInvoice, toast }: { onInvoice: () => void; toast: (m: 
   );
 }
 
-function ConsumptionTax() {
-  const t = MOCK.tax;
-  const out10 = taxIn(t.sales10, 10), out8 = taxIn(t.sales8, 8);
-  const in10 = taxIn(t.purchase10, 10), in8 = taxIn(t.purchase8, 8);
+function ConsumptionTax({ tax: t }: { tax: TaxView }) {
+  const { out10, out8, in10, in8 } = t;
   const net10 = out10 - in10, net8 = out8 - in8;
   const net = net10 + net8;
+  const share = (n: number) => (net > 0 ? Math.max(0, Math.min(100, (n / net) * 100)) : 0);
   const due = Math.floor(net / 100) * 100 - t.interimPaid;
   const rows = [
-    { label: "標準税率 10%", sub: "Standard", rate: 10, sales: t.sales10, out: out10, inp: in10, net: net10, bar: "bg-navy" },
-    { label: "軽減税率 8%", sub: "Reduced · 飲食料品", rate: 8, sales: t.sales8, out: out8, inp: in8, net: net8, bar: "bg-mint" },
+    { label: "標準税率 10%", sub: "Standard", rate: 10, out: out10, inp: in10, net: net10, bar: "bg-navy" },
+    { label: "軽減税率 8%", sub: "Reduced · 飲食料品", rate: 8, out: out8, inp: in8, net: net8, bar: "bg-mint" },
   ];
-  const d = daysUntil(t.nextDeadline);
+  const d = t.nextDeadline ? daysUntil(t.nextDeadline) : null;
 
   return (
     <Card title="消費税管理" en="Consumption Tax" className="sm:col-span-3 lg:col-span-4" right={<Badge tone="info" icon={false}>本則課税</Badge>}>
@@ -592,13 +646,13 @@ function ConsumptionTax() {
               <span className="font-bold text-navy">{r.label} <span className="text-[10px] font-normal text-slate-400">{r.sub}</span></span>
               <span className="font-mono font-semibold text-navy tabular">{yen(r.net)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={Math.round((r.net / net) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.label} 納付見込の構成比`}>
-              <div className={cx("h-full rounded-full", r.bar)} style={{ width: `${(r.net / net) * 100}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={Math.round(share(r.net))} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.label} 納付見込の構成比`}>
+              <div className={cx("h-full rounded-full", r.bar)} style={{ width: `${share(r.net)}%` }} />
             </div>
             <div className="mt-1 flex justify-between font-mono text-[10px] text-slate-400 tabular">
               <span>仮受 {yen(r.out)}</span>
               <span>仮払 −{yen(r.inp).slice(1)}</span>
-              <span>{((r.net / net) * 100).toFixed(1)}%</span>
+              <span>{share(r.net).toFixed(1)}%</span>
             </div>
           </div>
         ))}
@@ -608,17 +662,20 @@ function ConsumptionTax() {
         <div className="flex justify-between"><dt className="text-slate-500">中間納付済</dt><dd className="font-mono tabular">−{yen(t.interimPaid).slice(1)}</dd></div>
         <div className="flex justify-between text-sm font-bold text-navy"><dt>納付見込額</dt><dd className="font-mono tabular">{yen(due)}</dd></div>
       </dl>
-      <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
-        <Clock size={13} />次回 中間申告 {t.nextDeadline.slice(5).replace("-", "/")}（あと{d}日）
-      </p>
+      {t.nextDeadline && d !== null && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
+          <Clock size={13} />次回 中間申告 {t.nextDeadline.slice(5).replace("-", "/")}（あと{d}日）
+        </p>
+      )}
+      <p className="text-[10px] text-slate-400">登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）</p>
     </Card>
   );
 }
 
-function Compliance() {
+function Compliance({ reg }: { reg: string }) {
   const items = [
     { ja: "青色申告", en: "Aoiro Shinkoku", detail: "複式簿記・e-Tax 65万円控除要件", ok: true },
-    { ja: "インボイス制度", en: "Qualified Invoice System", detail: "登録番号 T3010001222222 ・ 請求書記載要件", ok: true },
+    { ja: "インボイス制度", en: "Qualified Invoice System", detail: `登録番号 ${reg} ・ 請求書記載要件`, ok: true },
     { ja: "電子帳簿保存法", en: "Electronic Book Preservation", detail: "タイムスタンプ・訂正削除履歴・検索要件", ok: true },
     { ja: "電子取引データ保存", en: "e-Transaction Records", detail: "取引日・金額・取引先で検索可能", ok: true },
   ];
@@ -647,15 +704,12 @@ const STATUS: Record<InvoiceStatus, { ja: string; tone: "ok" | "warn" | "bad" }>
   overdue: { ja: "期日超過", tone: "bad" },
 };
 
-function InvoiceTable({ invoices, setInvoices, toast }: { invoices: Invoice[]; setInvoices: (f: (p: Invoice[]) => Invoice[]) => void; toast: (m: string) => void }) {
+function InvoiceTable({ invoices, onPaid, live }: { invoices: Invoice[]; onPaid: (no: string) => void; live: boolean }) {
   const [filter, setFilter] = useState<"all" | InvoiceStatus>("all");
   const rows = invoices.filter((i) => filter === "all" || i.status === filter).slice(0, 6);
   const open = invoices.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
 
-  const markPaid = (no: string) => {
-    setInvoices((p) => p.map((i) => (i.no === no ? { ...i, status: "paid" } : i)));
-    toast(`${no} を入金消込しました`);
-  };
+  const markPaid = onPaid;
 
   return (
     <Card
@@ -693,7 +747,9 @@ function InvoiceTable({ invoices, setInvoices, toast }: { invoices: Invoice[]; s
           <tbody className="divide-y divide-slate-100">
             {rows.map((i) => (
               <tr key={i.no} className="hover:bg-slate-50/70">
-                <td className="whitespace-nowrap px-4 py-2 font-mono text-navy">{i.no}</td>
+                <td className="whitespace-nowrap px-4 py-2 font-mono text-navy">
+                  {live ? <a href={api.pdfUrl(i.no)} className="hover:underline" onClick={(e) => { e.preventDefault(); openPdf(i.no); }}>{i.no}</a> : i.no}
+                </td>
                 <td className="max-w-[220px] truncate px-2 py-2 text-slate-700">{i.client}</td>
                 <td className="whitespace-nowrap px-2 py-2 font-mono text-slate-500 tabular">{i.issued.replaceAll("-", "/")}</td>
                 <td className="whitespace-nowrap px-2 py-2 font-mono text-slate-500 tabular">{i.due.replaceAll("-", "/")}</td>
@@ -740,7 +796,7 @@ function InvoiceDrawer({ open, onClose, onCreate }: { open: boolean; onClose: ()
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!client || gross <= 0) return;
-    onCreate({ no: `INV-2026-0${419 + Math.floor(Math.random() * 80)}`, client, issued: MOCK.today, due, amount: gross, rate, status: "unpaid" });
+    onCreate({ no: `INV-DEMO-${Date.now().toString().slice(-4)}`, client, issued: new Date().toISOString().slice(0, 10), due, amount: gross, rate, status: "unpaid" });
   };
 
   return (
@@ -804,8 +860,9 @@ export default function DashboardPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [invOpen, setInvOpen] = useState(false);
-  const [company, setCompany] = useState<Company>(MOCK.companies[0]);
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK.invoices);
+  const data = useDashboardData();
+  const { mode, invoices, setInvoices, company, setCompany } = data;
+  const live = mode === "live";
   const { show: toast, node: toastNode } = useToast();
 
   useEffect(() => {
@@ -816,6 +873,39 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const onPaid = async (no: string) => {
+    if (!live) {
+      setInvoices((p) => p.map((i) => (i.no === no ? { ...i, status: "paid" } : i)));
+      toast(`${no} を入金消込しました（デモ）`);
+      return;
+    }
+    try {
+      const r = await api.payInvoice(no);
+      setInvoices((p) => p.map((i) => (i.no === no ? toInvoice({ ...r, overdue: false }) : i)));
+      toast(`${no} を入金消込しました`);
+      data.reload();
+    } catch (e) {
+      toast(`消込に失敗しました: ${e instanceof Error ? e.message : e}`);
+    }
+  };
+
+  const onCreate = async (i: Invoice) => {
+    setInvOpen(false);
+    if (!live) {
+      setInvoices((p) => [i, ...p]);
+      toast(`${i.no} を発行しました（デモ）`);
+      return;
+    }
+    try {
+      const unit = i.amount - taxIn(i.amount, i.rate); // 税込 → 税抜
+      const r = await api.createInvoice({ client: i.client, due: i.due, items: [{ name: "ご請求分", qty: 1, unit_price: unit, rate: i.rate }] });
+      setInvoices((p) => [toInvoice({ ...r, overdue: false }), ...p]);
+      toast(`${r.no} を発行しました`);
+    } catch (e) {
+      toast(`発行に失敗しました: ${e instanceof Error ? e.message : e}`);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} company={company} />
@@ -824,32 +914,59 @@ export default function DashboardPage() {
         <Topbar onMenu={() => setMenuOpen(true)} onSearch={() => setSearchOpen(true)} company={company} setCompany={setCompany} toast={toast} />
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-3 sm:p-5">
-          <div className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-1">
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             <h1 className="text-lg font-bold text-navy">ダッシュボード</h1>
-            <p className="text-xs text-slate-400">{company.name} ・ {company.fiscal} ・ 2026年11月5日 時点</p>
+            <p className="text-xs text-slate-400">{company.name} ・ {company.fiscal}</p>
+            <div className="ml-auto flex items-center gap-2">
+              {mode === "loading" && <Badge tone="info" icon={false}><LoaderCircle size={11} className="animate-spin" />読み込み中</Badge>}
+              {mode === "demo" && (
+                <>
+                  <Badge tone="warn">デモデータ</Badge>
+                  <a href="/connect" className="text-[11px] font-bold text-navy underline-offset-2 hover:underline">自分の帳簿に接続</a>
+                </>
+              )}
+              {live && (
+                <>
+                  <Badge tone="ok">ライブ</Badge>
+                  <button onClick={() => { setToken(null); location.reload(); }} className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-navy">
+                    <LogOut size={12} />切断
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+          {data.error && mode === "demo" && (
+            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">サーバーに接続できなかったため、デモデータを表示しています（{data.error}）。</p>
+          )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 lg:grid-cols-12">
-            <KpiCards />
-            <CashFlowChart />
+            <KpiCards cashflow={data.cashflow} />
+            <CashFlowChart cashflow={data.cashflow} />
             <QuickActions onInvoice={() => setInvOpen(true)} toast={toast} />
-            <ConsumptionTax />
-            <Compliance />
+            <ConsumptionTax tax={data.tax} />
+            <Compliance reg={company.reg} />
             <BankSync />
-            <InvoiceTable invoices={invoices} setInvoices={setInvoices} toast={toast} />
+            <InvoiceTable invoices={invoices} onPaid={onPaid} live={live} />
           </div>
         </main>
       </div>
 
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(l) => { setSearchOpen(false); toast(`「${l}」を開きます`); }} />
-      <InvoiceDrawer
-        open={invOpen}
-        onClose={() => setInvOpen(false)}
-        onCreate={(i) => { setInvoices((p) => [i, ...p]); setInvOpen(false); toast(`${i.no} を発行しました`); }}
-      />
+      <InvoiceDrawer open={invOpen} onClose={() => setInvOpen(false)} onCreate={onCreate} />
       {toastNode}
     </div>
   );
+}
+
+async function openPdf(no: string) {
+  // PDF uç noktası Bearer token ister: blob olarak alıp yeni sekmede aç
+  const token = getToken();
+  if (!token) return;
+  const res = await fetch(api.pdfUrl(no), { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return;
+  const url = URL.createObjectURL(await res.blob());
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /* Banka bağlantı kartı (bento'yu 3 sütunda tamamlar) */

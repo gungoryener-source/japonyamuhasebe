@@ -17,3 +17,7 @@ NTA No.1199 tablosundan 2026 yılı için ≤2,350万 → 104万 okunuyor ama h�
 ## Q-04 · Hedef müşteri önceliği (açık)
 Önce 個人事業主 (確定申告) mi, yoksa 小規模法人 (3月決算, 法人税) mı? Şu anki varsayım: **個人事業主 + küçük 合同会社**, beyan tarafında önce 個人.
 **Cevap:**
+
+## Q-05 · Panel adresi (açık)
+render.yaml'a `jsaas-panel` statik sitesi eklendi; Render blueprint senkronunda otomatik oluşur. Render alt alan adı farklı çıkarsa (ör. `jsaas-panel-xxxx.onrender.com`) tegaru-line-bot → Environment → `PANEL_URL` değerini düzelt. Blueprint senkronu "manual" ise Render → Blueprints → japonyamuhasebe → Sync.
+**Cevap:**

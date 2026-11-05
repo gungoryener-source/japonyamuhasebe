@@ -24,4 +24,15 @@ services:
       - key: CORS_ORIGINS
         value: "*"
       - key: PANEL_URL
-        sync: false
+        value: https://jsaas-panel.onrender.com
+  - type: web
+    name: jsaas-panel
+    runtime: static
+    rootDir: dashboard-next
+    buildCommand: npm ci && npm run build
+    staticPublishPath: out
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE
+        value: https://tegaru-line-bot.onrender.com
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

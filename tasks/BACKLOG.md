@@ -11,7 +11,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-004b | P1 | blocked (Q-03) | `BASIC_DEDUCTION[2026]` (令和8年分) tablosunu ekle + sınır testleri |
 | T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
-| T-007 | P1 | todo | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
+| T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | todo | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
