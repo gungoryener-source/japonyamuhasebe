@@ -1,0 +1,37 @@
+// 消費税カードの TS 実装（app/lib/tax.ts）が Python エンジンと同じ期待値を返すか確認する。
+// 実行: npm run check:tax（Node 22.6+ の --experimental-strip-types が必要）
+import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
+import { compute, methodUnavailable, settle, taxIncluded, inputCreditRatio, transitionalBreakdown } from "../app/lib/tax.ts";
+
+const ex = JSON.parse(readFileSync(new URL("../app/lib/tax-example.json", import.meta.url), "utf8"));
+const o = { individual: ex.individual, taxYear: ex.taxYear };
+
+for (const [key, want] of Object.entries(ex.expected)) {
+  const [method, kani] = key.split("_");
+  const opts = { ...o, kaniType: kani ? Number(kani) : null };
+  if (want === null) {
+    assert.ok(methodUnavailable(method, opts), `${key} should be unavailable`);
+    assert.throws(() => compute(ex.sales, ex.purchases, method, opts));
+    continue;
+  }
+  const r = compute(ex.sales, ex.purchases, method, opts);
+  assert.deepEqual({ output: r.output, input: r.input, payable: r.payable }, want, key);
+  // API 集計値（by_rate）経由の settle でも同じ
+  const h = compute(ex.sales, ex.purchases, "honsoku", o);
+  assert.deepEqual(settle(h.output, h.input, method, opts), { input: want.input, payable: want.payable }, `${key} settle`);
+}
+assert.deepEqual(transitionalBreakdown(ex.purchases), ex.expectedUnqualified);
+
+// test_tax_consumption.py と同じ境界値
+for (const [g, r, t] of [[1100, 10, 100], [1080, 8, 80], [1, 10, 0], [109, 10, 9], [110, 10, 10], [999, 8, 74], [998, 8, 73], [0, 10, 0], [5000, 0, 0]])
+  assert.equal(taxIncluded(g, r), t, `taxIncluded(${g},${r})`);
+for (const [d, r] of [["2023-09-30", 100], ["2023-10-01", 80], ["2026-09-30", 80], ["2026-10-01", 70], ["2028-09-30", 70],
+  ["2028-10-01", 50], ["2030-09-30", 50], ["2030-10-01", 30], ["2031-09-30", 30], ["2031-10-01", 0]])
+  assert.equal(inputCreditRatio(d, false), r, d);
+assert.equal(methodUnavailable("niwari", { taxYear: 2027 }) !== null, true);
+assert.equal(methodUnavailable("sanwari", { individual: false, taxYear: 2027 }) !== null, true);
+assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2028 }), null);
+assert.deepEqual(settle(-1_250, 0, "honsoku"), { input: 0, payable: -1_200 }); // 還付も0方向へ切捨て
+
+console.log("check:tax OK —", Object.entries(ex.expected).map(([k, v]) => `${k}=${v ? v.payable : "n/a"}`).join(" "));

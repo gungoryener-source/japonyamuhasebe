@@ -128,3 +128,24 @@ def compute(
         raise ValueError(f"unknown method: {method}")
 
     return Result(output, input_tax, _floor100(output - input_tax), by_rate, method)
+
+
+def transitional_breakdown(purchases: Iterable[Purchase]) -> list[dict]:
+    """登録番号のない課税仕入れを控除割合ごとに集計（経過措置の内訳表示用）。
+
+    戻り値: [{"ratio": 70, "gross": 税込合計, "tax": 含まれる税額, "credited": 控除額}]（割合の降順）。
+    税額・控除額は compute(honsoku) と同じく取引ごとに端数処理して合計する。
+    """
+    groups: dict[int, dict[str, int]] = {}
+    for p in purchases:
+        if p.qualified or p.rate == 0:
+            continue
+        ratio = input_credit_ratio(p.day, False)
+        if ratio == 100:
+            continue  # インボイス制度開始前
+        tax = tax_included(p.gross, p.rate)
+        g = groups.setdefault(ratio, {"ratio": ratio, "gross": 0, "tax": 0, "credited": 0})
+        g["gross"] += p.gross
+        g["tax"] += tax
+        g["credited"] += tax * ratio // 100
+    return [groups[k] for k in sorted(groups, reverse=True)]

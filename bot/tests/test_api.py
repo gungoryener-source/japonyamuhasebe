@@ -83,6 +83,7 @@ def test_consumption_tax_endpoint(client, auth):
     entry(client, auth, date="2026-10-15", amount=330_000)                               # 30,000
     r = client.get("/api/v1/tax/consumption?year=2026", headers=auth).json()
     assert r["output_tax"] == 100_000 and r["input_tax"] == 37_000 and r["payable"] == 63_000
+    assert r["unqualified"] == [{"ratio": 70, "gross": 110_000, "tax": 10_000, "credited": 7_000}]
     n = client.get("/api/v1/tax/consumption?year=2026&method=niwari", headers=auth).json()
     assert n["payable"] == 20_000
     assert client.get("/api/v1/tax/consumption?year=2027&method=niwari", headers=auth).status_code == 400

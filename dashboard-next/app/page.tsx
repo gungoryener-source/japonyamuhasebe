@@ -9,6 +9,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, getToken, monthLabel, setToken, type ApiInvoice } from "./lib/api";
 import {
+  compute, KANI_LABEL, KANI_RATIO, METHOD_LABEL, methodUnavailable, settle, TRANSITIONAL_CREDIT, transitionalBreakdown,
+  type Method, type Purchase, type Sale, type Transitional,
+} from "./lib/tax";
+import TAX_EXAMPLE from "./lib/tax-example.json";
+import {
   ArrowDownRight, ArrowUpRight, Bell, Building2, Calculator, Camera, Check, ChevronDown,
   ChevronRight, CircleCheck, Clock, FileText, Home, Landmark, LoaderCircle, Menu, Plus,
   LogOut, Receipt, RefreshCw, Search, Settings, ShieldCheck, TriangleAlert, Upload, Wallet, X,
@@ -37,15 +42,8 @@ const MOCK = {
     { m: "9月", income: 3_795_000, expense: 1_876_000 },
     { m: "10月", income: 4_250_000, expense: 1_820_000 },
   ],
-  // 今期累計（4月〜10月）の税込金額
-  tax: {
-    sales10: 24_640_000,
-    sales8: 1_296_000,
-    purchase10: 9_350_000,
-    purchase8: 972_000,
-    interimPaid: 520_000,
-    nextDeadline: "2026-11-30",
-  },
+  // 消費税カードのデモ: Python エンジンと共通の例（lib/tax-example.json, 2026年分の税込金額）
+  tax: TAX_EXAMPLE as unknown as { taxYear: number; individual: boolean; interimPaid: number; nextDeadline: string; sales: Sale[]; purchases: Purchase[] },
   banks: [
     { name: "三菱UFJ銀行", acct: "普通 ****4821", synced: "09:12", ok: true },
     { name: "三井住友銀行", acct: "当座 ****0937", synced: "09:12", ok: true },
@@ -88,12 +86,21 @@ const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T00:00:00+09:00").
  * ============================================================ */
 
 type CashMonth = { m: string; income: number; expense: number };
-type TaxView = { out10: number; out8: number; in10: number; in8: number; interimPaid: number; nextDeadline: string | null };
+/** 消費税カードの入力: 本則課税の税率別集計（API by_rate と同じ）+ 経過措置の内訳。方式の切替はカード内で settle() する。 */
+type TaxView = {
+  out10: number; out8: number; in10: number; in8: number; unqualified: Transitional[];
+  interimPaid: number; nextDeadline: string | null; taxYear: number; individual: boolean;
+};
 type Mode = "loading" | "live" | "demo";
 
 function demoTax(): TaxView {
   const t = MOCK.tax;
-  return { out10: taxIn(t.sales10, 10), out8: taxIn(t.sales8, 8), in10: taxIn(t.purchase10, 10), in8: taxIn(t.purchase8, 8), interimPaid: t.interimPaid, nextDeadline: t.nextDeadline };
+  const r = compute(t.sales, t.purchases, "honsoku");
+  return {
+    out10: r.byRate["10"].output, out8: r.byRate["8"].output, in10: r.byRate["10"].input, in8: r.byRate["8"].input,
+    unqualified: transitionalBreakdown(t.purchases), interimPaid: t.interimPaid, nextDeadline: t.nextDeadline,
+    taxYear: t.taxYear, individual: t.individual,
+  };
 }
 
 function toInvoice(i: ApiInvoice): Invoice {
@@ -120,7 +127,10 @@ function useDashboardData() {
       const end = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
       const [cf, tx, inv, prof] = await Promise.all([api.cashflow(6, end), api.tax(now.getFullYear()), api.invoices(), api.profile()]);
       setCashflow(cf.map((c) => ({ m: monthLabel(c.month), income: c.income, expense: c.expense })));
-      setTax({ out10: tx.by_rate["10"].output, out8: tx.by_rate["8"].output, in10: tx.by_rate["10"].input, in8: tx.by_rate["8"].input, interimPaid: 0, nextDeadline: null });
+      setTax({
+        out10: tx.by_rate["10"].output, out8: tx.by_rate["8"].output, in10: tx.by_rate["10"].input, in8: tx.by_rate["8"].input,
+        unqualified: tx.unqualified ?? [], interimPaid: 0, nextDeadline: null, taxYear: tx.year, individual: Boolean(prof.individual),
+      });
       setInvoices(inv.map(toInvoice));
       setCompany({ id: prof.user_id, name: prof.business_name || "事業者名未設定", reg: prof.registration_no || "登録番号未設定", fiscal: `${now.getFullYear()}年分` });
       setError(null);
@@ -625,20 +635,64 @@ function QuickActions({ onInvoice, toast }: { onInvoice: () => void; toast: (m: 
   );
 }
 
+/** 経過措置の控除割合 → 適用期間ラベル（TRANSITIONAL_CREDIT から生成） */
+function ratioPeriod(ratio: number): string {
+  const i = TRANSITIONAL_CREDIT.findIndex(([, p]) => p === ratio);
+  if (i < 0) return "";
+  const ym = (iso: string) => `${iso.slice(0, 4)}/${Number(iso.slice(5, 7))}`;
+  const from = ym(TRANSITIONAL_CREDIT[i][0]);
+  const next = TRANSITIONAL_CREDIT[i + 1]?.[0];
+  if (!next) return `${from}〜`;
+  const last = new Date(`${next}T00:00:00Z`); last.setUTCDate(0); // 前月末
+  return `${from}〜${ym(last.toISOString().slice(0, 10))}`;
+}
+
+const METHODS: Method[] = ["honsoku", "kani", "niwari", "sanwari"];
+
 function ConsumptionTax({ tax: t }: { tax: TaxView }) {
+  const [method, setMethod] = useState<Method>("honsoku");
+  const [kaniType, setKaniType] = useState(5);
+  const opts = { kaniType, individual: t.individual, taxYear: t.taxYear };
+  const unavailable = (m: Method) => methodUnavailable(m, { ...opts, kaniType: m === "kani" ? kaniType : null });
+  const active: Method = unavailable(method) ? "honsoku" : method;
+
   const { out10, out8, in10, in8 } = t;
-  const net10 = out10 - in10, net8 = out8 - in8;
-  const net = net10 + net8;
-  const share = (n: number) => (net > 0 ? Math.max(0, Math.min(100, (n / net) * 100)) : 0);
-  const due = Math.floor(net / 100) * 100 - t.interimPaid;
+  const output = out10 + out8;
+  const { input, payable } = settle(output, in10 + in8, active, opts);
+  const honsoku = active === "honsoku";
+  // 本則: 税率別の差引税額 / 簡易・特例: 税率別の売上税額（控除は売上税額から一括計算）
   const rows = [
-    { label: "標準税率 10%", sub: "Standard", rate: 10, out: out10, inp: in10, net: net10, bar: "bg-navy" },
-    { label: "軽減税率 8%", sub: "Reduced · 飲食料品", rate: 8, out: out8, inp: in8, net: net8, bar: "bg-mint" },
-  ];
+    { label: "標準税率 10%", sub: "Standard", rate: 10, out: out10, inp: in10, bar: "bg-navy" },
+    { label: "軽減税率 8%", sub: "Reduced · 飲食料品", rate: 8, out: out8, inp: in8, bar: "bg-mint" },
+  ].map((r) => ({ ...r, net: honsoku ? r.out - r.inp : r.out }));
+  const total = rows.reduce((a, r) => a + r.net, 0);
+  const share = (n: number) => (total > 0 ? Math.max(0, Math.min(100, (n / total) * 100)) : 0);
+  const due = payable - t.interimPaid;
   const d = t.nextDeadline ? daysUntil(t.nextDeadline) : null;
+  const deductionLabel = { honsoku: "控除対象仕入税額", kani: `みなし仕入税額（${KANI_RATIO[kaniType]}%）`, niwari: "特例控除（売上税額×80%）", sanwari: "特例控除（売上税額×70%）" }[active];
 
   return (
-    <Card title="消費税管理" en="Consumption Tax" className="sm:col-span-3 lg:col-span-4" right={<Badge tone="info" icon={false}>本則課税</Badge>}>
+    <Card title="消費税管理" en="Consumption Tax" className="sm:col-span-3 lg:col-span-4" right={<Badge tone="info" icon={false}>{t.taxYear}年分 ・ {METHOD_LABEL[active]}</Badge>}>
+      <div role="radiogroup" aria-label="課税方式" className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-0.5 text-[11px] font-bold">
+        {METHODS.map((m) => {
+          const why = unavailable(m);
+          return (
+            <button key={m} role="radio" aria-checked={active === m} disabled={!!why} title={why ?? METHOD_LABEL[m]} onClick={() => setMethod(m)}
+              className={cx("rounded-md px-1 py-1", active === m ? "bg-white text-navy shadow-sm" : "text-slate-500 hover:text-navy", why && "cursor-not-allowed opacity-40 hover:text-slate-500")}>
+              {METHOD_LABEL[m]}
+            </button>
+          );
+        })}
+      </div>
+      {active === "kani" && (
+        <label className="flex items-center gap-2 text-[11px] text-slate-500">
+          事業区分
+          <select value={kaniType} onChange={(e) => setKaniType(Number(e.target.value))} className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-navy">
+            {Object.keys(KANI_RATIO).map(Number).map((k) => <option key={k} value={k}>{KANI_LABEL[k]}（みなし仕入率 {KANI_RATIO[k]}%）</option>)}
+          </select>
+        </label>
+      )}
+
       <div className="space-y-3">
         {rows.map((r) => (
           <div key={r.rate}>
@@ -646,28 +700,55 @@ function ConsumptionTax({ tax: t }: { tax: TaxView }) {
               <span className="font-bold text-navy">{r.label} <span className="text-[10px] font-normal text-slate-400">{r.sub}</span></span>
               <span className="font-mono font-semibold text-navy tabular">{yen(r.net)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={Math.round(share(r.net))} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.label} 納付見込の構成比`}>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={Math.round(share(r.net))} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.label} の構成比`}>
               <div className={cx("h-full rounded-full", r.bar)} style={{ width: `${share(r.net)}%` }} />
             </div>
             <div className="mt-1 flex justify-between font-mono text-[10px] text-slate-400 tabular">
               <span>仮受 {yen(r.out)}</span>
-              <span>仮払 −{yen(r.inp).slice(1)}</span>
+              {honsoku && <span>仮払 −{yen(r.inp).slice(1)}</span>}
               <span>{share(r.net).toFixed(1)}%</span>
             </div>
           </div>
         ))}
       </div>
+
+      {t.unqualified.length > 0 && (
+        <div className={cx("rounded-lg border border-slate-100 px-2.5 py-2", !honsoku && "opacity-50")}>
+          <p className="mb-1 text-[11px] font-bold text-navy">登録番号のない仕入（経過措置）</p>
+          <table className="w-full font-mono text-[10px] text-slate-500 tabular">
+            <thead><tr className="text-slate-400"><th className="text-left font-medium">期間・控除割合</th><th className="text-right font-medium">消費税額</th><th className="text-right font-medium">控除額</th></tr></thead>
+            <tbody>
+              {t.unqualified.map((u) => (
+                <tr key={u.ratio}>
+                  <td className="py-0.5 font-sans">{ratioPeriod(u.ratio)} <span className="font-bold text-navy">{u.ratio}%</span></td>
+                  <td className="text-right">{yen(u.tax)}</td>
+                  <td className="text-right text-navy">{yen(u.credited)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!honsoku && <p className="mt-1 text-[10px] text-slate-400">{METHOD_LABEL[active]}では仕入税額を使わないため計算に影響しません</p>}
+        </div>
+      )}
+
       <dl className="mt-auto space-y-1 border-t border-slate-100 pt-3 text-xs">
-        <div className="flex justify-between"><dt className="text-slate-500">差引税額（今期累計）</dt><dd className="font-mono tabular">{yen(Math.floor(net / 100) * 100)}</dd></div>
+        <div className="flex justify-between"><dt className="text-slate-500">売上税額</dt><dd className="font-mono tabular">{yen(output)}</dd></div>
+        <div className="flex justify-between"><dt className="text-slate-500">{deductionLabel}</dt><dd className="font-mono tabular">−{yen(input).slice(1)}</dd></div>
+        <div className="flex justify-between"><dt className="text-slate-500">差引税額（100円未満切捨て）</dt><dd className="font-mono tabular">{yen(payable)}</dd></div>
         <div className="flex justify-between"><dt className="text-slate-500">中間納付済</dt><dd className="font-mono tabular">−{yen(t.interimPaid).slice(1)}</dd></div>
-        <div className="flex justify-between text-sm font-bold text-navy"><dt>納付見込額</dt><dd className="font-mono tabular">{yen(due)}</dd></div>
+        <div className="flex justify-between text-sm font-bold text-navy"><dt>{due < 0 ? "還付見込額" : "納付見込額"}</dt><dd className="font-mono tabular">{yen(Math.abs(due))}</dd></div>
       </dl>
       {t.nextDeadline && d !== null && (
         <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
           <Clock size={13} />次回 中間申告 {t.nextDeadline.slice(5).replace("-", "/")}（あと{d}日）
         </p>
       )}
-      <p className="text-[10px] text-slate-400">登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）</p>
+      <p className="text-[10px] leading-relaxed text-slate-400">
+        {active === "kani" ? "簡易課税のみなし仕入率は確認中です（基準期間の課税売上高5,000万円以下・事前の届出が必要）。"
+          : active === "niwari" ? "2割特例は免税事業者からインボイス登録した事業者が対象（令和8年分まで）。"
+          : active === "sanwari" ? "3割特例は個人事業者の令和9・10年分が対象（令和8年度改正）。"
+          : "登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）。個人は令和9・10年分に3割特例あり。"}
+      </p>
     </Card>
   );
 }

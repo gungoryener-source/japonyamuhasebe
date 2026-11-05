@@ -144,7 +144,8 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
     except ValueError as ex:
         raise HTTPException(400, str(ex))
     return {"year": year, "method": method, "output_tax": res.output_tax, "input_tax": res.input_tax,
-            "payable": res.payable, "by_rate": res.by_rate}
+            "payable": res.payable, "by_rate": res.by_rate,
+            "unqualified": ct.transitional_breakdown(purchases)}
 
 
 # ---------------------------------------------------------------- 確定申告 (individual)

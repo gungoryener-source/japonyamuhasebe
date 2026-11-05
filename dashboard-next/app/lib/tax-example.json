@@ -1,0 +1,87 @@
+{
+  "_note": "消費税カードの共通例。bot/tests/test_tax_card_parity.py と dashboard-next の check:tax が同じ期待値を検証する。デモ表示にも使用。",
+  "taxYear": 2026,
+  "individual": true,
+  "interimPaid": 520000,
+  "nextDeadline": "2026-11-30",
+  "sales": [
+    {
+      "gross": 24640000,
+      "rate": 10
+    },
+    {
+      "gross": 1296000,
+      "rate": 8
+    }
+  ],
+  "purchases": [
+    {
+      "gross": 6380000,
+      "rate": 10,
+      "day": "2026-06-30",
+      "qualified": true
+    },
+    {
+      "gross": 2750000,
+      "rate": 10,
+      "day": "2026-10-20",
+      "qualified": true
+    },
+    {
+      "gross": 132000,
+      "rate": 10,
+      "day": "2026-09-30",
+      "qualified": false
+    },
+    {
+      "gross": 88000,
+      "rate": 10,
+      "day": "2026-10-01",
+      "qualified": false
+    },
+    {
+      "gross": 939600,
+      "rate": 8,
+      "day": "2026-08-12",
+      "qualified": true
+    },
+    {
+      "gross": 32400,
+      "rate": 8,
+      "day": "2026-10-14",
+      "qualified": false
+    }
+  ],
+  "expected": {
+    "honsoku": {
+      "output": 2336000,
+      "input": 916480,
+      "payable": 1419500
+    },
+    "kani_5": {
+      "output": 2336000,
+      "input": 1168000,
+      "payable": 1168000
+    },
+    "niwari": {
+      "output": 2336000,
+      "input": 1868800,
+      "payable": 467200
+    },
+    "sanwari": null
+  },
+  "expectedUnqualified": [
+    {
+      "ratio": 80,
+      "gross": 132000,
+      "tax": 12000,
+      "credited": 9600
+    },
+    {
+      "ratio": 70,
+      "gross": 120400,
+      "tax": 10400,
+      "credited": 7280
+    }
+  ]
+}

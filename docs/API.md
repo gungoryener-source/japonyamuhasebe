@@ -10,7 +10,7 @@ Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri
 | GET | `/cashflow?months=6&end=YYYY-MM` | Aylık gelen/giden/net |
 | GET | `/entries?date_from&date_to&q&amount_min&amount_max&kind` | 電子帳簿保存法 arama (tarih/tutar/karşı taraf) |
 | POST | `/entries` | Web'den kayıt `{date, kind, store, amount, category, rate, invoice_no}` |
-| GET | `/tax/consumption?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=` | 消費税 hesabı (`bot/tax/consumption.py`) |
+| GET | `/tax/consumption?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=` | 消費税 hesabı (`bot/tax/consumption.py`). Yanıtta `unqualified`: 登録番号なし仕入の控除割合別内訳 `[{ratio, gross, tax, credited}]` |
 | GET/PUT | `/profile` | 事業者名, 登録番号, 個人/法人 |
 | GET | `/invoices?status=paid|unpaid` | Faturalar (+ `overdue` bayrağı) |
 | POST | `/invoices` | 適格請求書 oluştur `{client, issued?, due, items:[{name, qty, unit_price(税抜), rate}]}` |

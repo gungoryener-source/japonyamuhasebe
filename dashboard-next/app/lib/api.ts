@@ -56,7 +56,11 @@ export type ApiSummary = {
 };
 export type ApiCashflow = { month: string; income: number; expense: number; net: number }[];
 export type ApiRate = { sales: number; output: number; input: number };
-export type ApiTax = { year: number; method: string; output_tax: number; input_tax: number; payable: number; by_rate: Record<"10" | "8", ApiRate> };
+export type ApiTax = {
+  year: number; method: string; output_tax: number; input_tax: number; payable: number; by_rate: Record<"10" | "8", ApiRate>;
+  /** 登録番号なし仕入の控除割合別内訳（古いサーバーでは無い） */
+  unqualified?: { ratio: number; gross: number; tax: number; credited: number }[];
+};
 export type ApiInvoice = {
   no: string; client: string; issued: string; due: string; total: number;
   subtotal10: number; subtotal8: number; tax10: number; tax8: number;
