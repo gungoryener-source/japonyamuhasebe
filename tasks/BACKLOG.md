@@ -7,7 +7,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-001 | P0 | done (bu commit) | Prototiplerde 令和8年度 経過措置 düzeltmesi |
 | T-002 | P0 | done (bu commit) | Vergi motoru `bot/tax/` (消費税) + testler |
 | T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
-| T-004 | P1 | todo | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
+| T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
+| T-004b | P1 | blocked (Q-03) | `BASIC_DEDUCTION[2026]` (令和8年分) tablosunu ekle + sınır testleri |
 | T-005 | P1 | todo | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | todo | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
@@ -91,3 +92,6 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-017 · 簡易課税 みなし仕入率 doğrulaması
 - tax-watcher birincil kaynakla oranları ✅ yapınca `KANI_RATIO` için her tür adına test ekle.
+
+## T-004b · 令和8年分 基礎控除
+- Q-03 cevaplanınca (TAX_RULES ✅) `bot/tax/income.py` → `BASIC_DEDUCTION[2026]` ve her kademe sınırı için test. `test_basic_deduction_2026_not_verified` testi kaldırılıp yerine gerçek testler gelir.
