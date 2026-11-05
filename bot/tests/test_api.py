@@ -154,3 +154,16 @@ def test_token_revoke_and_limit(client, auth):
     toks = [store.issue_token("LIM") for _ in range(7)]
     assert store.user_for_token(toks[0]) is None and store.user_for_token(toks[1]) is None
     assert all(store.user_for_token(t) == "LIM" for t in toks[2:])
+
+
+def test_pl_and_income_tax(client, auth):
+    entry(client, auth, date="2025-03-01", kind="inc", store="A社", amount=8_000_000, category="売上高", invoice_no="")
+    entry(client, auth, date="2025-04-01", amount=2_000_000, category="外注工賃")
+    entry(client, auth, date="2025-05-01", amount=1_000_000, category="地代家賃")
+    pl = client.get("/api/v1/pl?year=2025", headers=auth).json()
+    assert pl["revenue"] == 8_000_000 and pl["expenses_total"] == 3_000_000
+    assert pl["expenses"][0] == {"category": "外注工賃", "amount": 2_000_000}
+    r = client.get("/api/v1/tax/income?year=2025&social_insurance=600000", headers=auth).json()
+    assert r["taxable"] == 3_070_000 and r["total"] == 213_800
+    assert client.get("/api/v1/tax/income?year=2026", headers=auth).status_code == 409
+    assert client.get("/api/v1/tax/income?year=2025&blue=1", headers=auth).status_code == 400

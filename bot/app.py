@@ -122,14 +122,45 @@ def _as_entry(row: dict) -> dict:
 
 # ---------------------------------------------------------------- OCR (Claude)
 OCR_PROMPT = """これは日本のレシートまたは領収書の画像です。次のJSONだけを返してください（説明文なし）:
-{"date":"YYYY-MM-DD","store":"店名","amount":税込合計の整数,
- "rate":10または8（軽減税率の食品が中心なら8、混在なら金額の大きい方）,
+{"date":"YYYY-MM-DD","store":"店名",
+ "total":税込合計の整数,
+ "total10":10%対象の税込合計（無ければ0）,
+ "total8":8%（軽減税率・※印）対象の税込合計（無ければ0）,
  "invoice_no":"T+13桁の登録番号。無ければ空文字",
  "category":"旅費交通費|消耗品費|会議費|接待交際費|通信費|地代家賃|水道光熱費|外注工賃|新聞図書費|雑費 のどれか"}
+税率ごとの内訳が印字されていない場合は total10 または total8 のどちらかに total を入れてください。
 読み取れない場合は {"error":"理由"} を返してください。"""
 
 
-async def ocr_receipt(img: bytes) -> dict:
+def normalize_ocr(data: dict) -> list[dict] | dict:
+    """OCR JSON → 1件または税率ごとに分けた複数の帳簿レコード。エラーは {"error": ...}。"""
+    if "error" in data:
+        return {"error": str(data["error"])[:100]}
+    try:
+        total = int(data.get("total") or data.get("amount") or 0)
+        t10 = int(data.get("total10") or 0)
+        t8 = int(data.get("total8") or 0)
+    except (TypeError, ValueError):
+        return {"error": "金額を読み取れません"}
+    if t10 + t8 == 0:
+        t10 = total if int(data.get("rate", 10)) != 8 else 0
+        t8 = total if int(data.get("rate", 10)) == 8 else 0
+    if t10 < 0 or t8 < 0 or t10 + t8 <= 0:
+        return {"error": "金額を読み取れません"}
+    inv = str(data.get("invoice_no", "")).replace("-", "").replace(" ", "").strip()
+    d = str(data.get("date") or "")
+    try:
+        date.fromisoformat(d)
+    except ValueError:
+        d = datetime.now(JST).date().isoformat()
+    cat = data.get("category") if data.get("category") in EXP_CATEGORIES else "雑費"
+    base = {"date": d, "kind": "exp", "store": str(data.get("store") or "(店名不明)")[:60],
+            "category": cat, "invoice_no": inv if re.fullmatch(r"T\d{13}", inv) else ""}
+    out = [{**base, "amount": a, "rate": r} for r, a in ((10, t10), (8, t8)) if a > 0]
+    return out
+
+
+async def ocr_receipt(img: bytes) -> list[dict] | dict:
     media = "image/png" if img[:8].startswith(b"\x89PNG") else "image/jpeg"
     async with httpx.AsyncClient(timeout=60) as c:
         r = await c.post(
@@ -138,7 +169,7 @@ async def ocr_receipt(img: bytes) -> dict:
                      "content-type": "application/json"},
             json={
                 "model": OCR_MODEL,
-                "max_tokens": 400,
+                "max_tokens": 500,
                 "messages": [{"role": "user", "content": [
                     {"type": "image", "source": {"type": "base64", "media_type": media,
                                                  "data": base64.b64encode(img).decode()}},
@@ -149,15 +180,11 @@ async def ocr_receipt(img: bytes) -> dict:
         r.raise_for_status()
         text = "".join(b.get("text", "") for b in r.json()["content"])
     m = re.search(r"\{.*\}", text, re.S)
-    data = json.loads(m.group(0)) if m else {"error": "JSONなし"}
-    if "error" in data:
-        return data
-    inv = str(data.get("invoice_no", "")).replace("-", "").strip()
-    data["invoice_no"] = inv if re.fullmatch(r"T\d{13}", inv) else ""
-    data["date"] = data.get("date") or date.today().isoformat()
-    data["kind"] = "exp"
-    data["rate"] = 8 if int(data.get("rate", 10)) == 8 else 10
-    return data
+    try:
+        data = json.loads(m.group(0)) if m else {"error": "JSONなし"}
+    except json.JSONDecodeError:
+        data = {"error": "JSON不正"}
+    return normalize_ocr(data)
 
 
 # ---------------------------------------------------------------- handlers
@@ -248,14 +275,20 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
         path = f"receipts/{safe}.jpg"
         with open(path, "wb") as f:
             f.write(img)
-        e = await ocr_receipt(img)
+        result = await ocr_receipt(img)
     except Exception as ex:  # ağ / API hatası
         print("image error", type(ex).__name__)
         return "画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。", []
-    if "error" in e:
-        return f"読み取れませんでした（{e['error']}）。\n「店名 金額」で送ってください。", []
-    add_entry(user_id, e, image_path=path, source=source)
-    return saved_text(e), opts(*QR_AFTER_SAVE)
+    if isinstance(result, dict):
+        return f"読み取れませんでした（{result['error']}）。\n「店名 金額」で送ってください。", []
+    for e in result:
+        add_entry(user_id, e, image_path=path, source=source)
+    if len(result) == 1:
+        return saved_text(result[0]), opts(*QR_AFTER_SAVE)
+    lines = "\n".join(f"・{e['rate']}%対象 {yen(e['amount'])}" for e in result)
+    head = saved_text(result[0]).split("\n")[0]
+    return (f"{head}\n{result[0]['store']}（税率ごとに{len(result)}件に分けて記録）\n{lines}\n"
+            f"{result[0]['category']}・{result[0]['date']}\n\n間違っていたら「取消」を押してください"), opts("取消", "合計", CAMERA)
 
 
 async def handle_image(user_id: str, token: str, message_id: str):

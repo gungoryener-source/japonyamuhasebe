@@ -19,3 +19,5 @@ Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri
 | GET | `/export.csv?format=freee|mf|yayoi&year=` | Muhasebe yazılımı CSV (Shift_JIS) |
 
 Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şema).
+| GET | `/pl?year=` | 青色申告決算書 (損益計算書) özeti: 売上, kalem bazında 経費, 所得 |
+| GET | `/tax/income?year=&blue=650000&social_insurance=&other_deductions=` | 所得税 tahmini (2026 için 基礎控除 doğrulanana kadar 409) |

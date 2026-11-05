@@ -16,6 +16,7 @@ import export
 import invoices as inv_mod
 import store
 from tax import consumption as ct
+from tax import income as it
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
 
@@ -144,6 +145,39 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
         raise HTTPException(400, str(ex))
     return {"year": year, "method": method, "output_tax": res.output_tax, "input_tax": res.input_tax,
             "payable": res.payable, "by_rate": res.by_rate}
+
+
+# ---------------------------------------------------------------- 確定申告 (individual)
+@router.get("/pl")
+def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
+    """青色申告決算書（損益計算書）の簡易版: 売上・勘定科目別経費・所得金額。"""
+    rows = store.search_entries(uid, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
+    revenue = sum(r["amount"] for r in rows if r["kind"] == "inc")
+    by_cat: dict[str, int] = {}
+    for r in rows:
+        if r["kind"] == "exp":
+            by_cat[r["category"]] = by_cat.get(r["category"], 0) + r["amount"]
+    expenses = sum(by_cat.values())
+    return {"year": year, "revenue": revenue,
+            "expenses": [{"category": k, "amount": v} for k, v in sorted(by_cat.items(), key=lambda x: -x[1])],
+            "expenses_total": expenses, "income_before_blue": revenue - expenses,
+            "note": "税込経理（消費税込みの金額）で集計しています。"}
+
+
+@router.get("/tax/income")
+def income_tax(year: int = Query(..., ge=2023, le=2035), blue: int = 650_000,
+               social_insurance: int = Query(0, ge=0), other_deductions: int = Query(0, ge=0),
+               uid: str = Depends(current_user)):
+    pl = profit_and_loss(year, uid)
+    try:
+        r = it.compute(pl["revenue"], pl["expenses_total"], year=year, blue=blue,
+                       social_insurance=social_insurance, other_deductions=other_deductions)
+    except NotImplementedError as ex:
+        raise HTTPException(409, str(ex))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return {"year": year, "revenue": pl["revenue"], "expenses": pl["expenses_total"], **r.__dict__,
+            "disclaimer": "概算です。源泉徴収税額・予定納税・他の所得控除は含みません。"}
 
 
 # ---------------------------------------------------------------- profile
