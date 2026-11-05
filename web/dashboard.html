@@ -425,11 +425,11 @@ function renderCF(q){
 }
 
 /* ---------- consumption tax ---------- */
-const TX={s10:41250000,s8:1650000,p10:24860000,p8:1980000,pNoInv:1320000,interim:520000};
+const TX={s10:41250000,s8:1650000,p10:24860000,p8:1980000,pNoInv:1320000 /* 2026/10以降の仕入 → 70% */,interim:520000};
 let taxMode="gen";
 function renderTax(){
   const o10=TX.s10*0.1/1.1,o8=TX.s8*0.08/1.08;
-  const i10=TX.p10*0.1/1.1,i8=TX.p8*0.08/1.08,iNo=TX.pNoInv*0.1/1.1*0.5;
+  const i10=TX.p10*0.1/1.1,i8=TX.p8*0.08/1.08,iNo=TX.pNoInv*0.1/1.1*0.7;
   const share10=TX.s10/(TX.s10+TX.s8)*100;
   $("#t-split").textContent=`10% ${share10.toFixed(1)}% ・ 8% ${(100-share10).toFixed(1)}%`;
   $("#t-ratio").innerHTML=`<i style="width:${share10}%;background:var(--ai)"></i><i style="width:${100-share10}%;background:var(--mint)"></i>`;
@@ -440,9 +440,9 @@ function renderTax(){
   if(taxMode==="gen"){
     rows+=`<tr><td><span class="rate-tag r10">10%</span>課税仕入</td><td>${yen(TX.p10)}</td><td>−${yen(i10).slice(1)}</td></tr>
      <tr><td><span class="rate-tag r8">8%</span>課税仕入（軽減）</td><td>${yen(TX.p8)}</td><td>−${yen(i8).slice(1)}</td></tr>
-     <tr><td>登録番号なし（経過措置50%）</td><td>${yen(TX.pNoInv)}</td><td>−${yen(iNo).slice(1)}</td></tr>`;
+     <tr><td>登録番号なし（経過措置70%）</td><td>${yen(TX.pNoInv)}</td><td>−${yen(iNo).slice(1)}</td></tr>`;
     pay=o10+o8-i10-i8-iNo;
-    $("#t-note").textContent="適格請求書のない仕入は、2026年10月以降80%→50%控除に縮小。";
+    $("#t-note").textContent="適格請求書のない仕入は、2026年10月〜2028年9月は70%控除（令和8年度改正）。";
   }else{
     const ded=(o10+o8)*0.5; // 第5種（サービス業）みなし仕入率50%
     rows+=`<tr><td>みなし仕入率（第5種 50%）</td><td></td><td>−${yen(ded).slice(1)}</td></tr>`;

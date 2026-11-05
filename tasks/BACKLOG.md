@@ -4,9 +4,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 | ID | Öncelik | Durum | Görev |
 |---|---|---|---|
-| T-001 | P0 | todo | Prototiplerde 令和8年度 経過措置 düzeltmesi |
-| T-002 | P0 | todo | Vergi motoru `bot/tax/` (消費税) + testler |
-| T-003 | P0 | todo | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
+| T-001 | P0 | done (bu commit) | Prototiplerde 令和8年度 経過措置 düzeltmesi |
+| T-002 | P0 | done (bu commit) | Vergi motoru `bot/tax/` (消費税) + testler |
+| T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
 | T-004 | P1 | todo | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
 | T-005 | P1 | todo | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
@@ -19,6 +19,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-013 | P2 | todo | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | todo | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P2 | todo | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
+| T-016 | P1 | todo | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
+| T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 
 ---
 
@@ -82,3 +84,10 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-015 · 請求書管理 sayfası
 - `dashboard-next/app/invoices/page.tsx`; dashboard'daki tablo bileşenini paylaş.
+
+## T-016 · dashboard-next vergi kartı
+- `ConsumptionTax` bileşeni: kayıtsız alımlar satırı (2026-10〜 70%), yöntem seçici (本則/簡易/2割/3割) — hesap mantığı `bot/tax/consumption.py` ile birebir (ileride API'den gelecek, T-005).
+- Kabul: `next build` geçer; aynı örnek veriyle Python motoru ve UI aynı 納付見込額'yı verir (değer README/test notunda).
+
+## T-017 · 簡易課税 みなし仕入率 doğrulaması
+- tax-watcher birincil kaynakla oranları ✅ yapınca `KANI_RATIO` için her tür adına test ekle.

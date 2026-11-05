@@ -44,3 +44,21 @@ def test_health(bot):
 
 def test_admin_requires_key(bot):
     assert TestClient(bot.app).post("/admin/richmenu?key=nope").status_code == 403
+
+
+def test_entries_requires_admin_key(bot):
+    c = TestClient(bot.app)
+    assert c.get("/entries/U1").status_code == 401
+    assert c.get("/entries/U1", headers={"X-Admin-Key": "wrong"}).status_code == 401
+    _post(c, "タクシー 2300", user="U1")
+    r = c.get("/entries/U1", headers={"X-Admin-Key": "test-admin"})
+    assert r.status_code == 200 and r.json()[0]["amount"] == 2300
+    assert c.get("/entries/U1?year=20%25", headers={"X-Admin-Key": "test-admin"}).status_code == 400
+
+
+def test_saved_text_transitional_ratio(bot):
+    base = {"store": "店", "amount": 1100, "category": "雑費", "rate": 10, "kind": "exp", "invoice_no": ""}
+    assert "控除80%" in bot.saved_text({**base, "date": "2026-09-30"})
+    assert "控除70%" in bot.saved_text({**base, "date": "2026-10-01"})
+    assert "登録番号" not in bot.saved_text({**base, "kind": "inc", "date": "2026-10-01"})
+    assert "T1234567890123" in bot.saved_text({**base, "invoice_no": "T1234567890123", "date": "2026-10-01"})

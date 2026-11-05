@@ -303,7 +303,7 @@ const msgs=$("#msgs");
 const now=()=>new Date().toTimeString().slice(0,5);
 function bub(html,me){const b=document.createElement("div");b.className="bub"+(me?" me":"");b.innerHTML=html+`<time>${now()}</time>`;msgs.append(b);msgs.scrollTop=msgs.scrollHeight}
 function botAdd(x){x.src=channel;data.push(x);save();
-  bub(`登録しました ✅ / Kaydedildi\n<div class="card"><b>${x.s}</b>  ${yen(x.a)}\n${x.c}・税率${x.r}%\n${x.i?"登録番号 "+x.i:"⚠️ 登録番号なし（控除50%）"}</div>\n取り消すには「取消」と送信`);showQR(["取消","合計","レシートを送る"])}
+  bub(`登録しました ✅ / Kaydedildi\n<div class="card"><b>${x.s}</b>  ${yen(x.a)}\n${x.c}・税率${x.r}%\n${x.i?"登録番号 "+x.i:"⚠️ 登録番号なし（控除"+Math.round(creditRate(x)*100)+"%）"}</div>\n取り消すには「取消」と送信`);showQR(["取消","合計","レシートを送る"])}
 function parse(t){
   if(/^(取消|iptal|undo)/i.test(t)){const l=data.pop();save();return bub(l?`「${l.s} ${yen(l.a)}」を取り消しました / Silindi`:"取り消す記録がありません");}
   if(/^(合計|今月|toplam|özet)/i.test(t)){const m=today().slice(0,7);const ex=data.filter(x=>x.k==="exp"&&x.d.startsWith(m)).reduce((s,x)=>s+x.a,0);const ic=data.filter(x=>x.k==="inc"&&x.d.startsWith(m)).reduce((s,x)=>s+x.a,0);return bub(`今月の集計 / Bu ay\n売上 ${yen(ic)}\n経費 ${yen(ex)}`)}
@@ -326,7 +326,7 @@ $("#wa-file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new Fi
   setTimeout(()=>{bub("🔍 レシートを読み取り中… / Fiş okunuyor…");setTimeout(()=>{const o=OCR[ocrN++%OCR.length];botAdd({id:nextId++,d:today(),k:"exp",...o})},800)},400)};r.readAsDataURL(f);e.target.value=""};
 bub("こんにちは！レシートの写真か、\n「店名 金額」を送ってください。\n\nMerhaba! Fiş fotoğrafı veya \"mağaza tutar\" gönder.\n例：ローソン 540円 軽減\n「合計」で今月の集計");
 bub("スタバ 1,480円",1);
-bub(`登録しました ✅ / Kaydedildi\n<div class="card"><b>スタバ</b>  ¥1,480\n会議費・税率10%\n⚠️ 登録番号なし（控除50%）</div>`);
+bub(`登録しました ✅ / Kaydedildi\n<div class="card"><b>スタバ</b>  ¥1,480\n会議費・税率10%\n⚠️ 登録番号なし（控除70%）</div>`);
 showQR(["合計","レシートを送る"]);
 ["タクシー 3,200円","ローソン 540円 軽減","入金 330,000 合同会社ミナト","合計","取消"].forEach(q=>{const b=document.createElement("button");b.type="button";b.textContent=q;b.onclick=()=>{$("#wa-text").value=q;$("#wa-form").requestSubmit()};$("#quick").append(b)});
 
@@ -342,7 +342,7 @@ document.querySelectorAll("#ctmode button").forEach(b=>b.onclick=()=>{ctMode=b.d
 ["#t-ins","#t-blue"].forEach(s=>$(s).oninput=render);
 function basicDed(inc){if(inc<=1320000)return 950000;if(inc<=3360000)return 880000;if(inc<=4890000)return 680000;if(inc<=6550000)return 630000;if(inc<=23500000)return 580000;if(inc<=24000000)return 480000;if(inc<=24500000)return 320000;if(inc<=25000000)return 160000;return 0}
 function incomeTax(t){t=Math.floor(t/1000)*1000;const B=[[1950000,.05,0],[3300000,.1,97500],[6950000,.2,427500],[9000000,.23,636000],[18000000,.33,1536000],[40000000,.4,2796000],[Infinity,.45,4796000]];for(const[l,r,d]of B)if(t<=l)return Math.max(0,t*r-d);}
-function creditRate(x){if(x.i)return 1;return x.d<"2026-10-01"?.8:.5}
+function creditRate(x){if(x.i)return 1;const d=x.d;return d<"2026-10-01"?.8:d<"2028-10-01"?.7:d<"2030-10-01"?.5:d<"2031-10-01"?.3:0} // 令和8年度改正 (docs/TAX_RULES.md)
 
 function render(){
   const yr=data.filter(x=>x.d.startsWith("2026"));
@@ -369,10 +369,10 @@ function render(){
   // consumption tax
   const outTax=yr.filter(x=>x.k==="inc").reduce((s,x)=>s+x.a*x.r/(100+x.r),0);
   let rows,pay,note;
-  if(ctMode==="2wari"){pay=outTax*.2;rows=`<tr><td>売上にかかる消費税 <span class="tr">Satışlardaki KDV</span></td><td>${yen(outTax)}</td></tr><tr><td>× 20%</td><td></td></tr>`;note="2割特例は、免税事業者からインボイス登録した個人事業主が2026年分まで使える特例です。<span class='tr'>%20 özel usul: muaflıktan kayda geçen şahıslar için 2026 yılı son yıl.</span>"}
+  if(ctMode==="2wari"){pay=outTax*.2;rows=`<tr><td>売上にかかる消費税 <span class="tr">Satışlardaki KDV</span></td><td>${yen(outTax)}</td></tr><tr><td>× 20%</td><td></td></tr>`;note="2割特例は2026年分まで。個人事業者は2027・2028年分に3割特例を使えます（令和8年度改正）。<span class='tr'>%20 özel usul 2026 son yıl; şahıslar 2027–2028'de %30 özel usulü kullanabilir.</span>"}
   else{let full=0,trans=0;yr.filter(x=>x.k==="exp"&&x.r).forEach(x=>{const v=x.a*x.r/(100+x.r)*creditRate(x);x.i?full+=v:trans+=v});pay=Math.max(0,outTax-full-trans);
-    rows=`<tr><td>売上にかかる消費税</td><td>${yen(outTax)}</td></tr><tr><td>仕入税額控除（適格請求書）<span class="tr">Kayıtlı faturalardan indirim</span></td><td>−${yen(full).slice(1)}</td></tr><tr><td>仕入税額控除（経過措置）<span class="tr">No'suz: 9月まで80%、10月から50%</span></td><td>−${yen(trans).slice(1)}</td></tr>`;
-    note="登録番号のない仕入は、2026年9月までは80%、10月以降は50%しか控除できません。<span class='tr'>Kayıt numarasız alımlarda indirim Eylül 2026'ya kadar %80, Ekim'den itibaren %50.</span>"}
+    rows=`<tr><td>売上にかかる消費税</td><td>${yen(outTax)}</td></tr><tr><td>仕入税額控除（適格請求書）<span class="tr">Kayıtlı faturalardan indirim</span></td><td>−${yen(full).slice(1)}</td></tr><tr><td>仕入税額控除（経過措置）<span class="tr">No'suz: 2026/9まで80%、2026/10〜2028/9 70%</span></td><td>−${yen(trans).slice(1)}</td></tr>`;
+    note="登録番号のない仕入の控除割合は、2026年9月まで80%、2026年10月〜2028年9月は70%（令和8年度改正）、その後50%→30%と段階的に縮小します。<span class='tr'>Kayıt numarasız alımlarda indirim: Eylül 2026'ya kadar %80, Ekim 2026–Eylül 2028 %70, sonra %50 → %30.</span>"}
   pay=Math.floor(pay/100)*100;
   $("#ct").innerHTML=rows+`<tr class="big"><td>納める消費税（概算）<span class="tr">Ödenecek tüketim vergisi</span></td><td>${yen(pay)}</td></tr>`;$("#ct-note").innerHTML=note;
   const dl=Math.ceil((new Date("2027-03-15T23:59:59+09:00")-new Date())/864e5);$("#days").textContent=dl>0?dl:"0";

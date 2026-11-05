@@ -24,6 +24,7 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 
 from parser import parse_text
+from tax.consumption import input_credit_ratio
 
 CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
 CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
@@ -153,10 +154,16 @@ def yen(n: int) -> str:
 
 
 def saved_text(e: dict) -> str:
-    inv = f"登録番号 {e['invoice_no']}" if e.get("invoice_no") else "⚠️ 登録番号なし（仕入税額控除50%）"
+    if e.get("invoice_no"):
+        inv = f"登録番号 {e['invoice_no']}"
+    elif e.get("kind") == "inc":
+        inv = ""
+    else:
+        ratio = input_credit_ratio(date.fromisoformat(e["date"]), qualified=False)
+        inv = f"⚠️ 登録番号なし（仕入税額控除{ratio}%）"
     return (f"登録しました ✅\n"
             f"{e['store']}  {yen(int(e['amount']))}\n"
-            f"{e['category']}・税率{e['rate']}%・{e['date']}\n{inv}\n\n"
+            f"{e['category']}・税率{e['rate']}%・{e['date']}\n" + (f"{inv}\n" if inv else "") + "\n"
             f"間違っていたら「取消」を押してください")
 
 
@@ -278,8 +285,12 @@ async def callback(request: Request, bg: BackgroundTasks,
 
 
 @app.get("/entries/{user_id}")
-def entries(user_id: str, year: str = "2026"):
-    """Web paneli / 確定申告 ekranı için kayıtlar (canlıda kimlik doğrulama ekleyin)."""
+def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default="")):
+    """Kayıt listesi (geçici: yalnızca ADMIN_KEY ile; tenant API'si T-005)."""
+    if not ADMIN_KEY or not hmac.compare_digest(x_admin_key, ADMIN_KEY):
+        raise HTTPException(401, "admin key required")
+    if not re.fullmatch(r"\d{4}", year):
+        raise HTTPException(400, "year must be YYYY")
     with closing(db()) as con:
         rows = con.execute(
             "SELECT * FROM entries WHERE user_id=? AND d LIKE ? ORDER BY d", (user_id, year + "%")
