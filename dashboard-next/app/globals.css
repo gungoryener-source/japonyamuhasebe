@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-[#F9FAFB] text-slate-800 antialiased; font-feature-settings: "palt"; }
+.tabular { font-variant-numeric: tabular-nums; }

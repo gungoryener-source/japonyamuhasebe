@@ -3,3 +3,9 @@
 receipts/
 __pycache__/
 .venv/
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.pytest_cache/

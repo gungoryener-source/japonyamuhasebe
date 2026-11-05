@@ -1,0 +1,28 @@
+import os
+import sys
+
+import pytest
+
+BOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BOT_DIR)
+
+os.environ.setdefault("LINE_CHANNEL_SECRET", "test-secret")
+os.environ.setdefault("LINE_CHANNEL_ACCESS_TOKEN", "test-token")
+os.environ.setdefault("ADMIN_KEY", "test-admin")
+
+
+@pytest.fixture()
+def bot(tmp_path, monkeypatch):
+    """Her test için boş veritabanı ve sahte LINE reply."""
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
+    import importlib
+    import app as app_module
+    app_module = importlib.reload(app_module)
+    sent = []
+
+    async def fake_reply(token, messages):
+        sent.append(messages)
+
+    monkeypatch.setattr(app_module, "reply", fake_reply)
+    app_module.sent = sent
+    return app_module

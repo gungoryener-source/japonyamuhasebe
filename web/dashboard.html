@@ -1,0 +1,516 @@
+<title>J-SaaS Accounting</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: fixed indigo rail on desktop + dense 12-col bento; collapses to 6 cols on tablet and 1 col with a bottom tab bar on phones. */
+:root{
+  --bg:#f5f6f9;          /* soft white-grey ground */
+  --surface:#ffffff;
+  --sunk:#eef1f6;
+  --line:#e2e6ee;
+  --ink:#16213a;
+  --ink-2:#4b5670;
+  --ink-3:#7b859c;
+  --ai:#1e3a6e;          /* 藍 Japanese indigo, brand */
+  --ai-2:#2f5596;
+  --ai-soft:#e6ecf6;
+  --mint:#2e9e7a;        /* financial success */
+  --mint-2:#5cc2a2;
+  --mint-soft:#e1f4ed;
+  --out:#9aa9c6;         /* outflow bars */
+  --warn:#a86a00; --warn-soft:#fbf0d9;
+  --bad:#b8382e; --bad-soft:#fbe5e2;
+  --rail:#1a2f57; --rail-ink:#d7e0f0;
+  --f-ui:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141d; --surface:#161d29; --sunk:#1c2534; --line:#273246;
+  --ink:#e7ecf5; --ink-2:#aeb8cc; --ink-3:#7f8aa1;
+  --ai:#8fb0e6; --ai-2:#a9c3ee; --ai-soft:#1c2a42;
+  --mint:#5fd0aa; --mint-2:#3e9f80; --mint-soft:#15302a; --out:#4b5c7c;
+  --warn:#e5b04b; --warn-soft:#33290f; --bad:#f07c71; --bad-soft:#3a1d1b;
+  --rail:#0b1220; --rail-ink:#b9c6de; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141d; --surface:#161d29; --sunk:#1c2534; --line:#273246;
+  --ink:#e7ecf5; --ink-2:#aeb8cc; --ink-3:#7f8aa1;
+  --ai:#8fb0e6; --ai-2:#a9c3ee; --ai-soft:#1c2a42;
+  --mint:#5fd0aa; --mint-2:#3e9f80; --mint-soft:#15302a; --out:#4b5c7c;
+  --warn:#e5b04b; --warn-soft:#33290f; --bad:#f07c71; --bad-soft:#3a1d1b;
+  --rail:#0b1220; --rail-ink:#b9c6de; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:13px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ai-2);outline-offset:2px;border-radius:4px}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:100%;background:linear-gradient(to right,var(--rail) 208px,transparent 208px)}
+.rail{align-self:start}
+.rail{background:var(--rail);color:var(--rail-ink);padding:18px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;padding-left:max(12px,env(safe-area-inset-left,0px))}
+.logo{display:flex;align-items:center;gap:10px;padding:0 6px;color:#fff}
+:root[data-theme="dark"] .logo{color:var(--ink)}
+.logo-mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--mint-2),#3a6fbf);display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff}
+.logo b{font-size:14px;letter-spacing:.02em;display:block;line-height:1.1}
+.logo small{font-size:10px;opacity:.7}
+.nav{display:grid;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:inherit;text-decoration:none;font-size:13px}
+.nav a:hover{background:rgba(255,255,255,.07)}
+.nav a.on{background:rgba(255,255,255,.12);color:#fff;font-weight:700}
+.nav svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;opacity:.9}
+.nav .cnt{margin-left:auto;font-family:var(--f-num);font-size:10px;background:var(--mint-2);color:#06231a;border-radius:99px;padding:0 6px}
+.rail .sep{font-size:10px;letter-spacing:.12em;opacity:.55;padding:0 10px;margin-top:4px}
+.rail-foot{margin-top:auto;font-size:11px;opacity:.75;padding:0 8px;display:grid;gap:2px}
+
+.main{min-width:0;padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){.main{padding-left:24px;padding-right:max(24px,env(safe-area-inset-right,0px))}}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:14px 12px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.top h1{margin:0;font-size:18px;font-weight:700;text-wrap:balance}
+.top .sub{color:var(--ink-3);font-size:12px}
+.top .grow{flex:1}
+.period{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:2px}
+.period button{border:0;background:none;padding:5px 10px;border-radius:6px;font-size:12px;color:var(--ink-2)}
+.period button[aria-pressed="true"]{background:var(--ai);color:#fff;font-weight:700}
+:root[data-theme="dark"] .period button[aria-pressed="true"]{color:#0b1220}
+.who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--ai-soft);color:var(--ai);display:grid;place-items:center;font-weight:700}
+
+/* ---------- bento ---------- */
+.bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.card-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card-h h2{margin:0;font-size:13px;font-weight:700}
+.card-h .en{font-size:10px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.card-h .r{margin-left:auto;font-size:11px;color:var(--ink-3)}
+.link{background:none;border:0;padding:0;color:var(--ai-2);font-size:11px}
+
+.span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-6{grid-column:span 6}.span-4{grid-column:span 4}.span-3{grid-column:span 3}
+@media (max-width:1180px){.bento{grid-template-columns:repeat(6,minmax(0,1fr))}.span-8,.span-12{grid-column:span 6}.span-6{grid-column:span 6}.span-4,.span-3{grid-column:span 3}}
+@media (max-width:640px){.bento{grid-template-columns:minmax(0,1fr)}.span-8,.span-12,.span-6,.span-4,.span-3{grid-column:1/-1}}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;padding:0}
+.kpi{padding:12px 14px;border-right:1px solid var(--line);min-width:0}
+.kpi:last-child{border-right:0}
+.kpi .l{font-size:11px;color:var(--ink-2);display:flex;gap:6px;align-items:baseline}
+.kpi .l i{font-style:normal;font-size:10px;color:var(--ink-3)}
+.kpi .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .d{font-size:11px;font-family:var(--f-num)}
+.up{color:var(--mint)}.down{color:var(--bad)}
+.kpi svg{display:block;width:100%;height:22px;margin-top:4px}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi:nth-child(3n){border-right:0}.kpi:nth-child(-n+3){border-bottom:1px solid var(--line)}}
+@media (max-width:420px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)}.kpi:nth-child(2n){border-right:0!important}.kpi:nth-last-child(-n+2){border-bottom:0}.kpi .v{font-size:16px}}
+
+/* cash flow chart */
+.legend{display:flex;gap:12px;font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.chart-wrap{position:relative;min-width:0}
+.chart-wrap svg{width:100%;height:auto;display:block;overflow:visible}
+.axis text{fill:var(--ink-3);font-family:var(--f-num);font-size:10px}
+.grid line{stroke:var(--line);stroke-width:1}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.6;white-space:nowrap;transform:translate(-50%,-110%);box-shadow:0 6px 20px rgba(10,20,40,.18)}
+.tip b{font-family:var(--f-num)}
+.cf-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.cf-sum div{min-width:0}
+.cf-sum span{font-size:10px;color:var(--ink-3);display:block}
+.cf-sum b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;white-space:nowrap}
+@media (max-width:420px){.cf-sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* tax */
+.ratio{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--sunk)}
+.ratio i{display:block;height:100%}
+table{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{padding:5px 0;border-bottom:1px solid var(--line);text-align:right;font-weight:400;white-space:nowrap}
+.tbl th{font-size:10px;color:var(--ink-3)}
+.tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal}
+.tbl td{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:12px}
+.tbl td:first-child{font-family:var(--f-ui);font-size:12px}
+.tbl tr.total td{font-weight:600;border-bottom:0;color:var(--ai)}
+.tbl td+td,.tbl th+th{padding-left:10px}
+.rate-tag{display:inline-block;font-family:var(--f-num);font-size:10px;padding:0 5px;border-radius:4px;margin-right:4px}
+.r10{background:var(--ai-soft);color:var(--ai)}.r8{background:var(--mint-soft);color:var(--mint)}
+.note{font-size:11px;color:var(--ink-3);margin:0}
+.seg{display:flex;gap:4px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{border-color:var(--ai);color:var(--ai);background:var(--ai-soft);font-weight:700}
+
+/* sync */
+.sync-list{display:grid}
+.sync{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.sync:last-child{border-bottom:0}
+.bank{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff}
+.sync .nm{min-width:0}
+.sync .nm b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync .nm span{font-size:11px;color:var(--ink-3);font-family:var(--f-num)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-ok{background:var(--mint-soft);color:var(--mint)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-run{background:var(--ai-soft);color:var(--ai)}
+.b-run::before{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.2}}
+.sec-h{font-size:10px;letter-spacing:.1em;color:var(--ink-3);margin:6px 0 0;text-transform:uppercase}
+.btn-sm{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 10px;font-size:11px}
+
+/* quick actions */
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qa-btn{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);text-align:left;min-width:0}
+.qa-btn:hover{border-color:var(--ai-2);background:var(--ai-soft)}
+.qa-btn svg{width:22px;height:22px;stroke:var(--ai);fill:none;stroke-width:1.7}
+.qa-btn b{font-size:13px}
+.qa-btn span{font-size:11px;color:var(--ink-3)}
+.qa-btn.primary{background:var(--ai);border-color:var(--ai);color:#fff}
+.qa-btn.primary svg{stroke:#fff}.qa-btn.primary span{color:rgba(255,255,255,.75)}
+:root[data-theme="dark"] .qa-btn.primary{color:#0b1220}:root[data-theme="dark"] .qa-btn.primary svg{stroke:#0b1220}:root[data-theme="dark"] .qa-btn.primary span{color:#1c2a42}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qa-btn.primary{color:#0b1220}:root:not([data-theme="light"]) .qa-btn.primary svg{stroke:#0b1220}:root:not([data-theme="light"]) .qa-btn.primary span{color:#1c2a42}:root:not([data-theme="light"]) .logo{color:var(--ink)}:root:not([data-theme="light"]) .period button[aria-pressed="true"]{color:#0b1220}}
+.qa-mini{display:flex;flex-wrap:wrap;gap:6px}
+.qa-mini button{border:1px solid var(--line);background:var(--sunk);border-radius:99px;padding:4px 10px;font-size:11px;color:var(--ink-2)}
+.drop{display:none}
+
+/* lists */
+.list{display:grid}
+.li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.li .dt{font-family:var(--f-num);font-size:11px;color:var(--ink-2);line-height:1.2;text-align:center;background:var(--sunk);border-radius:6px;padding:4px 0}
+.li .dt small{display:block;font-size:9px;color:var(--ink-3)}
+.li .t{min-width:0}
+.li .t b{display:block;font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .t span{font-size:10px;color:var(--ink-3)}
+.li .a{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;text-align:right}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:4px 10px 6px;font-size:12px;color:var(--ink-3);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ai);font-weight:700}
+
+/* todo */
+.todo{display:grid;gap:6px}
+.todo button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--line);border-left:3px solid var(--sev,var(--ai));background:var(--surface);border-radius:8px;padding:8px 10px;text-align:left}
+.todo b{font-family:var(--f-num);font-size:16px;font-weight:600;color:var(--sev,var(--ai));min-width:28px;text-align:right}
+.todo span{font-size:12px;min-width:0}
+.todo small{font-size:10px;color:var(--ink-3);display:block}
+.todo em{font-style:normal;color:var(--ink-3);font-size:14px}
+
+/* expense bars */
+.hb{display:grid;gap:6px}
+.hb-row{display:grid;grid-template-columns:72px minmax(0,1fr) 78px;gap:8px;align-items:center;font-size:11px}
+.hb-row .bar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.hb-row .bar i{display:block;height:100%;background:var(--ai-2);border-radius:99px}
+.hb-row .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;text-align:right;color:var(--ink-2)}
+
+/* schedule */
+.sched{display:grid;gap:0}
+.sch{display:grid;grid-template-columns:74px minmax(0,1fr) auto;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12px;align-items:center}
+.sch:last-child{border-bottom:0}
+.sch .d{font-family:var(--f-num);font-size:11px;color:var(--ink-2)}
+.sch.done{color:var(--ink-3)}.sch.done .t{text-decoration:line-through}
+
+/* mobile tabbar */
+.tabbar{display:none}
+@media (max-width:899px){
+  .app{grid-template-columns:minmax(0,1fr);background:none}
+  .top{position:static}
+  .rail{display:none}
+  .main{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+  .tabbar a{display:grid;justify-items:center;gap:2px;padding:7px 0 8px;font-size:10px;color:var(--ink-3);text-decoration:none}
+  .tabbar a.on{color:var(--ai)}
+  .tabbar svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}
+  .top .who span{display:none}
+}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:99px;font-size:12px;z-index:40;max-width:calc(100% - 32px)}
+@media (max-width:899px){.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="rail" aria-label="メインメニュー">
+    <div class="logo"><div class="logo-mark">J</div><div><b>J-SaaS 会計</b><small>Cloud Accounting</small></div></div>
+    <nav class="nav">
+      <a href="#" class="on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>ホーム</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>取引一覧<span class="cnt">12</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>請求書</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 9h6M9 13h4"/></svg>経費精算</a>
+      <a href="#"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>口座・カード</a>
+      <div class="sep">レポート</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>試算表</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8h14M5 16h14"/></svg>消費税</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M8 3h8l3 3v15H5V3z"/><path d="M9 12l2 2 4-4"/></svg>決算・申告</a>
+      <div class="sep">設定</div>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>事業所設定</a>
+    </nav>
+    <div class="rail-foot"><span>適格請求書発行事業者</span><span class="num">T3010001222222</span></div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div><h1>ダッシュボード</h1><div class="sub">合同会社ミナト ・ 第8期（2026年4月〜2027年3月）・ 2026年11月5日 時点 ・ サンプルデータ</div></div>
+      <div class="grow"></div>
+      <div class="period" role="group" aria-label="表示期間">
+        <button type="button" id="p-m" aria-pressed="true">月次</button>
+        <button type="button" id="p-q" aria-pressed="false">四半期</button>
+      </div>
+      <div class="who"><span>経理担当 佐藤</span><div class="avatar">佐</div></div>
+    </header>
+
+    <div class="bento">
+      <!-- KPI -->
+      <section class="card span-12 kpis" aria-label="主要指標" id="kpis"></section>
+
+      <!-- cash flow -->
+      <section class="card span-8">
+        <div class="card-h"><h2>月次キャッシュフロー</h2><span class="en">Cash Flow</span><span class="r" id="cf-range"></span></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--mint)"></i>入金</span>
+          <span><i class="sw" style="background:var(--out)"></i>出金</span>
+          <span><i class="sw" style="background:var(--ai);height:2px;border-radius:0"></i>月末残高（右軸）</span>
+          <span><i class="sw" style="background:var(--sunk);border:1px dashed var(--ink-3)"></i>見込</span>
+        </div>
+        <div class="chart-wrap" id="cf"></div>
+        <div class="cf-sum" id="cf-sum"></div>
+      </section>
+
+      <!-- quick actions -->
+      <section class="card span-4">
+        <div class="card-h"><h2>クイックアクション</h2><span class="en">Quick Actions</span></div>
+        <div class="qa">
+          <button type="button" class="qa-btn primary" id="qa-inv">
+            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
+            <b>請求書作成</b><span>適格請求書・インボイス対応</span>
+          </button>
+          <label class="qa-btn" for="rcpt">
+            <svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M12 8v6M9 11l3-3 3 3"/></svg>
+            <b>領収書回収</b><span>撮影・PDFをアップロード</span>
+            <input type="file" id="rcpt" class="drop" accept="image/*,application/pdf" multiple>
+          </label>
+        </div>
+        <div class="qa-mini">
+          <button type="button" data-t="仕訳入力">＋ 仕訳入力</button>
+          <button type="button" data-t="振込予定">振込予定</button>
+          <button type="button" data-t="経費申請">経費申請</button>
+          <button type="button" data-t="CSV取込">CSV取込</button>
+        </div>
+        <div class="todo" id="todo"></div>
+      </section>
+
+      <!-- consumption tax -->
+      <section class="card span-4">
+        <div class="card-h"><h2>消費税</h2><span class="en">Consumption Tax</span>
+          <div class="seg r" role="group" aria-label="計算方式">
+            <button type="button" id="t-gen" aria-pressed="true">本則</button>
+            <button type="button" id="t-sim" aria-pressed="false">簡易</button>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:4px"><span>課税売上の税率構成</span><span class="num" id="t-split"></span></div>
+          <div class="ratio" id="t-ratio"></div>
+        </div>
+        <table class="tbl" id="tax"></table>
+        <p class="note" id="t-note"></p>
+      </section>
+
+      <!-- sync -->
+      <section class="card span-4">
+        <div class="card-h"><h2>連携ステータス</h2><span class="en">Bank &amp; e-Invoice Sync</span><button type="button" class="btn-sm r" id="sync-now">今すぐ同期</button></div>
+        <div class="sync-list" id="banks"></div>
+        <p class="sec-h">電子インボイス・電子帳簿保存法</p>
+        <div class="sync-list" id="einv"></div>
+      </section>
+
+      <!-- receivables / payables -->
+      <section class="card span-4">
+        <div class="card-h"><h2>入出金予定</h2><span class="en">Upcoming</span></div>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" aria-selected="true" id="tab-in">入金予定 <span class="num">¥3,190,000</span></button>
+          <button type="button" role="tab" aria-selected="false" id="tab-out">支払予定</button>
+        </div>
+        <div class="list" id="sched-list"></div>
+      </section>
+
+      <!-- expense categories -->
+      <section class="card span-6">
+        <div class="card-h"><h2>経費内訳（今期累計）</h2><span class="en">Expenses by Account</span><span class="r num" id="exp-total"></span></div>
+        <div class="hb" id="hb"></div>
+      </section>
+
+      <!-- tax calendar -->
+      <section class="card span-6">
+        <div class="card-h"><h2>税務カレンダー</h2><span class="en">Filing Schedule</span><span class="r">3月決算法人</span></div>
+        <div class="sched" id="cal"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="メニュー">
+  <a href="#" class="on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>ホーム</a>
+  <a href="#"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>取引</a>
+  <a href="#"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>請求書</a>
+  <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>レポート</a>
+  <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>設定</a>
+</nav>
+
+<script>
+/* ---------- sample data (第8期, 4月〜3月) ---------- */
+const MONTHS=["4月","5月","6月","7月","8月","9月","10月","11月","12月","1月","2月","3月"];
+const ACTUAL=7; // 4月〜10月 実績, 11月〜 見込
+const IN =[4820000,5130000,6240000,5410000,4380000,6950000,6120000,5600000,7200000,4900000,5300000,8100000];
+const OUT=[4310000,4520000,5080000,4970000,4610000,5240000,5380000,5200000,6100000,4700000,4800000,6400000];
+const OPEN=12450000;
+const bal=[];IN.reduce((b,v,i)=>(bal[i]=b+v-OUT[i]),OPEN);
+
+const yen=n=>(n<0?"−¥":"¥")+Math.abs(Math.round(n)).toLocaleString("ja-JP");
+const man=n=>(n/10000).toLocaleString("ja-JP",{maximumFractionDigits:0})+"万";
+const $=s=>document.querySelector(s);
+function toast(t){const e=document.createElement("div");e.className="toast";e.setAttribute("role","status");e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2400)}
+function spark(vals,color){const w=100,h=22,mn=Math.min(...vals),mx=Math.max(...vals),sx=w/(vals.length-1);
+  const p=vals.map((v,i)=>`${(i*sx).toFixed(1)},${(h-2-(v-mn)/(mx-mn||1)*(h-4)).toFixed(1)}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${p}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`}
+
+/* ---------- KPI ---------- */
+function renderKpis(q){
+  const cur=ACTUAL-1, prev=cur-1;
+  const sum=(a,s,e)=>a.slice(s,e+1).reduce((x,y)=>x+y,0);
+  const pick=a=>q?[sum(a,3,5),sum(a,0,2)]:[a[cur],a[prev]]; // Q2 vs Q1 / 10月 vs 9月
+  const [si,sp]=pick(IN),[eo,ep]=pick(OUT);
+  const K=[
+    ["売上","Revenue",si,sp,IN.slice(0,ACTUAL),"var(--mint)",false],
+    ["経費","Expenses",eo,ep,OUT.slice(0,ACTUAL),"var(--out)",true],
+    ["営業利益","Op. Profit",si-eo,sp-ep,IN.slice(0,ACTUAL).map((v,i)=>v-OUT[i]),"var(--ai)",false],
+    ["現預金残高","Cash",bal[cur],bal[prev],bal.slice(0,ACTUAL),"var(--ai)",false],
+    ["売掛金","A/R",3190000,2860000,[2400000,2650000,3100000,2700000,2510000,2860000,3190000],"var(--ai-2)",true],
+    ["未払金","A/P",1284000,1410000,[1100000,1250000,1600000,1390000,1220000,1410000,1284000],"var(--ai-2)",true],
+  ];
+  $("#kpis").innerHTML=K.map(([j,e,v,p,sp,c,inv])=>{const d=p?(v-p)/Math.abs(p)*100:0;const good=inv?d<=0:d>=0;
+    return `<div class="kpi"><div class="l">${j}<i>${e}</i></div><div class="v">${yen(v)}</div><div class="d ${good?"up":"down"}">${d>=0?"▲":"▼"} ${Math.abs(d).toFixed(1)}% <span style="color:var(--ink-3)">${q?"前四半期比":"前月比"}</span></div>${spark(sp,c)}</div>`}).join("");
+}
+
+/* ---------- cash flow chart ---------- */
+function renderCF(q){
+  let labels=MONTHS,inn=IN,out=OUT,b=bal,act=ACTUAL;
+  if(q){labels=["Q1 4-6月","Q2 7-9月","Q3 10-12月","Q4 1-3月"];const g=a=>[0,1,2,3].map(k=>a.slice(k*3,k*3+3).reduce((x,y)=>x+y,0));inn=g(IN);out=g(OUT);b=[2,5,8,11].map(i=>bal[i]);act=2;}
+  const W=Math.max(300,Math.round($("#cf").clientWidth||720)),sm=W<560,H=sm?220:250,L=sm?38:46,R=sm?42:50,T=10,B=26,n=labels.length,cw=(W-L-R)/n;
+  const maxV=Math.ceil(Math.max(...inn,...out)/(q?5e6:2e6))*(q?5e6:2e6);
+  const bmin=Math.floor(Math.min(...b)/5e6)*5e6,bmax=Math.ceil(Math.max(...b)/5e6)*5e6;
+  const y=v=>T+(H-T-B)*(1-v/maxV), yb=v=>T+(H-T-B)*(1-(v-bmin)/(bmax-bmin));
+  const ticks=4;let g="",ax="";
+  for(let i=0;i<=ticks;i++){const v=maxV*i/ticks,yy=y(v);g+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}"/>`;ax+=`<text x="${L-6}" y="${yy+3}" text-anchor="end">${man(v)}</text>`;
+    const vb=bmin+(bmax-bmin)*i/ticks;ax+=`<text x="${W-R+6}" y="${yb(vb)+3}" text-anchor="start">${man(vb)}</text>`}
+  const bw=Math.min(14,cw*.32);let bars="";
+  labels.forEach((m,i)=>{const cx=L+cw*i+cw/2,fut=i>=act;
+    const st=fut?`fill-opacity=".35" stroke-dasharray="3 2" stroke-width="1"`:"";
+    bars+=`<rect x="${cx-bw-1}" y="${y(inn[i])}" width="${bw}" height="${y(0)-y(inn[i])}" rx="2" fill="var(--mint)" ${fut?`stroke="var(--mint)" ${st}`:""}/>`;
+    bars+=`<rect x="${cx+1}" y="${y(out[i])}" width="${bw}" height="${y(0)-y(out[i])}" rx="2" fill="var(--out)" ${fut?`stroke="var(--out)" ${st}`:""}/>`;
+    ax+=`<text x="${cx}" y="${H-8}" text-anchor="middle" ${i===act-1?'style="fill:var(--ink);font-weight:600"':""}>${m}</text>`;
+    bars+=`<rect class="hit" data-i="${i}" x="${L+cw*i}" y="${T}" width="${cw}" height="${H-T-B}" fill="transparent"/>`});
+  const pts=b.map((v,i)=>[L+cw*i+cw/2,yb(v)]);
+  const solid=pts.slice(0,act).map(p=>p.join(",")).join(" "),dash=pts.slice(act-1).map(p=>p.join(",")).join(" ");
+  const line=`<polyline points="${solid}" fill="none" stroke="var(--ai)" stroke-width="2"/><polyline points="${dash}" fill="none" stroke="var(--ai)" stroke-width="2" stroke-dasharray="4 3" opacity=".6"/>`+
+    pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===act-1?4:2.5}" fill="${i===act-1?"var(--ai)":"var(--surface)"}" stroke="var(--ai)" stroke-width="1.5"/>`).join("");
+  const today=`<line x1="${L+cw*act}" x2="${L+cw*act}" y1="${T}" y2="${H-B}" stroke="var(--ink-3)" stroke-dasharray="2 3"/><text x="${L+cw*act+4}" y="${T+10}" style="fill:var(--ink-3);font-size:9px">見込 →</text>`;
+  $("#cf").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="月次の入金・出金と月末残高"><g class="grid">${g}</g>${bars}${line}${today}<g class="axis">${ax}</g></svg><div class="tip" hidden id="tip"></div>`;
+  const tip=$("#tip"),wrap=$("#cf");
+  wrap.querySelectorAll(".hit").forEach(r=>{r.addEventListener("mouseenter",()=>{const i=+r.dataset.i,sv=wrap.querySelector("svg").getBoundingClientRect(),k=sv.width/W;
+      tip.innerHTML=`<div>${labels[i]}${i>=act?"（見込）":""}</div>入金 <b>${yen(inn[i])}</b><br>出金 <b>${yen(out[i])}</b><br>収支 <b>${yen(inn[i]-out[i])}</b><br>残高 <b>${yen(b[i])}</b>`;
+      tip.style.left=Math.min(Math.max((L+cw*i+cw/2)*k,80),sv.width-80)+"px";tip.style.top=(Math.min(y(inn[i]),y(out[i]))*k)+"px";tip.hidden=false});
+    r.addEventListener("mouseleave",()=>tip.hidden=true)});
+  const ti=IN.slice(0,ACTUAL).reduce((a,c)=>a+c,0),to=OUT.slice(0,ACTUAL).reduce((a,c)=>a+c,0);
+  $("#cf-range").textContent=q?"四半期集計":"2026年4月〜2027年3月";
+  $("#cf-sum").innerHTML=`<div><span>累計入金（4〜10月）</span><b class="up">${yen(ti)}</b></div><div><span>累計出金</span><b>${yen(to)}</b></div><div><span>累計収支</span><b>${yen(ti-to)}</b></div><div><span>期末残高見込</span><b>${yen(bal[11])}</b></div>`;
+}
+
+/* ---------- consumption tax ---------- */
+const TX={s10:41250000,s8:1650000,p10:24860000,p8:1980000,pNoInv:1320000,interim:520000};
+let taxMode="gen";
+function renderTax(){
+  const o10=TX.s10*0.1/1.1,o8=TX.s8*0.08/1.08;
+  const i10=TX.p10*0.1/1.1,i8=TX.p8*0.08/1.08,iNo=TX.pNoInv*0.1/1.1*0.5;
+  const share10=TX.s10/(TX.s10+TX.s8)*100;
+  $("#t-split").textContent=`10% ${share10.toFixed(1)}% ・ 8% ${(100-share10).toFixed(1)}%`;
+  $("#t-ratio").innerHTML=`<i style="width:${share10}%;background:var(--ai)"></i><i style="width:${100-share10}%;background:var(--mint)"></i>`;
+  let rows=`<tr><th>今期累計（4〜10月）</th><th>税込金額</th><th>消費税額</th></tr>
+   <tr><td><span class="rate-tag r10">10%</span>課税売上</td><td>${yen(TX.s10)}</td><td>${yen(o10)}</td></tr>
+   <tr><td><span class="rate-tag r8">8%</span>課税売上（軽減）</td><td>${yen(TX.s8)}</td><td>${yen(o8)}</td></tr>`;
+  let pay;
+  if(taxMode==="gen"){
+    rows+=`<tr><td><span class="rate-tag r10">10%</span>課税仕入</td><td>${yen(TX.p10)}</td><td>−${yen(i10).slice(1)}</td></tr>
+     <tr><td><span class="rate-tag r8">8%</span>課税仕入（軽減）</td><td>${yen(TX.p8)}</td><td>−${yen(i8).slice(1)}</td></tr>
+     <tr><td>登録番号なし（経過措置50%）</td><td>${yen(TX.pNoInv)}</td><td>−${yen(iNo).slice(1)}</td></tr>`;
+    pay=o10+o8-i10-i8-iNo;
+    $("#t-note").textContent="適格請求書のない仕入は、2026年10月以降80%→50%控除に縮小。";
+  }else{
+    const ded=(o10+o8)*0.5; // 第5種（サービス業）みなし仕入率50%
+    rows+=`<tr><td>みなし仕入率（第5種 50%）</td><td></td><td>−${yen(ded).slice(1)}</td></tr>`;
+    pay=o10+o8-ded;
+    $("#t-note").textContent="簡易課税は基準期間の課税売上高5,000万円以下が条件。届出が必要です。";
+  }
+  pay=Math.floor(pay/100)*100;
+  rows+=`<tr><td>中間納付済</td><td></td><td>−${yen(TX.interim).slice(1)}</td></tr><tr class="total"><td>納付見込額</td><td></td><td>${yen(pay-TX.interim)}</td></tr>`;
+  $("#tax").innerHTML=rows;
+}
+
+/* ---------- sync ---------- */
+const BANKS=[
+  {n:"三菱UFJ銀行",s:"普通 ****4821",c:"#c8102e",k:"ok",t:"11/05 09:12"},
+  {n:"三井住友銀行",s:"当座 ****0937",c:"#00663a",k:"ok",t:"11/05 09:12"},
+  {n:"楽天銀行",s:"普通 ****2210",c:"#bf0000",k:"warn",t:"10/28 18:40"},
+  {n:"法人カード（Visa）",s:"****7713",c:"#1e3a6e",k:"ok",t:"11/05 08:55"},
+];
+const EINV=[
+  {n:"Peppol（JP PINT）",s:"電子インボイス送受信",c:"#2f5596",k:"ok",lbl:"接続済"},
+  {n:"電子帳簿保存法",s:"タイムスタンプ・検索要件",c:"#2e9e7a",k:"ok",lbl:"要件充足"},
+  {n:"適格請求書番号照会",s:"国税庁API・取引先 214件",c:"#4b5670",k:"ok",lbl:"検証済"},
+];
+const LBL={ok:"連携中",warn:"要再認証",run:"同期中…"};
+function renderSync(){
+  $("#banks").innerHTML=BANKS.map((b,i)=>`<div class="sync"><div class="bank" style="background:${b.c}">${b.n[0]}</div><div class="nm"><b>${b.n}</b><span>${b.s} ・ 最終 ${b.t}</span></div>${b.k==="warn"?`<button type="button" class="badge b-warn" data-re="${i}" style="border:0">${LBL.warn}</button>`:`<span class="badge b-${b.k}">${LBL[b.k]}</span>`}</div>`).join("");
+  $("#einv").innerHTML=EINV.map(b=>`<div class="sync"><div class="bank" style="background:${b.c}">${b.n[0]}</div><div class="nm"><b>${b.n}</b><span>${b.s}</span></div><span class="badge b-ok">${b.lbl}</span></div>`).join("");
+  document.querySelectorAll("[data-re]").forEach(x=>x.onclick=()=>toast(`${BANKS[x.dataset.re].n}：再認証画面を開きます（デモ）`));
+}
+$("#sync-now").onclick=()=>{const prev=BANKS.map(b=>b.k);BANKS.forEach(b=>{if(b.k==="ok")b.k="run"});renderSync();
+  setTimeout(()=>{BANKS.forEach((b,i)=>{if(prev[i]==="ok"){b.k="ok";b.t="11/05 "+new Date().toTimeString().slice(0,5)}});renderSync();toast("同期が完了しました ・ 新規明細 18件")},1400)};
+
+/* ---------- quick actions & todo ---------- */
+const TODO=[
+  ["var(--bad)",12,"未処理の領収書","経費精算・仕訳待ち"],
+  ["var(--warn)",3,"登録番号未確認の取引先","仕入税額控除に影響"],
+  ["var(--ai)",5,"未消込の入金","自動マッチング候補あり"],
+];
+$("#todo").innerHTML=TODO.map(([c,n,t,s])=>`<button type="button" style="--sev:${c}"><b>${n}</b><span>${t}<small>${s}</small></span><em>›</em></button>`).join("");
+$("#todo").querySelectorAll("button").forEach(b=>b.onclick=()=>toast(b.querySelector("span").firstChild.textContent+"を開きます（デモ）"));
+$("#qa-inv").onclick=()=>toast("請求書作成：取引先・品目・税率（10%/8%）を入力します（デモ）");
+$("#rcpt").onchange=e=>{const n=e.target.files.length;if(!n)return;TODO[0][1]+=n;$("#todo b").textContent=TODO[0][1];toast(`領収書 ${n}件をアップロードしました。AIが読み取り中です`);e.target.value=""};
+document.querySelectorAll(".qa-mini button").forEach(b=>b.onclick=()=>toast(b.dataset.t+"（デモ）"));
+
+/* ---------- upcoming ---------- */
+const INCOME=[["11/10","株式会社サクラ製作所","請求書 No.2026-0412",1320000],["11/30","合同会社アオイ商事","請求書 No.2026-0418",990000],["11/30","株式会社ヒカリ","請求書 No.2026-0421",550000],["12/15","有限会社カエデ","請求書 No.2026-0425",330000]];
+const PAYS=[["11/10","源泉所得税（10月分）","税務署",184300],["11/25","東京シェアオフィス","地代家賃 12月分",66000],["11/30","株式会社クラウドワン","外注工賃",880000],["11/30","法人カード引落","10月利用分",153700]];
+function renderSched(which){const L=which==="in"?INCOME:PAYS;
+  $("#sched-list").innerHTML=L.map(([d,n,s,a])=>{const [m,dd]=d.split("/");return `<div class="li"><div class="dt">${dd}<small>${m}月</small></div><div class="t"><b>${n}</b><span>${s}</span></div><div class="a ${which==="in"?"up":""}">${yen(a)}</div></div>`}).join("");
+  $("#tab-in").setAttribute("aria-selected",which==="in");$("#tab-out").setAttribute("aria-selected",which!=="in");
+  $("#tab-out").innerHTML=`支払予定 <span class="num">${yen(PAYS.reduce((s,x)=>s+x[3],0))}</span>`;}
+$("#tab-in").onclick=()=>renderSched("in");$("#tab-out").onclick=()=>renderSched("out");
+
+/* ---------- expense bars ---------- */
+const EXP=[["給料手当",14700000],["外注工賃",6160000],["地代家賃",2310000],["旅費交通費",1184000],["通信費",642000],["接待交際費",588000],["消耗品費",471000],["会議費",214000]];
+function renderExp(){const mx=EXP[0][1],tot=EXP.reduce((s,x)=>s+x[1],0);$("#exp-total").textContent="計 "+yen(tot);
+  $("#hb").innerHTML=EXP.map(([n,v])=>`<div class="hb-row"><span>${n}</span><div class="bar"><i style="width:${(v/mx*100).toFixed(1)}%"></i></div><span class="v">${yen(v)}</span></div>`).join("")}
+
+/* ---------- tax calendar ---------- */
+const CAL=[["10/10","源泉所得税 納付（9月分）","済",1],["11/10","源泉所得税 納付（10月分）","5日後",0],["11/30","消費税 中間申告（第2回）","25日後",0],["12/10","源泉所得税 納付（11月分）","",0],["1/20","源泉所得税 納期の特例（下期）","",0],["1/31","法定調書合計表・償却資産申告","",0],["5/31","法人税・消費税 確定申告","",0]];
+$("#cal").innerHTML=CAL.map(([d,t,r,done])=>`<div class="sch ${done?"done":""}"><span class="d">${d}</span><span class="t">${t}</span>${r?`<span class="badge ${done?"b-ok":r.includes("5日")?"b-warn":"b-run"}">${r}</span>`:"<span></span>"}</div>`).join("");
+
+/* ---------- period toggle ---------- */
+function setPeriod(q){curQ=q;$("#p-m").setAttribute("aria-pressed",!q);$("#p-q").setAttribute("aria-pressed",q);renderKpis(q);renderCF(q)}
+let curQ=false,rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>renderCF(curQ),150)});
+$("#p-m").onclick=()=>setPeriod(false);$("#p-q").onclick=()=>setPeriod(true);
+function setTax(m){taxMode=m;$("#t-gen").setAttribute("aria-pressed",m==="gen");$("#t-sim").setAttribute("aria-pressed",m==="sim");renderTax()}
+$("#t-gen").onclick=()=>setTax("gen");$("#t-sim").onclick=()=>setTax("sim");
+
+setPeriod(false);renderTax();renderSync();renderSched("in");renderExp();
+</script>

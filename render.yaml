@@ -2,6 +2,7 @@ services:
   - type: web
     name: tegaru-line-bot
     runtime: python
+    rootDir: bot
     plan: free
     region: singapore
     buildCommand: pip install -r requirements.txt
