@@ -13,16 +13,16 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
-| T-009 | P1 | todo | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
+| T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
 | T-011 | P2 | todo | Fiş görsellerini nesne depolamaya taşıma (arama uç noktası ✅ `/api/v1/entries`) |
 | T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
-| T-013 | P2 | todo | WhatsApp Business webhook kanalı (parser paylaşımlı) |
+| T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | todo | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P2 | todo | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
 | T-016 | P1 | todo | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
 | T-012b | P2 | todo | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
-| T-018 | P1 | todo | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
+| T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 
 ---

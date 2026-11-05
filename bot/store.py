@@ -169,12 +169,27 @@ def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+MAX_TOKENS_PER_USER = 5
+
+
 def issue_token(user_id: str, label: str = "") -> str:
+    """Yeni token üretir; kullanıcı başına en fazla MAX_TOKENS_PER_USER (en eskiler iptal edilir)."""
     token = "tk_" + secrets.token_urlsafe(24)
     with closing(connect()) as con, con:
         con.execute("INSERT INTO api_tokens(token_hash,user_id,label,created_at) VALUES(?,?,?,?)",
                     (_hash(token), user_id, label, now()))
+        con.execute(
+            """DELETE FROM api_tokens WHERE user_id=? AND token_hash NOT IN (
+                   SELECT token_hash FROM api_tokens WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT ?)""",
+            (user_id, user_id, MAX_TOKENS_PER_USER),
+        )
     return token
+
+
+def revoke_token(token: str) -> bool:
+    with closing(connect()) as con, con:
+        cur = con.execute("DELETE FROM api_tokens WHERE token_hash=?", (_hash(token),))
+    return cur.rowcount > 0
 
 
 def user_for_token(token: str) -> str | None:

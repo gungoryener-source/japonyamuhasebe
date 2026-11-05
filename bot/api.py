@@ -238,6 +238,12 @@ def export_csv(format: str = "freee", year: int = Query(..., ge=2023, le=2035), 
                     headers={"Content-Disposition": f'attachment; filename="tegaru_{format}_{year}.csv"'})
 
 
+@router.delete("/tokens/current", status_code=204)
+def revoke_current(authorization: str = Header(default=""), uid: str = Depends(current_user)):
+    store.revoke_token(authorization.removeprefix("Bearer ").strip())
+    return Response(status_code=204)
+
+
 # ---------------------------------------------------------------- admin
 class TokenIn(BaseModel):
     user_id: str = Field(min_length=1, max_length=100)

@@ -145,3 +145,12 @@ def test_demo_seed(client):
     assert s["revenue"] == 4_250_000 and s["expenses"] == 1_820_000
     invs = client.get("/api/v1/invoices", headers=tok).json()
     assert len(invs) == 4 and sum(1 for i in invs if i["status"] == "paid") == 1
+
+
+def test_token_revoke_and_limit(client, auth):
+    import store
+    assert client.delete("/api/v1/tokens/current", headers=auth).status_code == 204
+    assert client.get("/api/v1/profile", headers=auth).status_code == 401
+    toks = [store.issue_token("LIM") for _ in range(7)]
+    assert store.user_for_token(toks[0]) is None and store.user_for_token(toks[1]) is None
+    assert all(store.user_for_token(t) == "LIM" for t in toks[2:])

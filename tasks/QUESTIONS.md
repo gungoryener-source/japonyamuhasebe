@@ -21,3 +21,7 @@ NTA No.1199 tablosundan 2026 yılı için ≤2,350万 → 104万 okunuyor ama h�
 ## Q-05 · Panel adresi (açık)
 render.yaml'a `jsaas-panel` statik sitesi eklendi; Render blueprint senkronunda otomatik oluşur. Render alt alan adı farklı çıkarsa (ör. `jsaas-panel-xxxx.onrender.com`) tegaru-line-bot → Environment → `PANEL_URL` değerini düzelt. Blueprint senkronu "manual" ise Render → Blueprints → japonyamuhasebe → Sync.
 **Cevap:**
+
+## Q-06 · WhatsApp Business (açık)
+Kod hazır (`bot/whatsapp.py`, webhook `https://tegaru-line-bot.onrender.com/whatsapp`). Canlıya almak için Meta for Developers'ta WhatsApp uygulaması + telefon numarası gerekir; Render'a `WHATSAPP_APP_SECRET`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` girilmeli (`WHATSAPP_VERIFY_TOKEN` Render'da otomatik üretildi, Meta'daki "Verify token" alanına aynısı yazılır). Japonya'da LINE öncelikli olduğundan bu adım ertelenebilir.
+**Cevap:**

@@ -23,6 +23,14 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: "*"
+      - key: WHATSAPP_VERIFY_TOKEN
+        generateValue: true
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
       - key: PANEL_URL
         value: https://jsaas-panel.onrender.com
   - type: web

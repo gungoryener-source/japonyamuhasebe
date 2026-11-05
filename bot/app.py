@@ -114,6 +114,12 @@ def saved_text(e: dict) -> str:
             f"間違っていたら「取消」を押してください")
 
 
+def _as_entry(row: dict) -> dict:
+    """DB satırı → saved_text'in beklediği biçim."""
+    return {"store": row["store"], "amount": row["amount"], "category": row["category"], "rate": row["rate"],
+            "date": row["d"], "kind": row["kind"], "invoice_no": row["invoice_no"]}
+
+
 # ---------------------------------------------------------------- OCR (Claude)
 OCR_PROMPT = """これは日本のレシートまたは領収書の画像です。次のJSONだけを返してください（説明文なし）:
 {"date":"YYYY-MM-DD","store":"店名","amount":税込合計の整数,
@@ -155,65 +161,117 @@ async def ocr_receipt(img: bytes) -> dict:
 
 
 # ---------------------------------------------------------------- handlers
-QR_AFTER_SAVE = ("取消", "合計", "📷 レシート")
+QR_AFTER_SAVE = ("取消", "科目変更", "税率8%", "税率10%", "合計", "📷 レシート")
+EXP_CATEGORIES = ("旅費交通費", "消耗品費", "会議費", "接待交際費", "通信費", "地代家賃", "水道光熱費",
+                  "外注工賃", "新聞図書費", "広告宣伝費", "支払手数料", "雑費")
 HELP = ("レシートの写真か「店名 金額」を送ってください。\n"
         "例：ローソン 540円 軽減\n例：タクシー 2300 T1234567890123\n"
         "例：入金 330000 合同会社ミナト\n\n「合計」今月の集計　「取消」直前の記録を削除\n「パネル」ウェブ管理画面の接続コード")
 
 
-async def handle_text(user_id: str, token: str, text: str):
+Options = list[tuple[str, str]]  # (buton etiketi, gönderilecek metin)
+CAMERA = "📷 レシート"
+
+
+def opts(*labels: str) -> Options:
+    return [(lb, lb) for lb in labels]
+
+
+def respond(user_id: str, text: str, source: str = "LINE") -> tuple[str, Options]:
+    """Kanaldan bağımsız sohbet çekirdeği (LINE, WhatsApp). Yanıt metni + hızlı yanıt seçenekleri döner."""
     t = text.strip()
     if re.match(r"^(取消|取り消し|iptal)", t):
         row = undo_last(user_id)
         msg = f"「{row['store']} {yen(row['amount'])}」を取り消しました" if row else "取り消す記録がありません"
-        return await reply(token, [text_msg(msg, quick_reply("合計", "📷 レシート"))])
+        return msg, opts("合計", CAMERA)
+    if t == "科目変更":
+        last = last_entry(user_id)
+        if not last:
+            return "変更する記録がありません", []
+        return (f"「{last['store']} {yen(last['amount'])}」の勘定科目を選んでください",
+                [(c, f"科目:{c}") for c in EXP_CATEGORIES[:13]])
+    m = re.match(r"^科目[:：](.+)$", t)
+    if m:
+        cat = m.group(1).strip()
+        last = last_entry(user_id)
+        if not last or last["kind"] != "exp" or cat not in EXP_CATEGORIES:
+            return "変更できませんでした（経費の記録と一覧の科目のみ変更できます）", []
+        e = update_entry(user_id, last["id"], category=cat)
+        return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
+    m = re.match(r"^税率\s*(8|10)\s*[%％]$", t)
+    if m:
+        last = last_entry(user_id)
+        if not last:
+            return "変更する記録がありません", []
+        e = update_entry(user_id, last["id"], rate=int(m.group(1)))
+        return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
     if re.match(r"^(合計|今月|集計)", t):
         inc, exp = month_summary(user_id)
-        return await reply(token, [text_msg(
-            f"今月の集計\n売上 {yen(inc)}\n経費 {yen(exp)}\n差引 {yen(inc - exp)}",
-            quick_reply("📷 レシート"))])
-    if t in ("レシートを送る", "📷 レシート"):
-        return await reply(token, [text_msg("下のボタンでレシートを撮影するか、写真を送ってください。",
-                                            quick_reply("📷 レシート"))])
+        return f"今月の集計\n売上 {yen(inc)}\n経費 {yen(exp)}\n差引 {yen(inc - exp)}", opts(CAMERA)
+    if t in ("レシートを送る", CAMERA):
+        return "下のボタンでレシートを撮影するか、写真を送ってください。", opts(CAMERA)
     if re.match(r"^(パネル|ウェブ|web|panel)$", t, re.I):
-        tok = issue_token(user_id, "line-panel")
+        tok = issue_token(user_id, f"{source.lower()}-panel")
         base = os.environ.get("PANEL_URL", "")
         link = f"{base}/connect#{tok}" if base else ""
-        msg = ("ウェブ管理画面の接続コードです（他人に見せないでください）:\n" + tok
-               + (f"\n\nこちらから開けます:\n{link}" if link else ""))
-        return await reply(token, [text_msg(msg)])
+        return ("ウェブ管理画面の接続コードです（他人に見せないでください）:\n" + tok
+                + (f"\n\nこちらから開けます:\n{link}" if link else "")), []
     if re.match(r"^(ヘルプ|使い方|help)", t, re.I):
-        return await reply(token, [text_msg(HELP, quick_reply("📷 レシート", "合計"))])
+        return HELP, opts(CAMERA, "合計")
 
     e = parse_text(t, datetime.now(JST).date())
     if not e:
-        return await reply(token, [text_msg("金額が見つかりませんでした。\n" + HELP)])
-    add_entry(user_id, e)
-    await reply(token, [text_msg(saved_text(e), quick_reply(*QR_AFTER_SAVE))])
+        return "金額が見つかりませんでした。\n" + HELP, []
+    add_entry(user_id, e, source=source)
+    return saved_text(e), opts(*QR_AFTER_SAVE)
+
+
+def to_line(msg: str, options: Options) -> dict:
+    items = []
+    for label, send in options[:13]:
+        if send == CAMERA:
+            items.append({"type": "action", "action": {"type": "camera", "label": label}})
+        else:
+            items.append({"type": "action", "action": {"type": "message", "label": label[:20], "text": send}})
+    return text_msg(msg, {"items": items} if items else None)
+
+
+async def handle_text(user_id: str, token: str, text: str):
+    await reply(token, [to_line(*respond(user_id, text, "LINE"))])
+
+
+async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
+    """Fiş görseli → OCR → kayıt. Kanaldan bağımsız."""
+    try:
+        os.makedirs("receipts", exist_ok=True)
+        safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80]
+        path = f"receipts/{safe}.jpg"
+        with open(path, "wb") as f:
+            f.write(img)
+        e = await ocr_receipt(img)
+    except Exception as ex:  # ağ / API hatası
+        print("image error", type(ex).__name__)
+        return "画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。", []
+    if "error" in e:
+        return f"読み取れませんでした（{e['error']}）。\n「店名 金額」で送ってください。", []
+    add_entry(user_id, e, image_path=path, source=source)
+    return saved_text(e), opts(*QR_AFTER_SAVE)
 
 
 async def handle_image(user_id: str, token: str, message_id: str):
     try:
         img = await get_image(message_id)
-        os.makedirs("receipts", exist_ok=True)
-        path = f"receipts/{user_id[-8:]}_{message_id}.jpg"
-        with open(path, "wb") as f:
-            f.write(img)
-        e = await ocr_receipt(img)
-    except Exception as ex:  # ağ / API hatası
-        print("image error", ex)
-        return await reply(token, [text_msg("画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。")])
-    if "error" in e:
-        return await reply(token, [text_msg(f"読み取れませんでした（{e['error']}）。\n「店名 金額」で送ってください。")])
-    add_entry(user_id, e, image_path=path)
-    await reply(token, [text_msg(saved_text(e), quick_reply(*QR_AFTER_SAVE))])
+    except Exception as ex:
+        print("LINE content error", type(ex).__name__)
+        return await reply(token, [text_msg("画像を取得できませんでした。もう一度送ってください。")])
+    await reply(token, [to_line(*await process_image(user_id, img, message_id, "LINE"))])
 
 
 async def handle_event(ev: dict):
     user_id = ev.get("source", {}).get("userId", "")
     token = ev.get("replyToken")
     if ev["type"] == "follow":  # arkadaş ekledi
-        return await reply(token, [text_msg("てがる会計へようこそ！\n" + HELP, quick_reply("📷 レシート"))])
+        return await reply(token, [to_line("てがる会計へようこそ！\n" + HELP, opts(CAMERA))])
     if ev["type"] != "message" or not user_id:
         return
     m = ev["message"]
@@ -265,3 +323,9 @@ async def admin_richmenu(key: str = ""):
     with open(os.path.join(os.path.dirname(__file__), "richmenu.png"), "rb") as f:
         rid = await create_and_set(CHANNEL_TOKEN, f.read())
     return {"richMenuId": rid}
+
+
+# ---------------------------------------------------------------- WhatsApp
+from whatsapp import router as wa_router  # noqa: E402
+
+app.include_router(wa_router)

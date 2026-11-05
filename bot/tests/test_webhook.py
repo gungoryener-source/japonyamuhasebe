@@ -71,3 +71,25 @@ def test_panel_command_issues_token(bot):
     text = bot.sent[-1][0]["text"]
     tok = [w for w in text.split() if w.startswith("tk_")][0]
     assert store.user_for_token(tok) == "U9"
+
+
+def test_edit_last_entry_category_and_rate(bot):
+    import store
+    c = TestClient(bot.app)
+    _post(c, "ヨドバシ 3300", user="E1")
+    _post(c, "科目変更", user="E1")
+    labels = [i["action"]["text"] for i in bot.sent[-1][0]["quickReply"]["items"]]
+    assert "科目:通信費" in labels and len(labels) <= 13
+    _post(c, "科目:通信費", user="E1")
+    assert "変更しました" in bot.sent[-1][0]["text"]
+    _post(c, "税率8%", user="E1")
+    e = store.last_entry("E1")
+    assert (e["category"], e["rate"]) == ("通信費", 8)
+    _post(c, "科目:存在しない", user="E1")
+    assert "変更できませんでした" in bot.sent[-1][0]["text"]
+
+
+def test_edit_without_entries(bot):
+    c = TestClient(bot.app)
+    _post(c, "税率10%", user="EMPTY")
+    assert "ありません" in bot.sent[-1][0]["text"]
