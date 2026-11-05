@@ -6,8 +6,8 @@
 LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılışı, `LINE_CHANNEL_SECRET` ve `LINE_CHANNEL_ACCESS_TOKEN` değerlerinin Render → tegaru-line-bot → Environment'a girilmesi, Webhook URL `https://tegaru-line-bot.onrender.com/callback`, ardından `POST /admin/richmenu?key=<ADMIN_KEY>`.
 **Cevap:**
 
-## Q-02 · Anthropic API anahtarı (açık)
-Fiş fotoğrafı okuma için `ANTHROPIC_API_KEY` Render'a girilmeli. Girilmezse bot yalnızca yazılı mesajla çalışır.
+## Q-02 · Anthropic API anahtarı (isteğe bağlı)
+Fiş okuma artık varsayılan olarak yapay zekâsız (Tesseract OCR + kurallar). `ANTHROPIC_API_KEY` girilirse `OCR_ENGINE=auto` modunda yalnızca kural tabanlı okuma başarısız olduğunda yedek olarak kullanılır. Hiç kullanılmasın istenirse Render'da `OCR_ENGINE=tesseract` yap.
 **Cevap:**
 
 ## Q-03 · 令和8年分 基礎控除 tablosu (açık — tax-watcher doğrulasın)
@@ -28,4 +28,8 @@ Kod hazır (`bot/whatsapp.py`, webhook `https://tegaru-line-bot.onrender.com/wha
 
 ## Q-07 · Render ücretsiz PostgreSQL süresi (bilgi)
 render.yaml'a `jsaas-db` (free) eklendi; artık kayıtlar yeniden başlatmada silinmez. Render'ın ücretsiz veritabanları oluşturulduktan ~30 gün sonra süresi dolar (yükseltme veya yeniden oluşturma gerekir). Canlı kullanıcı gelmeden önce ücretli plana (Basic) geçilmeli veya başka bir sağlayıcı seçilmeli. Ayrıca Render hesabında yalnızca bir ücretsiz veritabanı olabilir.
+**Cevap:**
+
+## Q-08 · Render servisinin Docker'a geçişi (kontrol gerekli)
+Sunucuda Tesseract olması için `tegaru-line-bot` servisi render.yaml'da `runtime: docker` yapıldı (`bot/Dockerfile`). Render mevcut bir servisin çalışma ortamını blueprint ile değiştirmeyi reddederse: Render → tegaru-line-bot → Settings → Delete Service, ardından Blueprints → japonyamuhasebe → Sync (servis Docker olarak yeniden oluşur; ortam değişkenleri yeniden girilmeli). Kontrol: `https://tegaru-line-bot.onrender.com/` yanıtında `"tesseract": true`.
 **Cevap:**

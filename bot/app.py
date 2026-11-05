@@ -30,6 +30,8 @@ CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OCR_MODEL = os.environ.get("OCR_MODEL", "claude-sonnet-5-5")
+# Fiş okuma motoru: "tesseract" (varsayılan, yapay zekâsız) | "claude" | "auto" (tesseract, olmazsa claude)
+OCR_ENGINE = os.environ.get("OCR_ENGINE", "tesseract").lower()
 
 JST = timezone(timedelta(hours=9))
 LINE_API = "https://api.line.me/v2/bot"
@@ -160,7 +162,7 @@ def normalize_ocr(data: dict) -> list[dict] | dict:
     return out
 
 
-async def ocr_receipt(img: bytes) -> list[dict] | dict:
+async def ocr_receipt_claude(img: bytes) -> list[dict] | dict:
     media = "image/png" if img[:8].startswith(b"\x89PNG") else "image/jpeg"
     async with httpx.AsyncClient(timeout=60) as c:
         r = await c.post(
@@ -185,6 +187,35 @@ async def ocr_receipt(img: bytes) -> list[dict] | dict:
     except json.JSONDecodeError:
         data = {"error": "JSON不正"}
     return normalize_ocr(data)
+
+
+async def ocr_receipt_tesseract(img: bytes) -> list[dict] | dict:
+    """Yapay zekâsız: Tesseract OCR + kural tabanlı ayrıştırıcı (receipt_ocr.py)."""
+    import asyncio
+
+    import receipt_ocr
+
+    data = await asyncio.to_thread(receipt_ocr.read_receipt, img, datetime.now(JST).date())
+    data.pop("_raw_text", None)
+    return normalize_ocr(data)
+
+
+async def ocr_receipt(img: bytes) -> list[dict] | dict:
+    import receipt_ocr
+
+    engine = OCR_ENGINE
+    if engine == "claude":
+        if not ANTHROPIC_KEY:
+            return {"error": "AI読取が未設定です"}
+        return await ocr_receipt_claude(img)
+    if not receipt_ocr.available():
+        if engine == "auto" and ANTHROPIC_KEY:
+            return await ocr_receipt_claude(img)
+        return {"error": "OCRエンジンが利用できません"}
+    result = await ocr_receipt_tesseract(img)
+    if isinstance(result, dict) and engine == "auto" and ANTHROPIC_KEY:
+        return await ocr_receipt_claude(img)  # kural tabanlı okuma başarısızsa AI yedeği
+    return result
 
 
 # ---------------------------------------------------------------- handlers
@@ -343,7 +374,8 @@ def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default=
 @app.get("/")
 def health():
     return {"ok": True, "line_configured": bool(CHANNEL_SECRET and CHANNEL_TOKEN),
-            "ocr_configured": bool(ANTHROPIC_KEY)}
+            "ocr_configured": bool(ANTHROPIC_KEY), "ocr_engine": OCR_ENGINE,
+            "tesseract": __import__("receipt_ocr").available()}
 
 
 @app.post("/admin/richmenu")

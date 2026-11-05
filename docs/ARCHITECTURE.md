@@ -3,7 +3,7 @@
 ```
  LINE / WhatsApp ──webhook──▶ bot/ (FastAPI, Render)
                                  │  parser.py   : "店名 金額" → kayıt
-                                 │  OCR         : Claude Vision → JSON
+                                 │  OCR         : Tesseract jpn + kurallar (AI isteğe bağlı yedek)
                                  │  tax/ (plan) : 消費税・所得税 hesap motoru
                                  ▼
                            DB (bugün SQLite → hedef PostgreSQL)

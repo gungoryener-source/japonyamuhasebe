@@ -41,3 +41,24 @@ async def test_process_image_mixed(app_mod, monkeypatch, tmp_path):
     rows = store.search_entries("OC1")
     assert sorted((r["rate"], r["amount"]) for r in rows) == [(8, 2140), (10, 1100)]
     assert all(r["image_path"].startswith("receipts/") and ".." not in r["image_path"] for r in rows)
+
+
+async def test_engine_selection(app_mod, monkeypatch):
+    import receipt_ocr
+    monkeypatch.setattr(app_mod, "OCR_ENGINE", "tesseract")
+    monkeypatch.setattr(receipt_ocr, "available", lambda: False)
+    assert "error" in await app_mod.ocr_receipt(b"x")
+
+    called = []
+
+    async def fake_claude(img):
+        called.append(1)
+        return [{"date": "2026-11-01", "kind": "exp", "store": "A", "category": "雑費", "invoice_no": "", "amount": 1, "rate": 10}]
+
+    monkeypatch.setattr(app_mod, "ocr_receipt_claude", fake_claude)
+    monkeypatch.setattr(app_mod, "ANTHROPIC_KEY", "k")
+    monkeypatch.setattr(app_mod, "OCR_ENGINE", "auto")
+    assert (await app_mod.ocr_receipt(b"x"))[0]["store"] == "A" and called
+    monkeypatch.setattr(app_mod, "OCR_ENGINE", "claude")
+    await app_mod.ocr_receipt(b"x")
+    assert len(called) == 2
