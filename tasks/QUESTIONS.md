@@ -25,3 +25,7 @@ render.yaml'a `jsaas-panel` statik sitesi eklendi; Render blueprint senkronunda 
 ## Q-06 · WhatsApp Business (açık)
 Kod hazır (`bot/whatsapp.py`, webhook `https://tegaru-line-bot.onrender.com/whatsapp`). Canlıya almak için Meta for Developers'ta WhatsApp uygulaması + telefon numarası gerekir; Render'a `WHATSAPP_APP_SECRET`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` girilmeli (`WHATSAPP_VERIFY_TOKEN` Render'da otomatik üretildi, Meta'daki "Verify token" alanına aynısı yazılır). Japonya'da LINE öncelikli olduğundan bu adım ertelenebilir.
 **Cevap:**
+
+## Q-07 · Render ücretsiz PostgreSQL süresi (bilgi)
+render.yaml'a `jsaas-db` (free) eklendi; artık kayıtlar yeniden başlatmada silinmez. Render'ın ücretsiz veritabanları oluşturulduktan ~30 gün sonra süresi dolar (yükseltme veya yeniden oluşturma gerekir). Canlı kullanıcı gelmeden önce ücretli plana (Basic) geçilmeli veya başka bir sağlayıcı seçilmeli. Ayrıca Render hesabında yalnızca bir ücretsiz veritabanı olabilir.
+**Cevap:**

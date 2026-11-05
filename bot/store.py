@@ -1,4 +1,7 @@
-"""Veri katmanı (SQLite). Tüm kanallar (LINE, WhatsApp, web API) buradan okur/yazar.
+"""Veri katmanı (SQLite veya PostgreSQL). Tüm kanallar (LINE, WhatsApp, web API) buradan okur/yazar.
+
+`DATABASE_URL` (postgres://...) tanımlıysa PostgreSQL, değilse `DB_PATH` SQLite dosyası kullanılır.
+SQL'ler `?` yer tutucusuyla yazılır; PostgreSQL için `%s`'ye çevrilir. Literal `%` kullanma.
 
 Defter anahtarı `user_id`: LINE userId, `wa:<telefon>` (WhatsApp) veya web'den açılan defterler.
 Şema yalnızca ekleyici (additive) değişir — CLAUDE.md "veri silme yok".
@@ -10,7 +13,7 @@ import json
 import os
 import secrets
 import sqlite3
-from contextlib import closing
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 
 JST = timezone(timedelta(hours=9))
@@ -69,15 +72,62 @@ def db_path() -> str:
     return os.environ.get("DB_PATH", "tegaru.db")
 
 
+def database_url() -> str:
+    url = os.environ.get("DATABASE_URL", "")
+    return "postgresql://" + url[len("postgres://"):] if url.startswith("postgres://") else url
+
+
+def is_pg() -> bool:
+    return database_url().startswith("postgresql://")
+
+
+class _Conn:
+    """sqlite3 / psycopg bağlantıları için ortak arayüz (execute → cursor; satırlar dict)."""
+
+    def __init__(self, raw, pg: bool):
+        self.raw, self.pg = raw, pg
+
+    def execute(self, sql: str, args=()):
+        if self.pg:
+            sql = sql.replace("?", "%s")
+        return self.raw.execute(sql, tuple(args))
+
+
+@contextmanager
+def tx():
+    """Tek işlem (transaction): blok hatasız biterse commit, hata olursa rollback."""
+    if is_pg():
+        import psycopg
+        from psycopg.rows import dict_row
+
+        with psycopg.connect(database_url(), row_factory=dict_row) as con:
+            yield _Conn(con, True)
+    else:
+        con = sqlite3.connect(db_path())
+        con.row_factory = sqlite3.Row
+        try:
+            with con:
+                yield _Conn(con, False)
+        finally:
+            con.close()
+
+
 def connect() -> sqlite3.Connection:
+    """Geriye uyumluluk (yalnızca SQLite). Yeni kodda `tx()` kullan."""
     con = sqlite3.connect(db_path())
     con.row_factory = sqlite3.Row
     return con
 
 
+def _schema() -> list[str]:
+    if not is_pg():
+        return SCHEMA
+    return [stmt.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY") for stmt in SCHEMA]
+
+
 def init_db() -> None:
-    with closing(connect()) as con, con:
-        for stmt in SCHEMA:
+    with tx() as con:
+        for stmt in _schema():
             con.execute(stmt)
 
 
@@ -91,18 +141,18 @@ def today() -> date:
 
 # ---------------------------------------------------------------- entries
 def add_entry(user_id: str, e: dict, image_path: str = "", source: str = "LINE") -> int:
-    with closing(connect()) as con, con:
+    with tx() as con:
         cur = con.execute(
             """INSERT INTO entries(user_id,d,kind,store,amount,category,rate,invoice_no,source,image_path,created_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
             (user_id, e["date"], e["kind"], e["store"], int(e["amount"]), e["category"],
              int(e["rate"]), e.get("invoice_no", ""), source, image_path, now()),
         )
-        return int(cur.lastrowid)
+        return int(cur.fetchone()["id"])
 
 
 def last_entry(user_id: str) -> dict | None:
-    with closing(connect()) as con:
+    with tx() as con:
         row = con.execute("SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
     return dict(row) if row else None
 
@@ -113,14 +163,14 @@ def update_entry(user_id: str, entry_id: int, **fields) -> dict | None:
     if not sets:
         return None
     cols = ", ".join(f"{k}=?" for k in sets)
-    with closing(connect()) as con, con:
+    with tx() as con:
         con.execute(f"UPDATE entries SET {cols} WHERE id=? AND user_id=?", (*sets.values(), entry_id, user_id))
         row = con.execute("SELECT * FROM entries WHERE id=? AND user_id=?", (entry_id, user_id)).fetchone()
     return dict(row) if row else None
 
 
 def undo_last(user_id: str) -> dict | None:
-    with closing(connect()) as con, con:
+    with tx() as con:
         row = con.execute("SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
         if row:
             con.execute("DELETE FROM entries WHERE id=?", (row["id"],))
@@ -129,7 +179,7 @@ def undo_last(user_id: str) -> dict | None:
 
 def month_summary(user_id: str, ym: str | None = None) -> tuple[int, int]:
     ym = ym or datetime.now(JST).strftime("%Y-%m")
-    with closing(connect()) as con:
+    with tx() as con:
         r = con.execute(
             """SELECT COALESCE(SUM(CASE WHEN kind='inc' THEN amount END),0) inc,
                       COALESCE(SUM(CASE WHEN kind='exp' THEN amount END),0) exp
@@ -150,8 +200,8 @@ def search_entries(user_id: str, *, date_from: str | None = None, date_to: str |
     if date_to:
         sql += " AND d<=?"; args.append(date_to)
     if q:
-        sql += " AND store LIKE ? ESCAPE '\\'"
-        args.append("%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%")
+        sql += " AND store LIKE ? ESCAPE '!'"
+        args.append("%" + q.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%")
     if amount_min is not None:
         sql += " AND amount>=?"; args.append(amount_min)
     if amount_max is not None:
@@ -160,7 +210,7 @@ def search_entries(user_id: str, *, date_from: str | None = None, date_to: str |
         sql += " AND kind=?"; args.append(kind)
     sql += " ORDER BY d, id LIMIT ?"
     args.append(max(1, min(limit, 5000)))
-    with closing(connect()) as con:
+    with tx() as con:
         return [dict(r) for r in con.execute(sql, args).fetchall()]
 
 
@@ -175,19 +225,20 @@ MAX_TOKENS_PER_USER = 5
 def issue_token(user_id: str, label: str = "") -> str:
     """Yeni token üretir; kullanıcı başına en fazla MAX_TOKENS_PER_USER (en eskiler iptal edilir)."""
     token = "tk_" + secrets.token_urlsafe(24)
-    with closing(connect()) as con, con:
+    with tx() as con:
         con.execute("INSERT INTO api_tokens(token_hash,user_id,label,created_at) VALUES(?,?,?,?)",
-                    (_hash(token), user_id, label, now()))
+                    (_hash(token), user_id, label, datetime.now(JST).isoformat()))
         con.execute(
             """DELETE FROM api_tokens WHERE user_id=? AND token_hash NOT IN (
-                   SELECT token_hash FROM api_tokens WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT ?)""",
+                   SELECT token_hash FROM (SELECT token_hash FROM api_tokens WHERE user_id=?
+                                           ORDER BY created_at DESC LIMIT ?) AS keep)""",
             (user_id, user_id, MAX_TOKENS_PER_USER),
         )
     return token
 
 
 def revoke_token(token: str) -> bool:
-    with closing(connect()) as con, con:
+    with tx() as con:
         cur = con.execute("DELETE FROM api_tokens WHERE token_hash=?", (_hash(token),))
     return cur.rowcount > 0
 
@@ -195,14 +246,14 @@ def revoke_token(token: str) -> bool:
 def user_for_token(token: str) -> str | None:
     if not token:
         return None
-    with closing(connect()) as con:
+    with tx() as con:
         row = con.execute("SELECT user_id FROM api_tokens WHERE token_hash=?", (_hash(token),)).fetchone()
     return row["user_id"] if row else None
 
 
 # ---------------------------------------------------------------- profiles
 def get_profile(user_id: str) -> dict:
-    with closing(connect()) as con:
+    with tx() as con:
         row = con.execute("SELECT * FROM profiles WHERE user_id=?", (user_id,)).fetchone()
     return dict(row) if row else {"user_id": user_id, "business_name": "", "registration_no": "", "individual": 1}
 
@@ -210,7 +261,7 @@ def get_profile(user_id: str) -> dict:
 def save_profile(user_id: str, **fields) -> dict:
     p = get_profile(user_id)
     p.update({k: v for k, v in fields.items() if k in ("business_name", "registration_no", "individual")})
-    with closing(connect()) as con, con:
+    with tx() as con:
         con.execute(
             """INSERT INTO profiles(user_id,business_name,registration_no,individual,updated_at) VALUES(?,?,?,?,?)
                ON CONFLICT(user_id) DO UPDATE SET business_name=excluded.business_name,
@@ -223,7 +274,7 @@ def save_profile(user_id: str, **fields) -> dict:
 # ---------------------------------------------------------------- invoices
 def next_invoice_no(user_id: str, issued: str) -> str:
     prefix = f"INV-{issued[:4]}-"
-    with closing(connect()) as con:
+    with tx() as con:
         row = con.execute("SELECT no FROM invoices WHERE user_id=? AND no LIKE ? ORDER BY no DESC LIMIT 1",
                           (user_id, prefix + "%")).fetchone()
     n = int(row["no"].rsplit("-", 1)[1]) + 1 if row else 1
@@ -231,7 +282,7 @@ def next_invoice_no(user_id: str, issued: str) -> str:
 
 
 def insert_invoice(user_id: str, inv: dict) -> dict:
-    with closing(connect()) as con, con:
+    with tx() as con:
         con.execute(
             """INSERT INTO invoices(user_id,no,client,issued,due,items_json,subtotal10,subtotal8,tax10,tax8,total,status,created_at)
                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -248,7 +299,7 @@ def _inv_row(row: sqlite3.Row) -> dict:
 
 
 def get_invoice(user_id: str, no: str) -> dict | None:
-    with closing(connect()) as con:
+    with tx() as con:
         row = con.execute("SELECT * FROM invoices WHERE user_id=? AND no=?", (user_id, no)).fetchone()
     return _inv_row(row) if row else None
 
@@ -258,7 +309,7 @@ def list_invoices(user_id: str, status: str | None = None) -> list[dict]:
     if status in ("paid", "unpaid"):
         sql += " AND status=?"; args.append(status)
     sql += " ORDER BY issued DESC, no DESC"
-    with closing(connect()) as con:
+    with tx() as con:
         return [_inv_row(r) for r in con.execute(sql, args).fetchall()]
 
 
@@ -267,7 +318,7 @@ def mark_invoice_paid(user_id: str, no: str, paid_on: str) -> dict | None:
     inv = get_invoice(user_id, no)
     if not inv or inv["status"] == "paid":
         return inv
-    with closing(connect()) as con, con:
+    with tx() as con:
         con.execute("UPDATE invoices SET status='paid', paid_on=? WHERE user_id=? AND no=?", (paid_on, user_id, no))
     # 税率ごとに1件ずつ記録（混在請求書でも消費税計算が正しくなるように）
     for rate, gross in ((10, inv["subtotal10"] + inv["tax10"]), (8, inv["subtotal8"] + inv["tax8"])):

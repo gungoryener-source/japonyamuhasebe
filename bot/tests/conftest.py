@@ -15,6 +15,11 @@ os.environ.setdefault("ADMIN_KEY", "test-admin")
 def bot(tmp_path, monkeypatch):
     """Her test için boş veritabanı ve sahte LINE reply."""
     monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
+    if os.environ.get("DATABASE_URL"):
+        # PostgreSQL ile çalışırken her testten önce tabloları sıfırla
+        import store
+        with store.tx() as con:
+            con.execute("DROP TABLE IF EXISTS entries, api_tokens, invoices, profiles")
     import importlib
     import app as app_module
     app_module = importlib.reload(app_module)

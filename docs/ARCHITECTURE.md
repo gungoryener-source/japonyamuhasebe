@@ -12,9 +12,10 @@
 ```
 
 ## Bugünkü durum (2026-11-05)
-- `bot/app.py`: `/callback` (LINE imzalı webhook), `/entries/{user_id}` (**kimlik doğrulamasız — T-003**), `/admin/richmenu`, `/`.
-- Veritabanı: SQLite, Render free planında **kalıcı değil** (yeniden başlatmada silinir) → T-006.
-- `dashboard-next/`: tamamen mock veriyle çalışan panel; API'ye bağlanacak.
+- `bot/app.py`: `/callback` (LINE), `/whatsapp` (WhatsApp Cloud API), `/api/v1/*` (`bot/api.py`, Bearer token), `/entries/{user_id}` (admin), `/admin/richmenu`, `/`.
+- Sohbet çekirdeği `app.respond()` kanaldan bağımsız; vergi motoru `bot/tax/`; fatura `bot/invoices.py`; CSV `bot/export.py`.
+- Veritabanı: Render PostgreSQL `jsaas-db` (`DATABASE_URL`); yerelde/testte SQLite. Katman: `bot/store.py`.
+- `dashboard-next/`: API'ye bağlı panel (token yoksa demo veri), Render statik site `jsaas-panel`.
 - Render: `tegaru-line-bot` web servisi, bölge singapore, free plan, `main` push'unda otomatik deploy.
 - LINE kanalı: **henüz açılmadı** (insan işi, Q-01).
 

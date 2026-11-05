@@ -2,3 +2,4 @@ fastapi==0.115.6
 uvicorn[standard]==0.32.1
 httpx==0.28.1
 reportlab==4.2.5
+psycopg[binary]==3.2.3

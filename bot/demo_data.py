@@ -39,7 +39,6 @@ def seed(uid: str) -> None:
                                          "due": due, "items": items, "subtotal10": t.subtotal10, "subtotal8": t.subtotal8,
                                          "tax10": t.tax10, "tax8": t.tax8, "total": t.total})
         if paid:
-            from contextlib import closing
-            with closing(store.connect()) as con, con:  # 入金は既に売上に含まれるため帳簿へ二重計上しない
+            with store.tx() as con:  # 入金は既に売上に含まれるため帳簿へ二重計上しない
                 con.execute("UPDATE invoices SET status='paid', paid_on=? WHERE user_id=? AND no=?",
                             (date(2026, 10, 30).isoformat(), uid, inv["no"]))

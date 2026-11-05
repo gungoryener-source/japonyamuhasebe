@@ -10,7 +10,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
 | T-004b | P1 | blocked (Q-03) | `BASIC_DEDUCTION[2026]` (令和8年分) tablosunu ekle + sınır testleri |
 | T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
-| T-006 | P1 | todo | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
+| T-006 | P1 | done | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
@@ -23,6 +23,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-016 | P1 | todo | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
 | T-012b | P2 | todo | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
 | T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
+| T-019 | P2 | todo | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 
 ---

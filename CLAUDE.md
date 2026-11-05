@@ -34,6 +34,7 @@ Bu dosyayı okuyan her ajan aşağıdaki kurallara uyar. Rolüne özel talimatla
 ## Doğrulama kapısı (zorunlu)
 ```bash
 cd bot && pip install -q -r requirements-dev.txt && python -m pytest -q
+# (CI aynı testleri PostgreSQL 16 ile de koşar; yerelde: DATABASE_URL=postgresql://... python -m pytest -q)
 cd dashboard-next && npm ci && npx next build      # yalnızca dashboard-next/ değiştiyse
 ```
 - Kırmızı test varken push etme. Testi silerek/atlayarak yeşile çevirme.
