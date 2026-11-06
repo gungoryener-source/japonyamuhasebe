@@ -26,3 +26,12 @@
 - WhatsApp Business webhook
 - Banka API (参照系) entegrasyonu araştırması, kart hareketleri içe aktarma
 - Çok dilli (ja/en/tr) bot yanıtları
+
+## Faz 5 — Satışa hazırlık (sprint: 2026-11-06 18:00 → 2026-11-08 18:00 İstanbul)
+- E-posta ile hesap, giriş, şifre sıfırlama; LINE defterini hesaba bağlama (T-040)
+- İşletmeye birden fazla kullanıcı: sahip / 税理士 / görüntüleyici (T-041)
+- Abonelik ve ödeme (Stripe test modu, plan bazlı özellikler) (T-042)
+- 利用規約 / プライバシーポリシー / 特定商取引法に基づく表記 (T-043)
+- Tanıtım sayfası, kayıt akışı, ilk kurulum sihirbazı (T-044)
+- 確定申告 çıktıları: 青色申告決算書 PDF + e-Tax araştırması (T-045)
+- Veri dışa aktarma / hesap silme / yedekleme (T-046), metinlerin tek dosyada toplanması (T-047), güvenlik sertleştirme (T-048)

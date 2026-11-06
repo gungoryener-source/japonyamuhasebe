@@ -37,3 +37,19 @@ Sunucuda Tesseract olması için `tegaru-line-bot` servisi render.yaml'da `runti
 ## Q-09 · OCR hızı ve Render planı (bilgi)
 tessdata_best modeliyle fiş başına ~2–5 sn (tam çekirdek). Render free planı 0.1 CPU olduğundan 20–50 sn sürebilir; LINE'da yanıt gecikir (T-025 ile çözülecek). Canlı kullanıcıdan önce tegaru-line-bot için Starter (0.5 CPU) plana geçilmesi önerilir.
 **Cevap:**
+
+## Q-10 · Ödeme sağlayıcısı (açık)
+Varsayılan: **Stripe** (JPY, Japonya kartları, konbini ödemesi). Alternatif: PAY.JP (Japon şirketi). Ajanlar Stripe test moduyla geliştiriyor; canlı anahtar senin Stripe hesabından gelmeli.
+**Cevap:**
+
+## Q-11 · Fiyatlandırma (açık)
+Yer tutucu: Free (ayda 30 fiş, 3 fatura) / 個人 ¥980 / 法人 ¥2,980 (vergi hariç, aylık). Gerçek fiyatları yaz.
+**Cevap:**
+
+## Q-12 · Satıcı bilgileri — 特定商取引法に基づく表記 (açık)
+Zorunlu: 販売業者名, 運営責任者, 所在地, 電話番号, メールアドレス, 販売価格, 支払方法・時期, 解約・返金. Japonya'da şirket/adres yoksa nasıl gösterileceğini müşavirle netleştir. Yasal metinler bu cevaplanana kadar "ドラフト" olarak yayında.
+**Cevap:**
+
+## Q-13 · E-posta gönderim servisi (açık)
+Şifre sıfırlama ve bildirimler için: Resend / SendGrid / Amazon SES. Seçilen servisin anahtarı Render'a `MAIL_PROVIDER` + `MAIL_API_KEY` olarak girilmeli; o zamana kadar e-postalar yalnızca sunucu log'una yazılır.
+**Cevap:**

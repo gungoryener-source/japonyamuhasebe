@@ -36,6 +36,15 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-033 | P2 | todo | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
 | T-034 | P2 | todo | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
 | T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
+| T-040 | P0 | todo | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
+| T-041 | P1 | todo | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
+| T-042 | P0 | todo | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
+| T-043 | P0 | todo | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
+| T-044 | P1 | todo | Tanıtım sayfası (/lp), kayıt akışı ve ilk kurulum sihirbazı (事業者情報 → LINE bağlantısı → ilk fiş) |
+| T-045 | P1 | todo | 確定申告 çıktıları: 青色申告決算書 (損益計算書) PDF, 申告書 alan numaralarıyla özet; e-Tax xtx araştırma notu (docs/ETAX.md) |
+| T-046 | P1 | todo | Veri dışa aktarma (tüm veri ZIP: CSV + fatura PDF), hesap silme talebi, PostgreSQL yedekleme betiği ve belge |
+| T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
+| T-048 | P1 | todo | Güvenlik: giriş/OCR için hız sınırı, CORS'u PANEL_URL ile kısıtla, güvenlik başlıkları, parola politikası |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
 | T-027 | P1 | done (bu commit) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
@@ -143,3 +152,33 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-029 · Fatura kalemi tutar sınırları (review-fix, P2)
 - `bot/api.py` `ItemIn` / `bot/invoices.py:validate_items`: `qty`, `unit_price` için üst sınır yok; çok büyük değer PostgreSQL BIGINT'te 500 verir. Beklenen: ör. `qty ≤ 1e6`, `unit_price < 1e11`, satır tutarı < 1e11 → 400. Sınır testleri.
+
+## T-040 · Hesap sistemi (P0)
+- Tablolar: `accounts(id, email UNIQUE, password_hash, created_at, email_verified)`; `account_ledgers(account_id, user_id)` (bir hesap ↔ defter `user_id`). Parola: `hashlib.scrypt` (stdlib, tuzlu), en az 10 karakter.
+- API: `POST /api/v1/auth/signup`, `/auth/login` (→ mevcut `api_tokens` token'ı), `/auth/link-line` (LINE 「パネル」 kodu ile LINE defterini hesaba bağla), `/auth/password-reset/request|confirm` (e-posta gönderimi soyut: `MAIL_PROVIDER` yoksa log'a yaz; Q-13).
+- Panel: `/signup`, `/login`, `/connect` korunur. Testler: kayıt, yanlış parola, aynı e-posta, token ile erişim, kullanıcı ayrımı.
+
+## T-041 · Ekip üyeleri (P1)
+- `members(user_id(defter), account_id, role)`; owner davet kodu üretir; accountant: okuma + düzenleme, viewer: yalnız okuma. Tüm yazma uçlarında rol kontrolü + testler.
+
+## T-042 · Abonelik (P0)
+- `plans` sabitleri `bot/billing.py`: free (aylık 30 fiş, 3 fatura), personal, business — fiyatlar Q-11 cevaplanana kadar yer tutucu ve yapılandırmadan.
+- Stripe Checkout + webhook (`/billing/webhook`, imza doğrulama), `subscriptions` tablosu. `STRIPE_SECRET_KEY` yoksa ödeme uçları 503 ve panelde "準備中". httpx ile Stripe REST (SDK şart değil), testlerde mock.
+
+## T-043 · Yasal sayfalar (P0)
+- Panel: `/legal/terms`, `/legal/privacy`, `/legal/tokushoho`. İçerik `app/lib/legal.ts` şablonu; satıcı bilgileri yapılandırmadan (Q-12). Her sayfanın başında "本ページは確認中のドラフトです" uyarısı (Q-12 cevaplanana kadar).
+- Privacy: 利用目的, 第三者提供, 外国にある第三者への提供 (Render/Google Cloud bölgesi), 保存期間 (電帳法 7年), 開示請求 窓口.
+
+## T-044 · Tanıtım + kayıt + sihirbaz (P1)
+- `/lp` (ürün, LINE ile kayıt, fiyat tablosu Q-11'den, SSS), `/signup` sonrası 3 adımlı sihirbaz. Mobil uyumlu.
+
+## T-045 · 確定申告 çıktıları (P1)
+- `GET /api/v1/reports/blue-return.pdf?year=` (損益計算書 alan numaralarıyla), panelde indirme. e-Tax xtx için resmi şema araştırması `docs/ETAX.md` (kaynaklı); uygulama ayrı görev.
+
+## T-046 · Veri dışa aktarma / silme / yedek (P1)
+- `GET /api/v1/export/all.zip`; `POST /api/v1/account/delete-request` (hemen silmez, QUESTIONS'a değil `deletion_requests` tablosuna yazar); `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md`.
+
+## T-047 · Metinler (P2) — `app/lib/i18n.ts`, sayfalar buradan okur; `docs/JA_REVIEW.md` anadil kontrol listesi.
+
+## T-048 · Güvenlik (P1)
+- Basit bellek içi hız sınırı (IP + uç nokta), CORS `PANEL_URL`, `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security`; testler.
