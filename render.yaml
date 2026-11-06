@@ -41,6 +41,14 @@ services:
         sync: false
       - key: MAIL_API_KEY
         sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PERSONAL
+        sync: false
+      - key: STRIPE_PRICE_BUSINESS
+        sync: false
   - type: web
     name: jsaas-panel
     runtime: static

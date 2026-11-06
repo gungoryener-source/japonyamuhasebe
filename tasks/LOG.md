@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 04:46 JST · developer · T-042 abonelik (API dilimi)
+- Yeni `bot/billing.py`: planlar (free 30 経費/3 請求書 aylık, personal/business sınırsız; fiyatlar yer tutucu Q-11), aylık kullanım (JST, `created_at`; BANK/INVOICE/DEMO kaynakları fiş sayılmaz), `check_limit` → 402 Japonca. Sınırlar yalnızca `STRIPE_SECRET_KEY` varken ve `BILLING_ENFORCE_LIMITS≠0` uygulanır (yükseltme yolu yokken kimse engellenmez).
+- Stripe REST (httpx, SDK yok): Checkout oturumu (abonelik, `client_reference_id`=defter), dönem sonu iptal, webhook `Stripe-Signature` HMAC (300 sn), olay kimliğiyle idempotent; `checkout.session.completed` + `customer.subscription.*` işlenir. Anahtar yoksa ödeme uçları 503.
+- Tablolar `subscriptions`, `billing_events` (ekleyici). render.yaml'a 4 `STRIPE_*` değişkeni `sync: false`; Q-10'a değer girilmesi notu, Q-11'e mevcut kullanıcılara geçiş süresi sorusu.
+- Yeni `tests/test_billing.py` (18; sınır 30/31 ve 3/4, imza tolerans sınırı, httpx MockTransport ile gerçek form kodlaması — bir `data=` hatasını yakaladı). Kapı: pytest 255 geçti (SQLite + yerel PostgreSQL 16).
+- Sonraki: T-042b (panel /billing + LINE/WhatsApp sınırı), ardından T-043.
+
 ## 2026-11-07 03:40 JST · developer · T-040b panel hesap sayfaları
 - Yeni `/signup` (e-posta + parola×2, ≥10 文字 istemci kontrolü → `/connect/?welcome=1`), `/login` (`?next=` yalnız site içi yol), `/reset` (hash `rs_…` → yeni parola formu, token adres çubuğundan silinir; yoksa e-posta isteği, her zaman aynı mesaj). Ortak `components/auth.tsx`; hata metni API `detail`'inden, ağ hatasında 「デモデータで見る」 yönlendirmesi.
 - `/connect`: hesapla oturum açıksa (`/auth/me`) kod hash'ten gelse bile onay butonuyla `POST /auth/link-line` (409 mesajı gösterilir); hesapsızsa eski davranış (kod = token, otomatik). Token saklama aynı `jsaas.token`.

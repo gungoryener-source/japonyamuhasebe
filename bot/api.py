@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 import accounts
 import bank_csv
+import billing
 import export
 import invoices as inv_mod
 import store
@@ -128,6 +129,8 @@ def create_entry(body: EntryIn, uid: str = Depends(current_user)):
     if body.invoice_no and not re.fullmatch(r"T\d{13}", body.invoice_no):
         raise HTTPException(400, "invoice_no must be T + 13 digits")
     e = body.model_dump()
+    if e["kind"] == "exp":
+        _billing_call(billing.check_limit, uid, "receipts")
     eid = store.add_entry(uid, e, source="WEB")
     return {"id": eid, **e}
 
@@ -396,6 +399,7 @@ def create_invoice(body: InvoiceIn, uid: str = Depends(current_user)):
         items = inv_mod.validate_items([i.model_dump() for i in body.items])
     except ValueError as ex:
         raise HTTPException(400, str(ex))
+    _billing_call(billing.check_limit, uid, "invoices")
     t = inv_mod.compute_totals(items)
     inv = {"no": store.next_invoice_no(uid, issued), "client": body.client, "issued": issued, "due": body.due,
            "items": items, "subtotal10": t.subtotal10, "subtotal8": t.subtotal8, "tax10": t.tax10,
@@ -502,6 +506,54 @@ def auth_reset_request(body: ResetRequestIn):
 def auth_reset_confirm(body: ResetConfirmIn):
     _account_call(accounts.confirm_password_reset, body.token, body.password)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- billing (T-042)
+def _billing_call(fn, *args):
+    try:
+        return fn(*args)
+    except billing.BillingError as e:
+        raise HTTPException(e.code, str(e))
+
+
+async def _billing_await(coro):
+    try:
+        return await coro
+    except billing.BillingError as e:
+        raise HTTPException(e.code, str(e))
+
+
+class CheckoutIn(BaseModel):
+    plan: str = Field(pattern="^(personal|business)$")
+
+
+@router.get("/billing/plans")
+def billing_plans():
+    return {"plans": billing.public_plans(), "payments_enabled": billing.payments_enabled()}
+
+
+@router.get("/billing/status")
+def billing_status(uid: str = Depends(current_user)):
+    return billing.status(uid)
+
+
+@router.post("/billing/checkout")
+async def billing_checkout(body: CheckoutIn, uid: str = Depends(current_user)):
+    acc = accounts.account_for_ledger(uid)
+    url = await _billing_await(billing.create_checkout(uid, body.plan, acc["email"] if acc else ""))
+    return {"url": url}
+
+
+@router.post("/billing/cancel")
+async def billing_cancel(uid: str = Depends(current_user)):
+    return await _billing_await(billing.cancel(uid))
+
+
+@router.post("/billing/webhook")
+async def billing_webhook(request: Request, stripe_signature: str = Header(default="")):
+    payload = await request.body()
+    event = _billing_call(billing.parse_event, payload, stripe_signature)
+    return {"result": billing.handle_event(event)}
 
 
 # ---------------------------------------------------------------- admin

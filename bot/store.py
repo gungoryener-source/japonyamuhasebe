@@ -99,6 +99,23 @@ SCHEMA = [
         expires_at TEXT NOT NULL,
         used_at TEXT DEFAULT ''
     )""",
+    # T-042 abonelik (billing.py) — defter (user_id) başına bir satır
+    """CREATE TABLE IF NOT EXISTS subscriptions(
+        user_id TEXT PRIMARY KEY,
+        plan TEXT NOT NULL DEFAULT 'free',
+        status TEXT NOT NULL DEFAULT 'incomplete',
+        stripe_customer TEXT DEFAULT '',
+        stripe_subscription TEXT DEFAULT '',
+        current_period_end TEXT DEFAULT '',
+        cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_sub_stripe ON subscriptions(stripe_subscription)",
+    """CREATE TABLE IF NOT EXISTS billing_events(
+        event_id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        received_at TEXT NOT NULL
+    )""",
 ]
 
 

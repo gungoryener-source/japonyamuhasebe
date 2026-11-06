@@ -35,3 +35,10 @@ Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şem
 | POST | `/auth/link-line` | `{code}` (LINE 「パネル」 kodu) → hesabın defteri LINE defteri olur, yeni token. Web defterinde veri varsa veya LINE defteri başka hesaba bağlıysa 409; eski token'lar ve kod iptal |
 | POST | `/auth/password-reset/request` | `{email}` → her zaman 202; bağlantı e-postayla (`MAIL_PROVIDER` yoksa yalnızca log, Q-13), 1 saat geçerli |
 | POST | `/auth/password-reset/confirm` | `{token, password}` → parola değişir, tüm oturumlar kapanır; geçersiz/süresi dolmuş 400 |
+| GET | `/billing/plans` | Planlar (kimliksiz): `free` (aylık 30 経費, 3 請求書) / `personal` / `business`; fiyatlar yer tutucu (`placeholder: true`, Q-11), `available` = Stripe fiyatı tanımlı |
+| GET | `/billing/status` | Defterin planı, sınırları, bu ayki kullanım (`usage.receipts` = BANK/INVOICE/DEMO dışı 経費, `usage.invoices`), `payments_enabled`, `limits_enforced`, abonelik |
+| POST | `/billing/checkout` | `{plan: personal|business}` → `{url}` Stripe Checkout (abonelik). `STRIPE_SECRET_KEY` veya plan fiyatı yoksa 503; aynı plan 409; Stripe hatası 502 |
+| POST | `/billing/cancel` | Dönem sonunda iptal (`cancel_at_period_end`); veri silinmez. Ücretli plan yoksa 404 |
+| POST | `/billing/webhook` | Stripe webhook (`Stripe-Signature`, 300 sn tolerans). `checkout.session.completed`, `customer.subscription.created|updated|deleted` işlenir; olay kimliğiyle idempotent. Sır yoksa 503, imza hatalı 400 |
+
+Plan sınırları yalnızca ödeme açıkken (`STRIPE_SECRET_KEY` var ve `BILLING_ENFORCE_LIMITS≠0`) uygulanır: ücretsiz planda ay içinde 31. 経費 (`POST /entries`, kind=exp) veya 4. fatura → **402** (Japonca `detail`). LINE/WhatsApp yolu → T-042b.

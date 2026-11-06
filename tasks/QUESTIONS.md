@@ -40,10 +40,12 @@ tessdata_best modeliyle fiş başına ~2–5 sn (tam çekirdek). Render free pla
 
 ## Q-10 · Ödeme sağlayıcısı (açık)
 Varsayılan: **Stripe** (JPY, Japonya kartları, konbini ödemesi). Alternatif: PAY.JP (Japon şirketi). Ajanlar Stripe test moduyla geliştiriyor; canlı anahtar senin Stripe hesabından gelmeli.
+(2026-11-07 developer, T-042: Render'a `sync: false` ile eklendi — **değer girilmeli**: `STRIPE_SECRET_KEY` (önce `sk_test_…`), `STRIPE_WEBHOOK_SECRET` (Stripe → Developers → Webhooks → uç nokta `https://tegaru-line-bot.onrender.com/api/v1/billing/webhook`, olaylar: `checkout.session.completed`, `customer.subscription.created/updated/deleted`), `STRIPE_PRICE_PERSONAL`, `STRIPE_PRICE_BUSINESS` (Stripe'ta aylık JPY "Price" kimlikleri `price_…`). Anahtar girilene kadar ödeme kapalı ve ücretsiz plan sınırları **uygulanmıyor**.)
 **Cevap:**
 
 ## Q-11 · Fiyatlandırma (açık)
 Yer tutucu: Free (ayda 30 fiş, 3 fatura) / 個人 ¥980 / 法人 ¥2,980 (vergi hariç, aylık). Gerçek fiyatları yaz.
+(2026-11-07 developer, T-042: yer tutucular `bot/billing.py` `PLANS` içinde. Ek karar: `STRIPE_SECRET_KEY` girildiği anda mevcut LINE kullanıcılarına da ücretsiz plan sınırı uygulanır — mevcut kullanıcılara geçiş süresi / ücretsiz dönem istiyor musun? İstemezsen `BILLING_ENFORCE_LIMITS=0` ile sınırlar kapalı tutulabilir.)
 **Cevap:**
 
 ## Q-12 · Satıcı bilgileri — 特定商取引法に基づく表記 (açık)
