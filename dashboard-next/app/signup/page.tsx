@@ -43,6 +43,10 @@ export default function SignupPage() {
         hint={`${PASSWORD_MIN}文字以上`} />
       <AuthInput label="パスワード（確認）" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       {error && <Notice tone="error">{error}</Notice>}
+      <p className="text-[11px] leading-relaxed text-slate-500">
+        登録すると、<a href="/legal/terms/" target="_blank" className="font-bold text-navy underline-offset-2 hover:underline">利用規約</a>と
+        <a href="/legal/privacy/" target="_blank" className="font-bold text-navy underline-offset-2 hover:underline">プライバシーポリシー</a>に同意したものとみなされます。
+      </p>
       <SubmitBtn busy={busy}>登録する</SubmitBtn>
       <p className="text-[10px] leading-relaxed text-slate-400">
         登録後、LINE で「パネル」と送って届く接続コードを入力すると、LINE で記録した帳簿をこのアカウントで使えます。

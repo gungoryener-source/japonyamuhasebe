@@ -60,6 +60,17 @@ services:
         value: https://tegaru-line-bot.onrender.com
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      # 特定商取引法に基づく表記 / 規約の販売業者情報 (T-043, Q-12). Boşsa sayfada 「要確認」. Değişince yeniden derleme gerekir.
+      - key: NEXT_PUBLIC_LEGAL_SELLER
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_MANAGER
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_ADDRESS
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_PHONE
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_EMAIL
+        sync: false
 
 databases:
   - name: jsaas-db

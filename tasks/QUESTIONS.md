@@ -50,6 +50,7 @@ Yer tutucu: Free (ayda 30 fiş, 3 fatura) / 個人 ¥980 / 法人 ¥2,980 (vergi
 
 ## Q-12 · Satıcı bilgileri — 特定商取引法に基づく表記 (açık)
 Zorunlu: 販売業者名, 運営責任者, 所在地, 電話番号, メールアドレス, 販売価格, 支払方法・時期, 解約・返金. Japonya'da şirket/adres yoksa nasıl gösterileceğini müşavirle netleştir. Yasal metinler bu cevaplanana kadar "ドラフト" olarak yayında.
+(2026-11-07 developer, T-043: sayfalar yayında — `/legal/terms/`, `/legal/privacy/`, `/legal/tokushoho/`, metin `dashboard-next/app/lib/legal.ts`. Satıcı bilgileri Render → jsaas-panel → Environment'a **değer girilmeli**: `NEXT_PUBLIC_LEGAL_SELLER`, `_MANAGER`, `_ADDRESS`, `_PHONE`, `_EMAIL` (girildikten sonra Manual Deploy ile yeniden derle). Boş alanlar 「要確認」 görünür. Avukat/müşavir kontrolü gereken ve 「要確認」 işaretli maddeler: 返金なし・期間末解約, 損害賠償上限 (月額料金), 合意管轄, 外国にある第三者 bilgi sunumu (APPI 28条: ülke + o ülkenin sistemi), 帳簿 saklama süresi ve hesap silindikten sonra veri silme süresi, fiyat gösterimi (税込 gösterim zorunlu mu). Ayrıca karar: 規約 üzerindeki sorumluluğu "当社" mı (şirket kurulana kadar bireysel ad mı) yazılacak?)
 **Cevap:**
 
 ## Q-13 · E-posta gönderim servisi (açık)

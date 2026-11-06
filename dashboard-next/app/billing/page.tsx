@@ -192,6 +192,8 @@ function Billing() {
       </div>
       <p className="text-[11px] text-slate-400">
         価格は仮のものです。お支払いは Stripe（クレジットカード）で安全に処理され、カード情報は当サービスに保存されません。
+        {" "}<a href="/legal/tokushoho/" className="underline-offset-2 hover:text-navy hover:underline">特定商取引法に基づく表記</a>
+        {" "}<a href="/legal/terms/" className="underline-offset-2 hover:text-navy hover:underline">利用規約</a>
         {" "}<a href="/settings/" className="underline-offset-2 hover:text-navy hover:underline">設定に戻る</a>
       </p>
     </div>

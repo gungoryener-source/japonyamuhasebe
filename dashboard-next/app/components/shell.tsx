@@ -11,6 +11,7 @@ import {
 import { api, ApiError, getToken, setToken } from "../lib/api";
 import { MOCK, type Company } from "../lib/demo";
 import { Badge, cx, useClickOutside, useToast } from "./ui";
+import { LegalLinks } from "./legal";
 
 /* ============================================================
  * SIDEBAR
@@ -79,6 +80,7 @@ function Sidebar({ open, onClose, company }: { open: boolean; onClose: () => voi
           <p className="text-slate-400">適格請求書発行事業者</p>
           <p className="font-mono text-slate-200 tabular">{company.reg}</p>
           <p className="pt-1 text-slate-500">{company.fiscal}</p>
+          <LegalLinks className="!justify-start pt-2 text-[10px] text-slate-500 [&_a:hover]:!text-slate-200" />
         </div>
       </aside>
     </>

@@ -3,6 +3,7 @@
 /** Hesap sayfaları (/signup, /login, /reset, /connect) için ortak kart ve form parçaları (T-040b). */
 import { LoaderCircle } from "lucide-react";
 import { ApiError, NETWORK_ERROR } from "../lib/api";
+import { LegalLinks } from "./legal";
 
 export function AuthCard({ icon, title, sub, children, onSubmit, footer }: {
   icon: React.ReactNode; title: string; sub?: React.ReactNode; children: React.ReactNode;
@@ -33,6 +34,7 @@ export function AuthCard({ icon, title, sub, children, onSubmit, footer }: {
           {footer}
           <a href="/" className="hover:text-navy">デモデータで見る</a>
         </div>
+        <LegalLinks className="text-[10px] text-slate-400" />
       </div>
     </main>
   );

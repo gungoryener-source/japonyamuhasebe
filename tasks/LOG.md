@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 09:00 JST · developer · T-043 yasal sayfalar
+- Panelde `/legal/terms/` (利用規約: 税理士法 — vergi danışmanlığı değil, OCR/hesap sonuçları referans, veri sahipliği, 民法548条の4 değişiklik), `/legal/privacy/` (APPI: 取得情報, 利用目的, 27条 第三者提供, 委託先 + 外国 (Render/Singapur, Stripe, LINEヤフー, Meta, Anthropic), 開示等 32〜35条), `/legal/tokushoho/` (zorunlu 11 madde tablosu). Her sayfada 「本ページは確認中のドラフトです」 bandı.
+- İçerik `app/lib/legal.ts`'de; satıcı bilgileri derleme zamanı `NEXT_PUBLIC_LEGAL_*` (render.yaml jsaas-panel, `sync: false`), boşsa 「要確認」. Hukuki onay gereken maddeler 「要確認」 rozetli; saklama süresi TAX_RULES'ta ⚠️ olduğundan sayı yazılmadı. Q-12'ye değer listesi + avukat kontrol maddeleri eklendi.
+- Bağlantılar: kayıt formuna 同意文, giriş/kayıt/sıfırlama kartları altına, kenar menü altına, 料金プラン'a (特商法・規約).
+- Yeni `npm run check:legal` (şablon: 要確認 yedeği, 特商法 zorunlu maddeler, boş blok/başlık tekrarı yok; `out/legal/*` HTML'de ドラフト bandı + maddeler). Kapı: pytest 297 geçti; `next build` geçti; env ile derlemede satıcı adı HTML'e girdi; Playwright ile masaüstü + 375px (yatay taşma yok) kontrolü.
+- Sonraki: P0 bitti → P1 (T-004b 基礎控除 2026/2027, sonra T-025 / T-041 …).
+
 ## 2026-11-07 07:45 JST · developer · T-053 kayıt yarışında 500 (review-fix)
 - `store.is_integrity_error(exc)`: sqlite3.IntegrityError ve psycopg.IntegrityError (UniqueViolation dahil) tanır; psycopg yoksa güvenle False.
 - `accounts.signup`: işlem bloğu bütünlük hatası verirse (SELECT–INSERT arası rakip kayıt) ve e-posta artık kayıtlıysa `AccountError(…, 409)` 「このメールアドレスはすでに登録されています。」; e-posta kayıtlı değilse hata gizlenmez, aynen yükselir. tx rollback → yarım hesap/defter yok.
