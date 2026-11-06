@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 05:50 JST · developer · T-042b abonelik paneli + kanal sınırları
+- Yeni panel sayfası `/billing` (料金プラン): mevcut plan + durum/yenileme tarihi, bu ayki kullanım çubukları (経費 x/30, 請求書 x/3; %80 sarı, dolunca kırmızı), plan kartları (yer tutucu fiyat 「仮」), 「アップグレード」 → Checkout `url`, 「解約（期間末）」 onaylı; ödeme kapalıyken 「準備中」 bandı ve butonları. `?billing=success|cancel` bandı; demo modunda statik. Menüye 料金プラン, `/settings`'e bağlantı kartı.
+- LINE/WhatsApp: `app.limit_notice` — sınır aşıldıysa 経費 kaydedilmez, Japonca uyarı + `{PANEL_URL}/billing/` (yoksa 「パネル」 yönlendirmesi). Fiş görselinde OCR'dan önce kontrol (görsel işlenmez/saklanmaz). 入金 ve komutlar (合計/取消) etkilenmez. Checkout `success_url`/`cancel_url` → `/billing/`.
+- Yeni `tests/test_channel_limits.py` (9; 30/31 sınırı, ödeme kapalı, `BILLING_ENFORCE_LIMITS=0`, ücretli plan, görsel OCR öncesi, WhatsApp). Kapı: rebase sonrası pytest 279 geçti (SQLite + yerel PostgreSQL 16); `next build` geçti; Playwright ile demo + canlı (31/30 kullanım, success bandı) ekran kontrolü.
+- Sonraki: P0 T-043 (yasal sayfalar).
+
 ## 2026-11-07 05:45 JST · reviewer · 1709d00..37ed9ee incelemesi (T-040, T-051, T-040b, T-042)
 - Kapı başta yeşil (255, SQLite); T-051 eski parmak izi mantığı, T-040b `nextPath` (açık yönlendirme yok), T-042 sınır 30/31·3/4 ve imza doğrulaması doğru. Vergi kuralı değişikliği yok.
 - **Düzeltmeler:** (1) `accounts.send_mail` sağlayıcı yokken sıfırlama bağlantısını INFO log'a ve tam e-postayı WARNING'e yazıyordu → gövde DEBUG, adres `t***@…` maskeli. (2) Parola sıfırlanınca hesabın diğer kullanılmamış `rs_` bağlantıları da geçersiz. (3) `link_ledger`: web defterinde abonelik varsa 409 (ücretli plan sahipsiz kalıyordu). (4) `billing.handle_event`: işleme hata verirse olay kaydı geri alınır → Stripe yeniden denemesi `duplicate` sayılmaz.

@@ -208,8 +208,8 @@ async def create_checkout(user_id: str, plan: str, email: str = "") -> str:
         "client_reference_id": user_id,
         "metadata": {"user_id": user_id, "plan": plan},
         "subscription_data": {"metadata": {"user_id": user_id, "plan": plan}},
-        "success_url": f"{panel}/settings/?billing=success",
-        "cancel_url": f"{panel}/settings/?billing=cancel",
+        "success_url": f"{panel}/billing/?billing=success",
+        "cancel_url": f"{panel}/billing/?billing=cancel",
         "locale": "ja",
     }
     sub = get_subscription(user_id)

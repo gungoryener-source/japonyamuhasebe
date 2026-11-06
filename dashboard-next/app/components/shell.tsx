@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bell, Building2, Calculator, Check, ChevronDown, ChevronRight, CircleCheck, FileText, Home, Landmark,
+  Bell, Building2, Calculator, CreditCard, Check, ChevronDown, ChevronRight, CircleCheck, FileText, Home, Landmark,
   LoaderCircle, LogOut, Menu, Receipt, RefreshCw, Search, Settings, TriangleAlert, X,
 } from "lucide-react";
 import { api, ApiError, getToken, setToken } from "../lib/api";
@@ -22,6 +22,7 @@ export const NAV = [
   { ja: "経費精算", en: "Expenses", icon: Receipt, href: "/expenses/" },
   { ja: "銀行連携", en: "Bank Sync", icon: Landmark, href: "/bank/" },
   { ja: "確定申告 / 税務", en: "Tax Reporting", icon: Calculator, href: "/tax/" },
+  { ja: "料金プラン", en: "Billing", icon: CreditCard, href: "/billing/" },
   { ja: "設定", en: "Settings", icon: Settings, href: "/settings/" },
 ];
 

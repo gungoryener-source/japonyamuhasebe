@@ -283,11 +283,26 @@ def respond(user_id: str, text: str, source: str = "LINE") -> tuple[str, Options
         return "金額が見つかりませんでした。\n" + HELP, []
     if int(e["amount"]) >= MAX_ENTRY_AMOUNT:
         return TOO_LARGE, []
+    if e.get("kind") == "exp" and (notice := limit_notice(user_id)):
+        return notice, opts("合計")
     add_entry(user_id, e, source=source)
     return saved_text(e), opts(*QR_AFTER_SAVE)
 
 
 TOO_LARGE = "金額が大きすぎます。1件20億円未満で入力してください。"
+
+
+def limit_notice(user_id: str) -> str | None:
+    """Plan sınırı (T-042b): yeni 経費 kaydından önce. Aşıldıysa kaydetmeden gösterilecek Japonca metin."""
+    import billing
+
+    try:
+        billing.check_limit(user_id, "receipts")
+    except billing.LimitExceeded as ex:
+        base = os.environ.get("PANEL_URL", "").rstrip("/")
+        link = f"\n\nプランの確認・変更はこちら:\n{base}/billing/" if base else "\n\n「パネル」と送るとウェブ管理画面からプランを変更できます。"
+        return f"{ex}\n今回の内容は記録されていません。{link}"
+    return None
 
 
 def to_line(msg: str, options: Options) -> dict:
@@ -306,6 +321,8 @@ async def handle_text(user_id: str, token: str, text: str):
 
 async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     """Fiş görseli → OCR → kayıt. Kanaldan bağımsız."""
+    if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
+        return notice, opts("合計")
     try:
         os.makedirs("receipts", exist_ok=True)
         safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80]

@@ -142,6 +142,19 @@ export type ApiIncomeTax = {
 export type ApiAuth = { account: { id: number; email: string }; user_id: string; token: string };
 export type ApiMe = { user_id: string; account: { id: number; email: string; email_verified: boolean } | null };
 
+/** Abonelik (T-042, docs/API.md). Fiyatlar Q-11 cevaplanana kadar yer tutucu. */
+export type ApiPlan = {
+  id: "free" | "personal" | "business"; name: string; price_jpy: number;
+  receipts_per_month: number | null; invoices_per_month: number | null; placeholder: boolean; available: boolean;
+};
+export type ApiBillingStatus = {
+  plan: ApiPlan["id"]; plan_name: string;
+  limits: { receipts_per_month: number | null; invoices_per_month: number | null };
+  usage: { month: string; receipts: number; invoices: number };
+  payments_enabled: boolean; limits_enforced: boolean;
+  subscription: { plan: string; status: string; current_period_end: string; cancel_at_period_end: boolean } | null;
+};
+
 export type ApiChannels = {
   line: { configured: boolean; webhook: string; linked: boolean };
   whatsapp: { configured: boolean; webhook: string };
@@ -190,6 +203,10 @@ export const api = {
   channels: () => call<ApiChannels>("/channels"),
   revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
   me: () => call<ApiMe>("/auth/me"),
+  billingPlans: () => call<{ plans: ApiPlan[]; payments_enabled: boolean }>("/billing/plans"),
+  billingStatus: () => call<ApiBillingStatus>("/billing/status"),
+  checkout: (plan: "personal" | "business") => call<{ url: string }>("/billing/checkout", { method: "POST", body: JSON.stringify({ plan }) }),
+  cancelPlan: () => call<ApiBillingStatus>("/billing/cancel", { method: "POST" }),
   linkLine: (code: string) => call<ApiAuth>("/auth/link-line", { method: "POST", body: JSON.stringify({ code }) }),
 };
 

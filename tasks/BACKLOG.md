@@ -40,7 +40,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
 | T-041 | P1 | todo | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
-| T-042b | P0 | doing (developer, 2026-11-07) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
+| T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | todo | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
 | T-044 | P1 | todo | Tanıtım sayfası (/lp), kayıt akışı ve ilk kurulum sihirbazı (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | todo | 確定申告 çıktıları: 青色申告決算書 (損益計算書) PDF, 申告書 alan numaralarıyla özet; e-Tax xtx araştırma notu (docs/ETAX.md) |
@@ -207,7 +207,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-042b · Abonelik paneli + kanal sınırları (P0)
 - `dashboard-next/app/billing`: `/billing/plans` + `/billing/status` → plan kartları (yer tutucu fiyat 「仮」 etiketi), bu ayki kullanım (経費 x/30, 請求書 x/3), 「アップグレード」 → `POST /billing/checkout` → `url`'e git, 「解約（期間末）」; `payments_enabled=false` ise 「準備中」. `?billing=success|cancel` sonuç bandı; `/settings`'e bağlantı. Demo modunda statik.
 - `bot/app.py` + `whatsapp.py`: metin/fiş kaydından önce `billing.check_limit(user_id, "receipts")`; aşılırsa kaydetmeden Japonca uyarı + panel bağlantısı. Testler (LINE + WhatsApp).
-- Not: Checkout `success_url` şu an `/settings/?billing=…`; sayfa açılınca `/billing/`'e çevrilebilir.
+- ✅ Yapıldı: `/billing` sayfası (plan kartları 「仮」, kullanım çubukları, Checkout, 期間末解約, 準備中 bandı, `?billing=` sonucu, demo statik), menü + `/settings` bağlantısı; Checkout dönüşü artık `/billing/`. LINE/WhatsApp: `app.limit_notice` metin kaydı ve fiş görselinde (OCR'dan önce) — `tests/test_channel_limits.py`.
 
 ## T-043 · Yasal sayfalar (P0)
 - Panel: `/legal/terms`, `/legal/privacy`, `/legal/tokushoho`. İçerik `app/lib/legal.ts` şablonu; satıcı bilgileri yapılandırmadan (Q-12). Her sayfanın başında "本ページは確認中のドラフトです" uyarısı (Q-12 cevaplanana kadar).

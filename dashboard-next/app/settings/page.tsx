@@ -2,7 +2,7 @@
 
 /** 設定 — 事業者情報（インボイス登録番号）・連携チャネルの状態・接続管理 */
 import { useEffect, useState } from "react";
-import { Copy, KeyRound, LogOut, MessageCircle, ScanText, ShieldCheck } from "lucide-react";
+import { Copy, CreditCard, KeyRound, LogOut, MessageCircle, ScanText, ShieldCheck } from "lucide-react";
 import { API_BASE, api, setToken, type ApiChannels } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Field, inputCls, registrationOk } from "../components/ui";
@@ -114,6 +114,13 @@ function Settings() {
             </p>
           </li>
         </ul>
+      </Card>
+
+      <Card title="料金プラン" en="Billing" right={<CreditCard size={16} className="text-mint" />} className="lg:col-span-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-slate-500">現在のプラン・今月の利用状況の確認、アップグレードや解約はこちらから。</span>
+          <a href="/billing/" className="ml-auto"><Btn kind="ghost">料金プランを見る</Btn></a>
+        </div>
       </Card>
 
       <Card title="接続" en="Connection" right={<KeyRound size={16} className="text-slate-400" />} className="lg:col-span-2">
