@@ -56,7 +56,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-029 | P2 | done (bu commit) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
 | T-029b | P2 | done (bu commit) | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
 | T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
-| T-052 | P1 | doing (developer, 2026-11-07) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
+| T-052 | P1 | done (bu commit) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
 | T-053 | P2 | review-fix | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 
 ---
@@ -237,6 +237,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/billing.py` `_apply_subscription_object` (~satır 250) her olayda durumu koşulsuz yazar. Stripe olay sırasını garanti etmez: `customer.subscription.deleted` (status=canceled) sonrası yeniden denenen eski bir `updated` (status=active) gelirse defter tekrar ücretli olur.
 - Beklenen: `subscriptions`'a ekleyici sütun (ör. `last_event_created INTEGER DEFAULT 0`); olayın `created` zamanı kayıttakinden eskiyse durum yazılmaz (`ignored`). `checkout.session.completed` için de aynı.
 - Test: deleted(created=200) → updated(created=100, active) → plan `free` kalır; eşit/yeni zamanlı olay uygulanır.
+- ✅ Yapıldı: `subscriptions.last_event_created` (ekleyici; `store.ADDED_COLUMNS` + `init_db` mevcut DB'lere ekler). Webhook yazımı koşullu UPDATE (`last_event_created<=created`) → eski olay `ignored`; checkout.session.completed dahil. API yanıtı yazımları (cancel) zamanı değiştirmez. Testler `tests/test_billing_event_order.py`.
 
 ## T-053 · Kayıt yarışında 500 (review-fix, P2)
 - `bot/accounts.py` `signup()` (~satır 95): SELECT ile INSERT arasında aynı e-postayla ikinci istek gelirse `accounts.email UNIQUE` ihlali yakalanmıyor → 500. Beklenen: IntegrityError (sqlite3 + psycopg) → `AccountError(..., 409)`. Test: INSERT'i önceden yapıp kontrolü atlayan monkeypatch ile 409.

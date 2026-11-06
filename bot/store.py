@@ -176,10 +176,29 @@ def _schema() -> list[str]:
     return [stmt.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY") for stmt in SCHEMA]
 
 
+# Sonradan eklenen sütunlar (yalnızca ekleyici; mevcut veritabanlarında init_db sırasında eklenir).
+# (tablo, sütun, SQLite tanımı, PostgreSQL tanımı)
+ADDED_COLUMNS: list[tuple[str, str, str, str]] = [
+    # T-052: işlenen son Stripe olayının `created` zamanı (unix sn) — eski olaylar durumu ezmesin
+    ("subscriptions", "last_event_created", "INTEGER NOT NULL DEFAULT 0", "BIGINT NOT NULL DEFAULT 0"),
+]
+
+
+def _add_columns(con: "_Conn") -> None:
+    for table, col, lite, pg in ADDED_COLUMNS:
+        if con.pg:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {pg}")
+        else:
+            have = {r["name"] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
+            if col not in have:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN {col} {lite}")
+
+
 def init_db() -> None:
     with tx() as con:
         for stmt in _schema():
             con.execute(stmt)
+        _add_columns(con)
 
 
 def now() -> str:

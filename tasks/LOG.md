@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 06:44 JST · developer · T-052 Stripe webhook olay sırası (review-fix)
+- `subscriptions`'a ekleyici sütun `last_event_created` (unix sn). `store.ADDED_COLUMNS` + `_add_columns`: mevcut veritabanlarına `init_db` sırasında eklenir (SQLite `PRAGMA table_info` kontrolü, PG `ADD COLUMN IF NOT EXISTS`); veri korunur, yıkıcı migration yok.
+- `billing._upsert(event_created=…)`: karşılaştırma + yazma tek koşullu UPDATE (`WHERE last_event_created<=?`) → eski olay `ignored`, eşit/yeni uygulanır; eşzamanlı teslimde de eski olay kazanamaz. `checkout.session.completed` ve `customer.subscription.*` aynı kurala tabi; `cancel()` API yanıtı zamanı değiştirmez. Eksik/bozuk `created` → 0.
+- Yeni `tests/test_billing_event_order.py` (14; deleted(200)→updated(100) free kalır, 199/200/201 sınırı, geç checkout, eski DB taşıma). 12'si eski kodda kırmızı. Kapı: pytest 293 geçti (SQLite) / 292+1 skip (yerel PostgreSQL 16); PG'de eski tabloya sütun ekleme elle doğrulandı. dashboard-next değişmedi.
+- Sonraki: T-053 (review-fix, kayıt yarışında 500), ardından P0 T-043.
+
 ## 2026-11-07 05:50 JST · developer · T-042b abonelik paneli + kanal sınırları
 - Yeni panel sayfası `/billing` (料金プラン): mevcut plan + durum/yenileme tarihi, bu ayki kullanım çubukları (経費 x/30, 請求書 x/3; %80 sarı, dolunca kırmızı), plan kartları (yer tutucu fiyat 「仮」), 「アップグレード」 → Checkout `url`, 「解約（期間末）」 onaylı; ödeme kapalıyken 「準備中」 bandı ve butonları. `?billing=success|cancel` bandı; demo modunda statik. Menüye 料金プラン, `/settings`'e bağlantı kartı.
 - LINE/WhatsApp: `app.limit_notice` — sınır aşıldıysa 経費 kaydedilmez, Japonca uyarı + `{PANEL_URL}/billing/` (yoksa 「パネル」 yönlendirmesi). Fiş görselinde OCR'dan önce kontrol (görsel işlenmez/saklanmaz). 入金 ve komutlar (合計/取消) etkilenmez. Checkout `success_url`/`cancel_url` → `/billing/`.

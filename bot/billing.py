@@ -7,6 +7,8 @@
   olmadan kullanıcıyı engellememek için). `BILLING_ENFORCE_LIMITS=0` ile anahtar varken de kapatılabilir.
 - Stripe REST'i httpx ile çağrılır (SDK yok). Webhook imzası `Stripe-Signature` (t=…,v1=…) HMAC-SHA256.
 - Şema yalnızca ekleyici: `subscriptions`, `billing_events` (store.SCHEMA).
+- Olay sırası (T-052): Stripe olayları sırasız/yeniden denenmiş gelebilir. Abonelik satırı işlenen son olayın
+  `created` zamanını tutar (`last_event_created`); daha eski bir olay durumu yazmaz ('ignored'), eşit/yeni uygulanır.
 """
 from __future__ import annotations
 
@@ -144,21 +146,34 @@ def status(user_id: str) -> dict:
     }
 
 
-def _upsert(user_id: str, **f) -> None:
+def _upsert(user_id: str, event_created: int | None = None, **f) -> bool:
+    """Abonelik satırını yazar. `event_created` verilirse (webhook) kayıttakinden eski olay yazılmaz → False.
+
+    Karşılaştırma ve yazma tek koşullu UPDATE'tir (eşzamanlı teslimlerde de eski olay kazanamaz).
+    API yanıtından gelen yazımlar (`event_created=None`) zaman damgasını değiştirmez.
+    """
     cols = ["plan", "status", "stripe_customer", "stripe_subscription", "current_period_end", "cancel_at_period_end"]
     with tx() as con:
         cur = con.execute("SELECT * FROM subscriptions WHERE user_id=?", (user_id,)).fetchone()
         if cur:
             sets = {k: v for k, v in f.items() if k in cols and v is not None}
-            if sets:
-                con.execute(f"UPDATE subscriptions SET {', '.join(k + '=?' for k in sets)}, updated_at=? WHERE user_id=?",
-                            (*sets.values(), store.now(), user_id))
-        else:
-            vals = {"plan": "free", "status": "incomplete", "stripe_customer": "", "stripe_subscription": "",
-                    "current_period_end": "", "cancel_at_period_end": 0}
-            vals.update({k: v for k, v in f.items() if k in cols and v is not None})
-            con.execute(f"INSERT INTO subscriptions(user_id,{','.join(cols)},updated_at) VALUES(?,?,?,?,?,?,?,?)",
-                        (user_id, *(vals[c] for c in cols), store.now()))
+            where, args = "user_id=?", [user_id]
+            if event_created is not None:
+                sets["last_event_created"] = event_created
+                where += " AND last_event_created<=?"
+                args.append(event_created)
+            if not sets:
+                return True
+            res = con.execute(f"UPDATE subscriptions SET {', '.join(k + '=?' for k in sets)}, updated_at=? WHERE {where}",
+                              (*sets.values(), store.now(), *args))
+            return res.rowcount > 0
+        vals = {"plan": "free", "status": "incomplete", "stripe_customer": "", "stripe_subscription": "",
+                "current_period_end": "", "cancel_at_period_end": 0}
+        vals.update({k: v for k, v in f.items() if k in cols and v is not None})
+        con.execute(f"INSERT INTO subscriptions(user_id,{','.join(cols)},last_event_created,updated_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                    (user_id, *(vals[c] for c in cols), event_created or 0, store.now()))
+        return True
 
 
 # ---------------------------------------------------------------- Stripe REST
@@ -273,18 +288,20 @@ def _period_end(obj: dict) -> str:
     return datetime.fromtimestamp(int(ts), store.JST).isoformat(timespec="seconds")
 
 
-def _apply_subscription_object(obj: dict, fallback_user: str | None = None) -> str | None:
+def _apply_subscription_object(obj: dict, fallback_user: str | None = None,
+                               event_created: int | None = None) -> str | None:
+    """Abonelik nesnesini yazar → user_id. Kullanıcı bulunamazsa None, olay eskiyse "" (yazılmadı)."""
     user_id = (obj.get("metadata") or {}).get("user_id") or _user_for_subscription(obj.get("id", "")) or fallback_user
     if not user_id:
         return None
     items = (obj.get("items") or {}).get("data") or []
     pid = ((items[0].get("price") or {}).get("id") if items else "") or ""
     plan = plan_for_price(pid) or (obj.get("metadata") or {}).get("plan")
-    _upsert(user_id, plan=plan if plan in PAID_PLANS else None, status=obj.get("status"),
-            stripe_customer=obj.get("customer") or None, stripe_subscription=obj.get("id") or None,
-            current_period_end=_period_end(obj),
-            cancel_at_period_end=int(bool(obj.get("cancel_at_period_end"))))
-    return user_id
+    applied = _upsert(user_id, event_created, plan=plan if plan in PAID_PLANS else None, status=obj.get("status"),
+                      stripe_customer=obj.get("customer") or None, stripe_subscription=obj.get("id") or None,
+                      current_period_end=_period_end(obj),
+                      cancel_at_period_end=int(bool(obj.get("cancel_at_period_end"))))
+    return user_id if applied else ""
 
 
 def handle_event(event: dict) -> str:
@@ -296,7 +313,7 @@ def handle_event(event: dict) -> str:
             return "duplicate"
         con.execute("INSERT INTO billing_events(event_id,type,received_at) VALUES(?,?,?)", (eid, etype, store.now()))
     try:
-        return _process_event(etype, obj)
+        return _process_event(etype, obj, _event_created(event))
     except Exception:
         # İşlenemeyen olay kaydı geri alınır → Stripe'ın yeniden denemesi 'duplicate' sayılmaz
         with tx() as con:
@@ -304,18 +321,26 @@ def handle_event(event: dict) -> str:
         raise
 
 
-def _process_event(etype: str, obj: dict) -> str:
+def _event_created(event: dict) -> int:
+    """Olayın `created` zamanı (unix sn). Eksik/bozuksa 0 → yalnızca kayıt da 0 iken uygulanır."""
+    try:
+        return max(int(event.get("created") or 0), 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _process_event(etype: str, obj: dict, created: int = 0) -> str:
     if etype == "checkout.session.completed" and obj.get("mode") == "subscription":
         user_id = obj.get("client_reference_id") or (obj.get("metadata") or {}).get("user_id")
         plan = (obj.get("metadata") or {}).get("plan")
         if not user_id:
             return "ignored"
-        _upsert(user_id, plan=plan if plan in PAID_PLANS else None,
-                status="active" if obj.get("payment_status") in ("paid", "no_payment_required") else "incomplete",
-                stripe_customer=obj.get("customer") or None, stripe_subscription=obj.get("subscription") or None)
-        return "ok"
+        applied = _upsert(user_id, created, plan=plan if plan in PAID_PLANS else None,
+                          status="active" if obj.get("payment_status") in ("paid", "no_payment_required") else "incomplete",
+                          stripe_customer=obj.get("customer") or None, stripe_subscription=obj.get("subscription") or None)
+        return "ok" if applied else "ignored"
     if etype in ("customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"):
-        return "ok" if _apply_subscription_object(obj) else "ignored"
+        return "ok" if _apply_subscription_object(obj, event_created=created) else "ignored"
     return "ignored"
 
 
