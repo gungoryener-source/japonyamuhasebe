@@ -144,6 +144,17 @@ class _Conn:
         return self.raw.execute(sql, tuple(args))
 
 
+def is_integrity_error(exc: BaseException) -> bool:
+    """UNIQUE/FK ihlali mi? sqlite3.IntegrityError veya psycopg.IntegrityError (UniqueViolation dahil)."""
+    if isinstance(exc, sqlite3.IntegrityError):
+        return True
+    try:
+        import psycopg
+    except ImportError:  # pragma: no cover - psycopg yalnızca PG kurulumunda
+        return False
+    return isinstance(exc, psycopg.IntegrityError)
+
+
 @contextmanager
 def tx():
     """Tek işlem (transaction): blok hatasız biterse commit, hata olursa rollback."""

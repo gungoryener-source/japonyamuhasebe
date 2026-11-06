@@ -94,20 +94,33 @@ def account_for_ledger(user_id: str) -> dict | None:
     return dict(row) if row else None
 
 
+def _email_exists(email: str) -> bool:
+    with tx() as con:
+        return con.execute("SELECT 1 FROM accounts WHERE email=?", (email,)).fetchone() is not None
+
+
 def signup(email: str, password: str) -> tuple[dict, str]:
     """Yeni hesap + boş web defteri. (hesap, oturum token'ı) döner."""
     email = normalize_email(email)
     check_password_policy(password)
     pw = hash_password(password)
     ledger = "web:" + secrets.token_hex(12)
-    with tx() as con:
-        if con.execute("SELECT 1 FROM accounts WHERE email=?", (email,)).fetchone():
-            raise AccountError("このメールアドレスはすでに登録されています。", 409)
-        con.execute("INSERT INTO accounts(email,password_hash,email_verified,created_at) VALUES(?,?,0,?)",
-                    (email, pw, store.now()))
-        acc_id = con.execute("SELECT id FROM accounts WHERE email=?", (email,)).fetchone()["id"]
-        con.execute("INSERT INTO account_ledgers(account_id,user_id,linked_at) VALUES(?,?,?)",
-                    (acc_id, ledger, store.now()))
+    duplicate = AccountError("このメールアドレスはすでに登録されています。", 409)
+    try:
+        with tx() as con:
+            if con.execute("SELECT 1 FROM accounts WHERE email=?", (email,)).fetchone():
+                raise duplicate
+            con.execute("INSERT INTO accounts(email,password_hash,email_verified,created_at) VALUES(?,?,0,?)",
+                        (email, pw, store.now()))
+            acc_id = con.execute("SELECT id FROM accounts WHERE email=?", (email,)).fetchone()["id"]
+            con.execute("INSERT INTO account_ledgers(account_id,user_id,linked_at) VALUES(?,?,?)",
+                        (acc_id, ledger, store.now()))
+    except Exception as exc:
+        # T-053: SELECT ile INSERT arasında aynı e-postayla eşzamanlı kayıt → UNIQUE ihlali (işlem geri alındı).
+        # Yalnızca e-posta gerçekten kayıtlıysa 409; başka bütünlük hatası olduğu gibi yükselir.
+        if store.is_integrity_error(exc) and _email_exists(email):
+            raise duplicate from exc
+        raise
     token = store.issue_token(ledger, "web-login")
     return {"id": acc_id, "email": email, "user_id": ledger}, token
 
