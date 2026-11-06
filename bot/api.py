@@ -16,6 +16,7 @@ import bank_csv
 import export
 import invoices as inv_mod
 import store
+from store import MAX_ENTRY_AMOUNT
 from tax import consumption as ct
 from tax import income as it
 
@@ -98,7 +99,7 @@ class EntryIn(BaseModel):
     date: str
     kind: str = Field(pattern="^(inc|exp)$")
     store: str = Field(min_length=1, max_length=100)
-    amount: int = Field(gt=0, lt=10**11)
+    amount: int = Field(gt=0, lt=MAX_ENTRY_AMOUNT)
     category: str
     rate: int = 10
     invoice_no: str = ""
@@ -133,7 +134,7 @@ def create_entry(body: EntryIn, uid: str = Depends(current_user)):
 class EntryPatch(BaseModel):
     date: str | None = None
     store: str | None = Field(default=None, min_length=1, max_length=100)
-    amount: int | None = Field(default=None, gt=0, lt=10**11)
+    amount: int | None = Field(default=None, gt=0, lt=MAX_ENTRY_AMOUNT)
     category: str | None = None
     rate: int | None = None
     invoice_no: str | None = None
@@ -263,6 +264,8 @@ def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(current_user))
         raise HTTPException(400, "invoice_no must be T + 13 digits")
     e = {"date": t["d"], "kind": "exp", "store": t["description"][:100], "amount": -t["amount"],
          "category": body.category, "rate": body.rate, "invoice_no": body.invoice_no}
+    if -t["amount"] >= store.MAX_ENTRY_AMOUNT:
+        raise HTTPException(400, f"amount must be < {store.MAX_ENTRY_AMOUNT}")
     eid = store.add_entry(uid, e, source="BANK")
     store.link_bank_tx(uid, tx_id, entry_id=eid)
     return {"id": eid, **e}

@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 00:40 JST · developer · T-029b kayıt tutarı int4 taşması
+- Seçenek (a): şema değişmeden `store.MAX_ENTRY_AMOUNT = 2,000,000,000` (< 2^31−1). 1e9 seçilmedi çünkü ödenen en büyük fatura 税込 ~1.1e9 → 売上 kaydı reddedilirdi.
+- `store.check_amount` → `add_entry`/`update_entry` merkezi kontrol (`AmountOutOfRange`). API `EntryIn`/`EntryPatch` `lt=MAX_ENTRY_AMOUNT` (422, mevcut doğrulama kuralıyla aynı), `/bank/{id}/entry` büyük çekimde 400; LINE/WhatsApp metin ve fiş yolu 「金額が大きすぎます。1件20億円未満で入力してください。」 yanıtı, kayıt yok.
+- Not: api.py'de `EntryIn.store` alanı `store` modülünü sınıf gövdesinde gölgeliyor → sabit modül düzeyinde içe aktarıldı.
+- Yeni `tests/test_entry_limits.py` (7). Kapı: pytest 189 geçti (SQLite + yerel PostgreSQL 16).
+- Sonraki: P0 T-040 (hesap sistemi).
+
 ## 2026-11-06 23:58 JST · tax-watcher · haftalık vergi kuralı kontrolü
 - **Q-03 kapandı (✅):** 令和8・9年分 基礎控除 = ≤489万 104万 · ≤655万 67万 · ≤2,350万 62万 (2,350万超 değişmedi); 104万 tüm ≤2,350万 için değil. Kaynak: NTA 令和8年分 年末調整のしかた, 財務省 大綱, NTA No.1199. T-004b → todo. 令和10年分以後 ⚠️ (yalnızca ≤132万 99万 kesin).
 - **Yeni kural:** 青色申告特別控除 令和9年分以後 75万/65万/10万 (書面55万 kalkar, 簡易簿記 前々年収入>1,000万 → 0) → T-049 (P1).

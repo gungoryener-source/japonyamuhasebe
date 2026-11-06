@@ -155,7 +155,24 @@ def today() -> date:
 
 
 # ---------------------------------------------------------------- entries
+# entries.amount PostgreSQL'de INTEGER (int4, ≤ 2,147,483,647). Şemayı değiştirmeden taşmayı önlemek için
+# tek kayıt tutarı < 20億円. Fatura toplamı (< 1e9 税抜 → 税込 ≤ 1.1e9) bu sınırın altında kalır.
+MAX_ENTRY_AMOUNT = 2_000_000_000
+
+
+class AmountOutOfRange(ValueError):
+    """Kayıt tutarı 0 < amount < MAX_ENTRY_AMOUNT dışında."""
+
+
+def check_amount(amount) -> int:
+    a = int(amount)
+    if not 0 < a < MAX_ENTRY_AMOUNT:
+        raise AmountOutOfRange(f"amount must be > 0 and < {MAX_ENTRY_AMOUNT}")
+    return a
+
+
 def add_entry(user_id: str, e: dict, image_path: str = "", source: str = "LINE") -> int:
+    check_amount(e["amount"])
     with tx() as con:
         cur = con.execute(
             """INSERT INTO entries(user_id,d,kind,store,amount,category,rate,invoice_no,source,image_path,created_at)
@@ -177,6 +194,8 @@ def update_entry(user_id: str, entry_id: int, **fields) -> dict | None:
     sets = {k: v for k, v in fields.items() if k in allowed}
     if not sets:
         return None
+    if "amount" in sets:
+        sets["amount"] = check_amount(sets["amount"])
     cols = ", ".join(f"{k}=?" for k in sets)
     with tx() as con:
         con.execute(f"UPDATE entries SET {cols} WHERE id=? AND user_id=?", (*sets.values(), entry_id, user_id))

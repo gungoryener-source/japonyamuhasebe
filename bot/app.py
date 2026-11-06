@@ -47,7 +47,7 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------------- DB (store.py)
-from store import add_entry, init_db, issue_token, last_entry, month_summary, undo_last, update_entry  # noqa: E402
+from store import MAX_ENTRY_AMOUNT, add_entry, init_db, issue_token, last_entry, month_summary, undo_last, update_entry  # noqa: E402
 from api import router as api_router  # noqa: E402
 
 init_db()
@@ -281,8 +281,13 @@ def respond(user_id: str, text: str, source: str = "LINE") -> tuple[str, Options
     e = parse_text(t, datetime.now(JST).date())
     if not e:
         return "金額が見つかりませんでした。\n" + HELP, []
+    if int(e["amount"]) >= MAX_ENTRY_AMOUNT:
+        return TOO_LARGE, []
     add_entry(user_id, e, source=source)
     return saved_text(e), opts(*QR_AFTER_SAVE)
+
+
+TOO_LARGE = "金額が大きすぎます。1件20億円未満で入力してください。"
 
 
 def to_line(msg: str, options: Options) -> dict:
@@ -318,6 +323,8 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
         store = p.get("store") or "店名"
         return (f"金額を読み取れませんでした（{result['error']}）。{hint}\n"
                 f"「{store} 1234」のように金額を送ってください。"), []
+    if any(int(e["amount"]) >= MAX_ENTRY_AMOUNT for e in result):
+        return TOO_LARGE, []
     for e in result:
         add_entry(user_id, e, image_path=path, source=source)
     if len(result) == 1:
