@@ -421,16 +421,29 @@ def delete_entry(user_id: str, entry_id: int) -> bool:
 
 # ---------------------------------------------------------------- bank
 def insert_bank_rows(user_id: str, rows: list[dict], account: str = "") -> tuple[int, int]:
-    """(eklenen, yinelenen). Parmak izi: tarih + açıklama + tutar + bakiye + aynı gün sıra no."""
+    """(eklenen, yinelenen). Parmak izi: tarih + açıklama + tutar + bakiye + aynı gün sıra no.
+
+    `legacy_description` (bank_csv, T-051) varsa eski biçimdeki parmak izi de kontrol edilir."""
     import hashlib as _h
     added = dup = 0
     seen: dict[str, int] = {}
+    seen_legacy: dict[str, int] = {}
+
+    def _fp(base: str, counter: dict[str, int]) -> str:
+        counter[base] = counter.get(base, 0) + 1
+        return _h.sha256(f"{account}|{base}|{counter[base]}".encode()).hexdigest()[:32]
+
     with tx() as con:
         for r in rows:
-            base = f"{r['d']}|{r['description']}|{r['amount']}|{r.get('balance')}"
-            seen[base] = seen.get(base, 0) + 1
-            fp = _h.sha256(f"{account}|{base}|{seen[base]}".encode()).hexdigest()[:32]
-            exists = con.execute("SELECT 1 FROM bank_tx WHERE user_id=? AND fingerprint=?", (user_id, fp)).fetchone()
+            fps = [_fp(f"{r['d']}|{r['description']}|{r['amount']}|{r.get('balance')}", seen)]
+            # T-051: eski biçim (yalnızca ilk 摘要 sütunu) ile alınmış satırlar da yineleme sayılır.
+            # Sayaç eski biçimin anahtarına göre tutulur → eski içe aktarmadaki sıra numarasıyla aynı.
+            legacy = r.get("legacy_description") or r["description"]
+            fps.append(_fp(f"{r['d']}|{legacy}|{r['amount']}|{r.get('balance')}", seen_legacy))
+            fp = fps[0]
+            exists = con.execute(
+                "SELECT 1 FROM bank_tx WHERE user_id=? AND fingerprint IN (?, ?)", (user_id, fps[0], fps[1])
+            ).fetchone()
             if exists:
                 dup += 1
                 continue

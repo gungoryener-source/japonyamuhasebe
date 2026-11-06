@@ -54,7 +54,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-028 | P2 | done (bu commit) | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
 | T-029 | P2 | done (bu commit) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
 | T-029b | P2 | done (bu commit) | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
-| T-051 | P2 | doing (developer, 2026-11-07) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
+| T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
 
 ---
 
@@ -220,3 +220,4 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/bank_csv.py` `parse()` (~satır 360–367): `desc` anahtarı ilk eşleşen sütuna atanıyor. MUFG/ゆうちょ biçiminde 「摘要」=振込/口座振替, karşı taraf 「摘要内容」'nde → `description` = 「口座振替」; `/bank/{id}/entry` ile oluşan 経費'in `store` alanı anlamsız, 消込 önerisinde müşteri ayırt edilemiyor.
 - Beklenen: tüm `desc` eşleşen sütunları sırayla boşlukla birleştir (「口座振替 ﾗｸﾃﾝﾓﾊﾞｲﾙ」), boşları atla, 200 karakter sınırı korunur. Parmak izi değişeceği için mevcut içe aktarmaların yeniden alınmasında yinelenme tespiti bozulmamalı (ör. eski parmak izi biçimini de kontrol et) → test.
 - Test: `tests/test_bank_and_entries.py::test_bank_csv_parse_variants` beklentisi güncellenir + yeniden içe aktarmada `duplicates` sayısı.
+- ✅ Yapıldı: `bank_csv.parse` tüm 摘要 sütunlarını (boşları atlayarak) birleştirir; farklıysa `legacy_description` (yalnızca ilk sütun) döner. `store.insert_bank_rows` eski biçimin parmak izini de (eski sıra sayacıyla) kontrol eder → eski içe aktarmalar çoğalmaz. Testler `tests/test_bank_multi_desc.py`.

@@ -29,7 +29,8 @@ def auth(client):
 def test_bank_csv_parse_variants():
     import bank_csv
     rows = bank_csv.parse(MUFG)
-    assert rows[0] == {"d": "2026-11-02", "description": "振込", "amount": 113_243, "balance": 1_200_000}
+    assert rows[0] == {"d": "2026-11-02", "description": "振込 ｶ)ｻｸﾗｾｲｻｸｼﾖ", "amount": 113_243, "balance": 1_200_000,
+                       "legacy_description": "振込"}   # T-051: 摘要 + 摘要内容
     assert rows[1]["amount"] == -3278 and len(rows) == 3
     r2 = bank_csv.parse(RAKUTEN)
     assert [(r["d"], r["amount"]) for r in r2] == [("2026-11-01", -66000), ("2026-11-03", 990000)]

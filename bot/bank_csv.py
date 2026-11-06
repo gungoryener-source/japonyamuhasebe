@@ -3,6 +3,7 @@
 Bankaların sütun adları farklıdır; başlık satırındaki anahtar kelimelerle eşleştiririz:
   日付: 日付 / 取引日 / 年月日 / お取引日 / 取扱日付 / 勘定日
   摘要: 摘要 / 内容 / お取引内容 / 取引内容 / 備考 / 取引区分
+        (birden çok 摘要 sütunu varsa — MUFG 「摘要」+「摘要内容」 — soldan sağa boşlukla birleştirilir)
   出金: 出金 / お引出し / 引出 / 支払 / 払出
   入金: 入金 / お預入れ / 預入 / 受入
   金額: 金額 / 取引金額 (işaretli tek sütun)
@@ -65,17 +66,21 @@ def _date(s: str) -> str | None:
 def parse(raw: bytes) -> list[dict]:
     text = decode(raw)
     rows = list(csv.reader(io.StringIO(text)))
-    header_idx, cols = None, {}
+    header_idx, cols, desc_cols = None, {}, []
     for i, row in enumerate(rows[:15]):  # başlıktan önce hesap bilgisi satırları olabilir
-        found = {}
+        found, descs = {}, []
         for j, cell in enumerate(row):
             c = cell.strip()
-            for key, pat in KEYS.items():
-                if key not in found and re.search(pat, c):
-                    found[key] = j
-                    break
+            key = next((k for k, pat in KEYS.items() if k not in found and re.search(pat, c)), None)
+            if key:
+                found[key] = j
+                if key == "desc":
+                    descs.append(j)
+            elif re.search(KEYS["desc"], c) and not any(
+                    re.search(KEYS[k], c) for k in KEYS if k not in ("date", "desc")):
+                descs.append(j)  # ek 摘要 sütunu (ör. 摘要内容)
         if "date" in found and ("amount" in found or "in" in found or "out" in found):
-            header_idx, cols = i, found
+            header_idx, cols, desc_cols = i, found, descs
             break
     if header_idx is None:
         raise ValueError("ヘッダー行（日付・入金/出金）が見つかりません")
@@ -94,6 +99,13 @@ def parse(raw: bytes) -> list[dict]:
             amt = inn - outv
         if not amt:
             continue
-        out.append({"d": d, "description": (get("desc") or "").strip() or "(摘要なし)", "amount": amt,
-                    "balance": _num(get("balance"))})
+        parts = [row[j].strip() for j in desc_cols if j < len(row) and row[j].strip()]
+        first = (get("desc") or "").strip() or "(摘要なし)"
+        rec = {"d": d, "description": " ".join(parts) or "(摘要なし)", "amount": amt,
+               "balance": _num(get("balance"))}
+        if rec["description"] != first:
+            # T-051 öncesi yalnızca ilk 摘要 sütunu alınıyordu; eski içe aktarmaların
+            # parmak izini tanımak için store.insert_bank_rows bunu da kontrol eder.
+            rec["legacy_description"] = first
+        out.append(rec)
     return out

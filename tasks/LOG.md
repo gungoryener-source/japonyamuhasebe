@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 02:44 JST · developer · T-051 banka CSV çoklu 摘要 sütunu
+- `bank_csv.parse`: başlıktaki tüm 摘要 sütunları (摘要/摘要内容/備考/取引区分 …) soldan sağa boşlukla birleşir, boş hücreler atlanır (「口座振替 ﾗｸﾃﾝﾓﾊﾞｲﾙ」). Tutar/入出金 kalıbına da uyan sütunlar 摘要 sayılmaz; 200 karakter sınırı store'da korunuyor.
+- Geriye uyum: birleşik metin ilk sütundan farklıysa satırda `legacy_description`; `store.insert_bank_rows` eski parmak izini (eski biçimin aynı gün sayacıyla) da arar → T-051 öncesi alınmış dosya yeniden yüklenince yinelenme 3/3 doğru, yeni kayıt yok.
+- Yeni `tests/test_bank_multi_desc.py` (7; eski parmak izi testi kontrolsüz kodda kırmızı), `test_bank_csv_parse_variants` beklentisi güncellendi. Kapı: pytest 237 geçti (SQLite + yerel PostgreSQL 16).
+- Sonraki: P0 T-040b (panel hesap sayfaları), ardından T-042, T-043.
+
 ## 2026-11-07 01:48 JST · developer · T-040 hesap sistemi (API dilimi)
 - Yeni `bot/accounts.py`: scrypt (stdlib, 16 bayt tuz) parola, ≥10/≤128 karakter; tablolar `accounts`, `account_ledgers` (hesap ↔ tek defter), `password_resets` (yalnızca ekleyici, store.SCHEMA).
 - `/api/v1/auth/signup|login|me|link-line|password-reset/request|confirm`. Kayıt boş `web:…` defteri açar, oturum = mevcut `api_tokens` → tüm uçlar aynen çalışır. LINE 「パネル」 koduyla bağlama: web defterinde veri varsa / LINE defteri başka hesaptaysa 409 (veri birleştirme yok), kod ve eski token'lar iptal. Sıfırlama 1 saat, tek kullanım, tüm oturumları kapatır; e-posta keşfi yok.
