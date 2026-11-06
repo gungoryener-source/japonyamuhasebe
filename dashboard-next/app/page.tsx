@@ -2,84 +2,22 @@
 
 /**
  * J-SaaS 会計 — ダッシュボード (app/page.tsx)
- * Next.js App Router + Tailwind CSS + lucide-react. Tek dosya, mock veri ile çalışır.
- * Gerçek API'ye geçerken yalnızca `MOCK` bölümünü fetch çağrılarıyla değiştirin.
+ * Kabuk (menü/üst çubuk) components/shell.tsx'te; ortak UI components/ui.tsx'te; demo veri lib/demo.ts'te.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, getToken, monthLabel, setToken, type ApiInvoice } from "./lib/api";
 import {
   compute, KANI_LABEL, KANI_RATIO, METHOD_LABEL, methodUnavailable, settle, TRANSITIONAL_CREDIT, transitionalBreakdown,
   type Method, type Purchase, type Sale, type Transitional,
 } from "./lib/tax";
-import TAX_EXAMPLE from "./lib/tax-example.json";
 import {
-  ArrowDownRight, ArrowUpRight, Bell, Building2, Calculator, Camera, Check, ChevronDown,
-  ChevronRight, CircleCheck, Clock, FileText, Home, Landmark, LoaderCircle, Menu, Plus,
-  LogOut, Receipt, RefreshCw, Search, Settings, ShieldCheck, TriangleAlert, Upload, Wallet, X,
+  ArrowDownRight, ArrowUpRight, Calculator, Camera, ChevronRight, CircleCheck, Clock, FileText,
+  LoaderCircle, Plus, Receipt, ShieldCheck, Upload, Wallet, X,
 } from "lucide-react";
-
-/* ============================================================
- * MOCK DATA
- * ============================================================ */
-
-type InvoiceStatus = "paid" | "unpaid" | "overdue";
-type Invoice = { no: string; client: string; issued: string; due: string; amount: number; rate: 10 | 8; status: InvoiceStatus };
-type Company = { id: string; name: string; reg: string; fiscal: string };
-
-const MOCK = {
-  today: "2026-11-05",
-  companies: [
-    { id: "c1", name: "合同会社ミナト", reg: "T3010001222222", fiscal: "第8期 2026/04–2027/03" },
-    { id: "c2", name: "株式会社ミナト商事", reg: "T8011101333333", fiscal: "第3期 2026/01–2026/12" },
-  ] as Company[],
-  // 直近6ヶ月（確定月）。最終月 = 今月の比較対象
-  cashflow: [
-    { m: "5月", income: 3_420_000, expense: 1_710_000 },
-    { m: "6月", income: 3_880_000, expense: 1_950_000 },
-    { m: "7月", income: 3_560_000, expense: 1_790_000 },
-    { m: "8月", income: 3_210_000, expense: 1_840_000 },
-    { m: "9月", income: 3_795_000, expense: 1_876_000 },
-    { m: "10月", income: 4_250_000, expense: 1_820_000 },
-  ],
-  // 消費税カードのデモ: Python エンジンと共通の例（lib/tax-example.json, 2026年分の税込金額）
-  tax: TAX_EXAMPLE as unknown as { taxYear: number; individual: boolean; interimPaid: number; nextDeadline: string; sales: Sale[]; purchases: Purchase[] },
-  banks: [
-    { name: "三菱UFJ銀行", acct: "普通 ****4821", synced: "09:12", ok: true },
-    { name: "三井住友銀行", acct: "当座 ****0937", synced: "09:12", ok: true },
-    { name: "法人カード", acct: "Visa ****7713", synced: "08:55", ok: true },
-  ],
-  invoices: [
-    { no: "INV-2026-0418", client: "株式会社サクラ製作所", issued: "2026-10-31", due: "2026-11-30", amount: 1_320_000, rate: 10, status: "unpaid" },
-    { no: "INV-2026-0417", client: "A001 株式会社アオイ商事", issued: "2026-10-31", due: "2026-11-30", amount: 990_000, rate: 10, status: "unpaid" },
-    { no: "INV-2026-0412", client: "有限会社カエデフーズ", issued: "2026-09-30", due: "2026-10-31", amount: 432_000, rate: 8, status: "overdue" },
-    { no: "INV-2026-0409", client: "合同会社ヒカリデザイン", issued: "2026-09-30", due: "2026-10-31", amount: 550_000, rate: 10, status: "paid" },
-  ] as Invoice[],
-  notifications: [
-    { t: "源泉所得税（10月分）の納付期限は 11/10 です", time: "1時間前", kind: "warn" as const },
-    { t: "三菱UFJ銀行の明細 18件を取り込みました", time: "3時間前", kind: "ok" as const },
-    { t: "INV-2026-0412 が支払期日を超過しています", time: "昨日", kind: "warn" as const },
-  ],
-  searchIndex: [
-    { type: "請求書", label: "INV-2026-0418 株式会社サクラ製作所", sub: "¥1,320,000 ・ 未入金" },
-    { type: "請求書", label: "INV-2026-0412 有限会社カエデフーズ", sub: "¥432,000 ・ 期日超過" },
-    { type: "取引先", label: "株式会社アオイ商事 (A001)", sub: "T5010401111111 ・ 適格" },
-    { type: "取引先", label: "株式会社サクラ製作所", sub: "T6010001054321 ・ 適格" },
-    { type: "領収書", label: "JR東日本 新幹線 東京→大阪", sub: "¥14,720 ・ 旅費交通費 ・ 10/14" },
-    { type: "領収書", label: "ローソン 会議用飲料", sub: "¥648 ・ 会議費 ・ 軽減8%" },
-    { type: "書類", label: "2025年度 青色申告決算書", sub: "PDF ・ e-Tax 送信済" },
-  ],
-};
-
-/* ============================================================
- * HELPERS
- * ============================================================ */
-
-const yen = (n: number) => `${n < 0 ? "−" : ""}¥${Math.abs(Math.round(n)).toLocaleString("ja-JP")}`;
-const pct = (cur: number, prev: number) => ((cur - prev) / Math.abs(prev)) * 100;
-const taxIn = (gross: number, rate: number) => Math.floor((gross * rate) / (100 + rate));
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T00:00:00+09:00").getTime() - new Date(new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }) + "T00:00:00+09:00").getTime()) / 86_400_000);
+import { MOCK, type Company, type Invoice, type InvoiceStatus } from "./lib/demo";
+import { Badge, Card, cx, daysUntil, pct, taxIn, yen } from "./components/ui";
+import { AppShell, useShell } from "./components/shell";
 
 /* ============================================================
  * DATA (live API or demo)
@@ -146,312 +84,6 @@ function useDashboardData() {
   return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, reload: load };
 }
 
-/* ============================================================
- * SMALL UI PRIMITIVES
- * ============================================================ */
-
-function Card({ title, en, right, className, children }: { title: string; en?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
-  return (
-    <section className={cx("flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>
-      <header className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h2 className="text-[13px] font-bold text-navy">{title}</h2>
-        {en && <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{en}</span>}
-        {right && <div className="ml-auto">{right}</div>}
-      </header>
-      {children}
-    </section>
-  );
-}
-
-function Badge({ tone, children, icon = true }: { tone: "ok" | "warn" | "bad" | "info" | "muted"; children: React.ReactNode; icon?: boolean }) {
-  const tones = {
-    ok: "bg-mint-50 text-mint-700 ring-mint-100",
-    warn: "bg-amber-50 text-amber-700 ring-amber-100",
-    bad: "bg-rose-50 text-rose-700 ring-rose-100",
-    info: "bg-slate-100 text-navy ring-slate-200",
-    muted: "bg-slate-50 text-slate-500 ring-slate-200",
-  };
-  return (
-    <span className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset", tones[tone])}>
-      {icon && <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-      {children}
-    </span>
-  );
-}
-
-function useToast() {
-  const [msg, setMsg] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const show = (m: string) => {
-    setMsg(m);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMsg(null), 2600);
-  };
-  const node = msg ? (
-    <div role="status" className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-navy px-4 py-2 text-xs text-white shadow-lg">
-      {msg}
-    </div>
-  ) : null;
-  return { show, node };
-}
-
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, onOut: () => void) {
-  useEffect(() => {
-    const h = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && onOut();
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [ref, onOut]);
-}
-
-/* ============================================================
- * SIDEBAR
- * ============================================================ */
-
-const NAV = [
-  { ja: "ホーム", en: "Home", icon: Home, badge: 0 },
-  { ja: "請求書管理", en: "Invoices", icon: FileText, badge: 3 },
-  { ja: "経費精算", en: "Expenses", icon: Receipt, badge: 12 },
-  { ja: "銀行連携", en: "Bank Sync", icon: Landmark, badge: 0 },
-  { ja: "確定申告 / 税務", en: "Tax Reporting", icon: Calculator, badge: 0 },
-  { ja: "設定", en: "Settings", icon: Settings, badge: 0 },
-];
-
-function Sidebar({ open, onClose, company }: { open: boolean; onClose: () => void; company: Company }) {
-  const [active, setActive] = useState(0);
-  return (
-    <>
-      <div className={cx("fixed inset-0 z-40 bg-slate-900/40 lg:hidden", open ? "block" : "hidden")} onClick={onClose} aria-hidden />
-      <aside
-        className={cx(
-          "fixed inset-y-0 left-0 z-50 flex w-56 flex-col bg-navy text-slate-300 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
-        )}
-        aria-label="メインメニュー"
-      >
-        <div className="flex h-14 items-center gap-2.5 border-b border-white/10 px-4">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-mint text-sm font-black text-navy-900">J</div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-white">J-SaaS 会計</p>
-            <p className="text-[10px] text-slate-400">Cloud Accounting</p>
-          </div>
-          <button className="ml-auto rounded p-1 text-slate-400 hover:text-white lg:hidden" onClick={onClose} aria-label="メニューを閉じる">
-            <X size={18} />
-          </button>
-        </div>
-
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {NAV.map((n, i) => (
-            <button
-              key={n.en}
-              onClick={() => { setActive(i); onClose(); }}
-              aria-current={active === i ? "page" : undefined}
-              className={cx(
-                "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                active === i ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white",
-              )}
-            >
-              <n.icon size={17} className={active === i ? "text-mint" : "text-slate-400 group-hover:text-slate-200"} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold leading-tight">{n.ja}</span>
-                <span className="block text-[10px] leading-tight text-slate-500">{n.en}</span>
-              </span>
-              {n.badge > 0 && <span className="rounded-full bg-mint px-1.5 text-[10px] font-bold text-navy-900 tabular">{n.badge}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="space-y-1 border-t border-white/10 p-4 text-[11px]">
-          <p className="text-slate-400">適格請求書発行事業者</p>
-          <p className="font-mono text-slate-200 tabular">{company.reg}</p>
-          <p className="pt-1 text-slate-500">{company.fiscal}</p>
-        </div>
-      </aside>
-    </>
-  );
-}
-
-/* ============================================================
- * TOPBAR (command search, bank sync, notifications, company switcher)
- * ============================================================ */
-
-function CommandPalette({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (label: string) => void }) {
-  const [q, setQ] = useState("");
-  const [cursor, setCursor] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const results = useMemo(() => {
-    const k = q.trim().toLowerCase();
-    return k ? MOCK.searchIndex.filter((r) => (r.label + r.sub + r.type).toLowerCase().includes(k)) : MOCK.searchIndex;
-  }, [q]);
-
-  useEffect(() => {
-    if (open) { setQ(""); setCursor(0); setTimeout(() => inputRef.current?.focus(), 0); }
-  }, [open]);
-
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-slate-900/40 px-4 pt-[12vh]" onMouseDown={onClose}>
-      <div className="w-full max-w-xl overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-label="検索">
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4">
-          <Search size={16} className="text-slate-400" />
-          <input
-            ref={inputRef}
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setCursor(0); }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onClose();
-              if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, results.length - 1)); }
-              if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
-              if (e.key === "Enter" && results[cursor]) onPick(results[cursor].label);
-            }}
-            placeholder="請求書・取引先・領収書・書類を検索…"
-            className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-          />
-          <kbd className="rounded border border-slate-200 px-1.5 text-[10px] text-slate-400">ESC</kbd>
-        </div>
-        <ul className="max-h-80 overflow-y-auto p-1.5">
-          {results.length === 0 && <li className="px-3 py-6 text-center text-xs text-slate-400">該当する結果がありません</li>}
-          {results.map((r, i) => (
-            <li key={r.label}>
-              <button
-                onMouseEnter={() => setCursor(i)}
-                onClick={() => onPick(r.label)}
-                className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left", i === cursor && "bg-slate-100")}
-              >
-                <span className="w-12 shrink-0 rounded bg-slate-100 py-0.5 text-center text-[10px] font-bold text-slate-500">{r.type}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] text-navy">{r.label}</span>
-                  <span className="block truncate text-[11px] text-slate-400">{r.sub}</span>
-                </span>
-                <ChevronRight size={14} className="text-slate-300" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function Topbar({ onMenu, onSearch, company, setCompany, toast }: {
-  onMenu: () => void; onSearch: () => void; company: Company; setCompany: (c: Company) => void; toast: (m: string) => void;
-}) {
-  const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState("09:12");
-  const [bellOpen, setBellOpen] = useState(false);
-  const [coOpen, setCoOpen] = useState(false);
-  const [unread, setUnread] = useState(MOCK.notifications.length);
-  const bellRef = useRef<HTMLDivElement>(null);
-  const coRef = useRef<HTMLDivElement>(null);
-  useClickOutside(bellRef, () => setBellOpen(false));
-  useClickOutside(coRef, () => setCoOpen(false));
-
-  const sync = () => {
-    if (syncing) return;
-    setSyncing(true);
-    setTimeout(() => {
-      setSyncing(false);
-      setLastSync(new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" }));
-      toast("銀行明細を同期しました ・ 新規 18件");
-    }, 1400);
-  };
-
-  return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:gap-3 sm:px-5">
-      <button onClick={onMenu} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="メニューを開く">
-        <Menu size={18} />
-      </button>
-
-      <button
-        onClick={onSearch}
-        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-left text-[13px] text-slate-400 hover:border-slate-300 sm:max-w-md"
-      >
-        <Search size={15} className="shrink-0" />
-        <span className="truncate">書類・請求書・取引先を検索</span>
-        <kbd className="ml-auto hidden rounded border border-slate-200 bg-white px-1.5 text-[10px] text-slate-400 sm:block">⌘K</kbd>
-      </button>
-
-      <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* Bank sync status */}
-        <button
-          onClick={sync}
-          title="今すぐ同期"
-          className="hidden items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] hover:bg-slate-50 md:flex"
-        >
-          <Landmark size={14} className="text-slate-500" />
-          <span className="text-slate-500">銀行API</span>
-          {syncing ? (
-            <Badge tone="info" icon={false}><LoaderCircle size={11} className="animate-spin" />同期中</Badge>
-          ) : (
-            <Badge tone="ok">接続済</Badge>
-          )}
-          <span className="font-mono text-slate-400 tabular">{lastSync}</span>
-          <RefreshCw size={12} className={cx("text-slate-400", syncing && "animate-spin")} />
-        </button>
-        <button onClick={sync} className="rounded-lg p-2 md:hidden" aria-label="銀行API 接続済・同期">
-          <span className="relative block">
-            <Landmark size={18} className="text-slate-500" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-mint ring-2 ring-white" />
-          </span>
-        </button>
-
-        {/* Notifications */}
-        <div ref={bellRef} className="relative">
-          <button onClick={() => { setBellOpen((o) => !o); setUnread(0); }} className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="通知">
-            <Bell size={18} />
-            {unread > 0 && <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{unread}</span>}
-          </button>
-          {bellOpen && (
-            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-              <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold text-navy">お知らせ</p>
-              <ul>
-                {MOCK.notifications.map((n) => (
-                  <li key={n.t} className="flex gap-3 border-b border-slate-100 px-4 py-2.5 last:border-0">
-                    {n.kind === "warn" ? <TriangleAlert size={15} className="mt-0.5 shrink-0 text-amber-500" /> : <CircleCheck size={15} className="mt-0.5 shrink-0 text-mint" />}
-                    <div className="min-w-0">
-                      <p className="text-xs text-slate-700">{n.t}</p>
-                      <p className="text-[10px] text-slate-400">{n.time}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Company / profile switcher */}
-        <div ref={coRef} className="relative">
-          <button onClick={() => setCoOpen((o) => !o)} className="flex items-center gap-2 rounded-lg p-1 pr-2 hover:bg-slate-100">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-navy text-xs font-bold text-white">佐</span>
-            <span className="hidden text-left leading-tight sm:block">
-              <span className="block max-w-[140px] truncate text-xs font-bold text-navy">{company.name}</span>
-              <span className="block text-[10px] text-slate-400">経理担当 佐藤</span>
-            </span>
-            <ChevronDown size={14} className="text-slate-400" />
-          </button>
-          {coOpen && (
-            <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
-              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">事業所を切り替え</p>
-              {MOCK.companies.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => { setCompany(c); setCoOpen(false); toast(`${c.name} に切り替えました`); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50"
-                >
-                  <Building2 size={15} className="text-slate-400" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-bold text-navy">{c.name}</span>
-                    <span className="block font-mono text-[10px] text-slate-400">{c.reg}</span>
-                  </span>
-                  {c.id === company.id && <Check size={14} className="text-mint" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
 
 /* ============================================================
  * WIDGETS
@@ -938,21 +570,20 @@ function InvoiceDrawer({ open, onClose, onCreate }: { open: boolean; onClose: ()
  * ============================================================ */
 
 export default function DashboardPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [invOpen, setInvOpen] = useState(false);
   const data = useDashboardData();
-  const { mode, invoices, setInvoices, company, setCompany } = data;
-  const live = mode === "live";
-  const { show: toast, node: toastNode } = useToast();
+  const conn = { mode: data.mode, company: data.company, setCompany: data.setCompany, error: data.error };
+  return (
+    <AppShell title="ダッシュボード" sub={`${data.company.name} ・ ${data.company.fiscal}`} conn={conn}>
+      <Dashboard data={data} />
+    </AppShell>
+  );
+}
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearchOpen(true); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+function Dashboard({ data }: { data: ReturnType<typeof useDashboardData> }) {
+  const [invOpen, setInvOpen] = useState(false);
+  const { mode, invoices, setInvoices, company } = data;
+  const live = mode === "live";
+  const { toast } = useShell();
 
   const onPaid = async (no: string) => {
     if (!live) {
@@ -988,54 +619,18 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} company={company} />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setMenuOpen(true)} onSearch={() => setSearchOpen(true)} company={company} setCompany={setCompany} toast={toast} />
-
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-3 sm:p-5">
-          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <h1 className="text-lg font-bold text-navy">ダッシュボード</h1>
-            <p className="text-xs text-slate-400">{company.name} ・ {company.fiscal}</p>
-            <div className="ml-auto flex items-center gap-2">
-              {mode === "loading" && <Badge tone="info" icon={false}><LoaderCircle size={11} className="animate-spin" />読み込み中</Badge>}
-              {mode === "demo" && (
-                <>
-                  <Badge tone="warn">デモデータ</Badge>
-                  <a href="/connect" className="text-[11px] font-bold text-navy underline-offset-2 hover:underline">自分の帳簿に接続</a>
-                </>
-              )}
-              {live && (
-                <>
-                  <Badge tone="ok">ライブ</Badge>
-                  <button onClick={() => { setToken(null); location.reload(); }} className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-navy">
-                    <LogOut size={12} />切断
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-          {data.error && mode === "demo" && (
-            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">サーバーに接続できなかったため、デモデータを表示しています（{data.error}）。</p>
-          )}
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 lg:grid-cols-12">
-            <KpiCards cashflow={data.cashflow} />
-            <CashFlowChart cashflow={data.cashflow} />
-            <QuickActions onInvoice={() => setInvOpen(true)} toast={toast} />
-            <ConsumptionTax tax={data.tax} />
-            <Compliance reg={company.reg} />
-            <BankSync />
-            <InvoiceTable invoices={invoices} onPaid={onPaid} live={live} />
-          </div>
-        </main>
+    <>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 lg:grid-cols-12">
+        <KpiCards cashflow={data.cashflow} />
+        <CashFlowChart cashflow={data.cashflow} />
+        <QuickActions onInvoice={() => setInvOpen(true)} toast={toast} />
+        <ConsumptionTax tax={data.tax} />
+        <Compliance reg={company.reg} />
+        <BankSync />
+        <InvoiceTable invoices={invoices} onPaid={onPaid} live={live} />
       </div>
-
-      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(l) => { setSearchOpen(false); toast(`「${l}」を開きます`); }} />
       <InvoiceDrawer open={invOpen} onClose={() => setInvOpen(false)} onCreate={onCreate} />
-      {toastNode}
-    </div>
+    </>
   );
 }
 

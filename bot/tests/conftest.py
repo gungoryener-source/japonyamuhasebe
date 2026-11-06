@@ -19,7 +19,7 @@ def bot(tmp_path, monkeypatch):
         # PostgreSQL ile çalışırken her testten önce tabloları sıfırla
         import store
         with store.tx() as con:
-            con.execute("DROP TABLE IF EXISTS entries, api_tokens, invoices, profiles")
+            con.execute("DROP TABLE IF EXISTS entries, api_tokens, invoices, profiles, bank_tx")
     import importlib
     import app as app_module
     app_module = importlib.reload(app_module)

@@ -58,6 +58,21 @@ SCHEMA = [
         created_at TEXT NOT NULL,
         UNIQUE(user_id, no)
     )""",
+    """CREATE TABLE IF NOT EXISTS bank_tx(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        d TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount BIGINT NOT NULL,           -- + 入金 / − 出金
+        balance BIGINT,
+        account TEXT DEFAULT '',
+        fingerprint TEXT NOT NULL,        -- aynı satırın iki kez alınmasını önler
+        invoice_no TEXT DEFAULT '',       -- 消込 yapılan fatura
+        entry_id INTEGER,                 -- 経費 olarak kaydedildiyse
+        created_at TEXT NOT NULL,
+        UNIQUE(user_id, fingerprint)
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_bank_user_d ON bank_tx(user_id, d)",
     """CREATE TABLE IF NOT EXISTS profiles(
         user_id TEXT PRIMARY KEY,
         business_name TEXT DEFAULT '',
@@ -347,3 +362,62 @@ def mark_invoice_paid(user_id: str, no: str, paid_on: str) -> dict | None:
             add_entry(user_id, {"date": paid_on, "kind": "inc", "store": f"{inv['client']}（{no}）", "amount": gross,
                                 "category": "売上高", "rate": rate, "invoice_no": ""}, source="INVOICE")
     return get_invoice(user_id, no)
+
+
+# ---------------------------------------------------------------- entries (web)
+def get_entry(user_id: str, entry_id: int) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT * FROM entries WHERE id=? AND user_id=?", (entry_id, user_id)).fetchone()
+    return dict(row) if row else None
+
+
+def delete_entry(user_id: str, entry_id: int) -> bool:
+    """Kullanıcının kendi kaydını silmesi (LINE 「取消」 ile aynı yetki)."""
+    with tx() as con:
+        cur = con.execute("DELETE FROM entries WHERE id=? AND user_id=?", (entry_id, user_id))
+    return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------- bank
+def insert_bank_rows(user_id: str, rows: list[dict], account: str = "") -> tuple[int, int]:
+    """(eklenen, yinelenen). Parmak izi: tarih + açıklama + tutar + bakiye + aynı gün sıra no."""
+    import hashlib as _h
+    added = dup = 0
+    seen: dict[str, int] = {}
+    with tx() as con:
+        for r in rows:
+            base = f"{r['d']}|{r['description']}|{r['amount']}|{r.get('balance')}"
+            seen[base] = seen.get(base, 0) + 1
+            fp = _h.sha256(f"{account}|{base}|{seen[base]}".encode()).hexdigest()[:32]
+            exists = con.execute("SELECT 1 FROM bank_tx WHERE user_id=? AND fingerprint=?", (user_id, fp)).fetchone()
+            if exists:
+                dup += 1
+                continue
+            con.execute(
+                """INSERT INTO bank_tx(user_id,d,description,amount,balance,account,fingerprint,created_at)
+                   VALUES(?,?,?,?,?,?,?,?)""",
+                (user_id, r["d"], r["description"][:200], int(r["amount"]), r.get("balance"), account[:50], fp, now()),
+            )
+            added += 1
+    return added, dup
+
+
+def list_bank_tx(user_id: str, limit: int = 500) -> list[dict]:
+    with tx() as con:
+        rows = con.execute("SELECT * FROM bank_tx WHERE user_id=? ORDER BY d DESC, id DESC LIMIT ?",
+                           (user_id, max(1, min(limit, 5000)))).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_bank_tx(user_id: str, tx_id: int) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT * FROM bank_tx WHERE id=? AND user_id=?", (tx_id, user_id)).fetchone()
+    return dict(row) if row else None
+
+
+def link_bank_tx(user_id: str, tx_id: int, *, invoice_no: str | None = None, entry_id: int | None = None) -> None:
+    with tx() as con:
+        if invoice_no is not None:
+            con.execute("UPDATE bank_tx SET invoice_no=? WHERE id=? AND user_id=?", (invoice_no, tx_id, user_id))
+        if entry_id is not None:
+            con.execute("UPDATE bank_tx SET entry_id=? WHERE id=? AND user_id=?", (entry_id, tx_id, user_id))

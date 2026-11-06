@@ -45,7 +45,34 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(res.status, typeof detail === "string" ? detail : JSON.stringify(detail));
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+/** Yetkili dosya indirme (PDF / CSV): blob olarak alır. */
+export async function fetchBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  if (!token) throw new ApiError(401, "no token");
+  const res = await fetch(`${API_BASE}/api/v1${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return res.blob();
+}
+
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+export function openBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /* ---------- response types ---------- */
@@ -68,6 +95,34 @@ export type ApiInvoice = {
 };
 export type ApiProfile = { user_id: string; business_name: string; registration_no: string; individual: number };
 
+export type ApiEntry = {
+  id: number; user_id?: string; d: string; kind: "inc" | "exp"; store: string; amount: number; category: string;
+  rate: number; invoice_no: string; source: string; image_path?: string; created_at?: string;
+};
+export type EntryDraft = { date: string; kind: "inc" | "exp"; store: string; amount: number; category: string; rate: number; invoice_no: string };
+export type ApiOcr = { ok: boolean; error?: string; partial?: { date?: string; store?: string; invoice_no?: string }; entries: EntryDraft[] };
+export type ApiBankTx = {
+  id: number; d: string; description: string; amount: number; balance: number | null; account: string;
+  invoice_no: string; entry_id: number | null;
+};
+export type ApiSuggestion = { tx_id: number; invoice_no: string; client: string; amount: number; date: string };
+export type ApiPL = { year: number; revenue: number; expenses: { category: string; amount: number }[]; expenses_total: number; income_before_blue: number; note: string };
+export type ApiIncomeTax = {
+  year: number; revenue: number; expenses: number; business_income: number; blue_deduction: number; basic_deduction: number;
+  taxable: number; base_tax: number; reconstruction: number; total: number; disclaimer: string;
+};
+export type ApiChannels = {
+  line: { configured: boolean; webhook: string; linked: boolean };
+  whatsapp: { configured: boolean; webhook: string };
+  ocr: { engine: string; tesseract: boolean; ai_fallback: boolean };
+  categories: string[];
+};
+
+const qs = (o: Record<string, string | number | undefined | null>) => {
+  const p = Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== "");
+  return p.length ? "?" + p.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&") : "";
+};
+
 export const api = {
   summary: (month?: string) => call<ApiSummary>(`/summary${month ? `?month=${month}` : ""}`),
   cashflow: (months = 6, end?: string) => call<ApiCashflow>(`/cashflow?months=${months}${end ? `&end=${end}` : ""}`),
@@ -78,7 +133,39 @@ export const api = {
     call<ApiInvoice>("/invoices", { method: "POST", body: JSON.stringify(body) }),
   payInvoice: (no: string) => call<ApiInvoice>(`/invoices/${encodeURIComponent(no)}/paid`, { method: "POST" }),
   pdfUrl: (no: string) => `${API_BASE}/api/v1/invoices/${encodeURIComponent(no)}/pdf`,
+  pdf: (no: string) => fetchBlob(`/invoices/${encodeURIComponent(no)}/pdf`),
+  createInvoiceFull: (body: { client: string; issued?: string; due: string; items: { name: string; qty: number; unit_price: number; rate: 10 | 8 }[] }) =>
+    call<ApiInvoice & { items: { name: string; qty: number; unit_price: number; rate: number; amount: number }[] }>("/invoices", { method: "POST", body: JSON.stringify(body) }),
+  putProfile: (body: { business_name: string; registration_no: string; individual: boolean }) =>
+    call<ApiProfile>("/profile", { method: "PUT", body: JSON.stringify(body) }),
+  entries: (f: { date_from?: string; date_to?: string; q?: string; amount_min?: number; amount_max?: number; kind?: string; limit?: number } = {}) =>
+    call<ApiEntry[]>(`/entries${qs(f)}`),
+  createEntry: (e: EntryDraft) => call<ApiEntry & { id: number }>("/entries", { method: "POST", body: JSON.stringify(e) }),
+  patchEntry: (id: number, e: Partial<EntryDraft>) => call<ApiEntry>(`/entries/${id}`, { method: "PATCH", body: JSON.stringify(e) }),
+  deleteEntry: (id: number) => call<void>(`/entries/${id}`, { method: "DELETE" }),
+  ocr: (file: Blob) => call<ApiOcr>("/receipts/ocr", { method: "POST", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } }),
+  bankImport: (file: Blob, account = "") =>
+    call<{ parsed: number; imported: number; duplicates: number; suggestions: ApiSuggestion[] }>(`/bank/import${qs({ account })}`, {
+      method: "POST", body: file, headers: { "Content-Type": "text/csv" },
+    }),
+  bank: () => call<{ transactions: ApiBankTx[]; suggestions: ApiSuggestion[] }>("/bank/transactions"),
+  bankMatch: (tx_id: number, invoice_no: string) => call<ApiInvoice>("/bank/match", { method: "POST", body: JSON.stringify({ tx_id, invoice_no }) }),
+  bankToEntry: (tx_id: number, category: string, rate: number) =>
+    call<ApiEntry>(`/bank/${tx_id}/entry`, { method: "POST", body: JSON.stringify({ category, rate }) }),
+  pl: (year: number) => call<ApiPL>(`/pl?year=${year}`),
+  incomeTax: (year: number, p: { blue?: number; social_insurance?: number; other_deductions?: number }) => call<ApiIncomeTax>(`/tax/income${qs({ year, ...p })}`),
+  consumption: (year: number, method = "honsoku", kani_type?: number) => call<ApiTax>(`/tax/consumption${qs({ year, method, kani_type })}`),
+  exportCsv: (format: "freee" | "mf" | "yayoi", year: number) => fetchBlob(`/export.csv${qs({ format, year })}`),
+  channels: () => call<ApiChannels>("/channels"),
+  revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
 };
+
+export const CATEGORIES = ["売上高", "旅費交通費", "消耗品費", "会議費", "接待交際費", "通信費", "地代家賃", "水道光熱費",
+  "外注工賃", "新聞図書費", "広告宣伝費", "支払手数料", "雑費"];
+export const EXPENSE_CATEGORIES = CATEGORIES.filter((c) => c !== "売上高");
+
+/** Asia/Tokyo bugünü (YYYY-MM-DD) */
+export const todayJST = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
 
 /** "2026-10" → "10月" */
 export const monthLabel = (ym: string) => `${Number(ym.slice(5, 7))}月`;

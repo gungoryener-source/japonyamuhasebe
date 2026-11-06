@@ -31,6 +31,6 @@ Bu depo zamanlanmış Claude ajanlarıyla sürekli geliştirilir. Kurallar `CLAU
 
 Bot komutları (LINE ve WhatsApp): `タクシー 2300 T1234567890123` · `ローソン 540円 軽減` · `入金 330000 合同会社ミナト` · fotoğraf · `合計` · `取消` · `科目変更` · `税率8%` · `パネル` (web paneli bağlantısı) · `ヘルプ`
 
-Web paneli: https://jsaas-panel.onrender.com (LINE'da 「パネル」 yazınca gelen link ile bağlanır; bağlantı yoksa demo veri gösterir). API: `docs/API.md`.
+Web paneli (ホーム, 請求書管理, 経費精算, 銀行連携, 確定申告/税務, 設定): https://jsaas-panel.onrender.com (LINE'da 「パネル」 yazınca gelen link ile bağlanır; bağlantı yoksa demo veri gösterir). API: `docs/API.md`.
 
 > Render free planında SQLite kalıcı değildir; kalıcı veritabanı görevi T-006.

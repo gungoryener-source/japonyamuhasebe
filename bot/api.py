@@ -9,9 +9,10 @@ import os
 import re
 from datetime import date
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
+import bank_csv
 import export
 import invoices as inv_mod
 import store
@@ -127,6 +128,160 @@ def create_entry(body: EntryIn, uid: str = Depends(current_user)):
     e = body.model_dump()
     eid = store.add_entry(uid, e, source="WEB")
     return {"id": eid, **e}
+
+
+class EntryPatch(BaseModel):
+    date: str | None = None
+    store: str | None = Field(default=None, min_length=1, max_length=100)
+    amount: int | None = Field(default=None, gt=0, lt=10**11)
+    category: str | None = None
+    rate: int | None = None
+    invoice_no: str | None = None
+
+
+@router.patch("/entries/{entry_id}")
+def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(current_user)):
+    if not store.get_entry(uid, entry_id):
+        raise HTTPException(404, "entry not found")
+    f = body.model_dump(exclude_none=True)
+    if "date" in f:
+        f["d"] = _valid_date(f.pop("date"), "date")
+    if "rate" in f and f["rate"] not in (10, 8, 0):
+        raise HTTPException(400, "rate must be 10, 8 or 0")
+    if "category" in f and f["category"] not in CATEGORIES:
+        raise HTTPException(400, "unknown category")
+    if f.get("invoice_no") and not re.fullmatch(r"T\d{13}", f["invoice_no"]):
+        raise HTTPException(400, "invoice_no must be T + 13 digits")
+    return store.update_entry(uid, entry_id, **f)
+
+
+@router.delete("/entries/{entry_id}", status_code=204)
+def remove_entry(entry_id: int, uid: str = Depends(current_user)):
+    if not store.delete_entry(uid, entry_id):
+        raise HTTPException(404, "entry not found")
+    return Response(status_code=204)
+
+
+MAX_UPLOAD = 10 * 1024 * 1024
+
+
+async def _body(request: Request) -> bytes:
+    raw = await request.body()
+    if not raw:
+        raise HTTPException(400, "empty body")
+    if len(raw) > MAX_UPLOAD:
+        raise HTTPException(413, "file too large (max 10MB)")
+    return raw
+
+
+@router.post("/receipts/ocr")
+async def receipt_ocr(request: Request, uid: str = Depends(current_user)):
+    """Fiş görseli (ham gövde, image/*) → okunan kayıt önerileri. Kaydetmez; kullanıcı onaylayınca POST /entries."""
+    raw = await _body(request)
+    import app as app_mod  # OCR motoru seçimi app.py'de
+    result = await app_mod.ocr_receipt(raw)
+    if isinstance(result, dict):
+        return {"ok": False, "error": result.get("error"), "partial": result.get("partial", {}), "entries": []}
+    return {"ok": True, "entries": result}
+
+
+# ---------------------------------------------------------------- bank (CSV)
+@router.post("/bank/import")
+async def bank_import(request: Request, account: str = "", uid: str = Depends(current_user)):
+    raw = await _body(request)
+    try:
+        rows = bank_csv.parse(raw)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    added, dup = store.insert_bank_rows(uid, rows, account)
+    return {"parsed": len(rows), "imported": added, "duplicates": dup, "suggestions": bank_suggestions(uid)}
+
+
+@router.get("/bank/transactions")
+def bank_transactions(uid: str = Depends(current_user)):
+    return {"transactions": store.list_bank_tx(uid), "suggestions": bank_suggestions(uid)}
+
+
+def bank_suggestions(uid: str) -> list[dict]:
+    """入金 = 未入金請求書の税込合計 ve tarih ≥ fatura tarihi → 消込 önerisi (her fatura en fazla bir harekete)."""
+    unpaid = store.list_invoices(uid, "unpaid")
+    used: set[str] = set()
+    out = []
+    for t in sorted(store.list_bank_tx(uid), key=lambda x: x["d"]):
+        if t["amount"] <= 0 or t["invoice_no"]:
+            continue
+        for inv in unpaid:
+            if inv["no"] in used or inv["total"] != t["amount"] or t["d"] < inv["issued"]:
+                continue
+            out.append({"tx_id": t["id"], "invoice_no": inv["no"], "client": inv["client"], "amount": t["amount"], "date": t["d"]})
+            used.add(inv["no"])
+            break
+    return out
+
+
+class MatchIn(BaseModel):
+    tx_id: int
+    invoice_no: str
+
+
+@router.post("/bank/match")
+def bank_match(body: MatchIn, uid: str = Depends(current_user)):
+    t = store.get_bank_tx(uid, body.tx_id)
+    inv = store.get_invoice(uid, body.invoice_no)
+    if not t or not inv:
+        raise HTTPException(404, "transaction or invoice not found")
+    if t["invoice_no"] or inv["status"] == "paid":
+        raise HTTPException(409, "already matched")
+    if t["amount"] != inv["total"]:
+        raise HTTPException(400, "amount does not match invoice total")
+    paid = store.mark_invoice_paid(uid, inv["no"], t["d"])
+    store.link_bank_tx(uid, t["id"], invoice_no=inv["no"])
+    return paid
+
+
+class ToEntryIn(BaseModel):
+    category: str
+    rate: int = 10
+    invoice_no: str = ""
+
+
+@router.post("/bank/{tx_id}/entry", status_code=201)
+def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(current_user)):
+    """出金 hareketini 経費 olarak kaydet (口座振替: 家賃, 通信費 vb.)."""
+    t = store.get_bank_tx(uid, tx_id)
+    if not t:
+        raise HTTPException(404, "transaction not found")
+    if t["entry_id"] or t["invoice_no"]:
+        raise HTTPException(409, "already recorded")
+    if t["amount"] >= 0:
+        raise HTTPException(400, "only withdrawals can be recorded as expenses")
+    if body.category not in CATEGORIES or body.category == "売上高":
+        raise HTTPException(400, "unknown expense category")
+    if body.rate not in (10, 8, 0):
+        raise HTTPException(400, "rate must be 10, 8 or 0")
+    if body.invoice_no and not re.fullmatch(r"T\d{13}", body.invoice_no):
+        raise HTTPException(400, "invoice_no must be T + 13 digits")
+    e = {"date": t["d"], "kind": "exp", "store": t["description"][:100], "amount": -t["amount"],
+         "category": body.category, "rate": body.rate, "invoice_no": body.invoice_no}
+    eid = store.add_entry(uid, e, source="BANK")
+    store.link_bank_tx(uid, tx_id, entry_id=eid)
+    return {"id": eid, **e}
+
+
+# ---------------------------------------------------------------- settings
+@router.get("/channels")
+def channels(uid: str = Depends(current_user)):
+    """Kanal ve OCR durumu (sırlar döndürülmez)."""
+    import receipt_ocr
+    env = os.environ.get
+    return {
+        "line": {"configured": bool(env("LINE_CHANNEL_SECRET") and env("LINE_CHANNEL_ACCESS_TOKEN")),
+                 "webhook": "/callback", "linked": not uid.startswith(("wa:", "demo"))},
+        "whatsapp": {"configured": bool(env("WHATSAPP_TOKEN") and env("WHATSAPP_PHONE_ID")), "webhook": "/whatsapp"},
+        "ocr": {"engine": env("OCR_ENGINE", "tesseract"), "tesseract": receipt_ocr.available(),
+                "ai_fallback": bool(env("ANTHROPIC_API_KEY"))},
+        "categories": CATEGORIES,
+    }
 
 
 # ---------------------------------------------------------------- consumption tax
