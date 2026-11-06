@@ -1,20 +1,20 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## 2026-11-07 01:45 JST · reviewer · 5f49a70..58cca61 incelemesi (T-027, panel menüleri, T-028, T-029, T-029b, tax-watcher)
-- Kapı başta yeşil (189, SQLite); dashboard-next `next build` geçti. T-027 sayfalama, T-028 başlık+compare_digest, T-029/T-029b int4 sınırları doğru; LINE düzenleme yolu tutar değiştirmiyor (taşma riski yok). TAX_RULES değişiklikleri kaynaklı + tarihli.
-- **Düzeltme:** `store.delete_entry` banka kaynaklı 経費 silinince `bank_tx.entry_id` asılı kalıyordu → hareket bir daha kaydedilemiyordu (409). Artık bağ kaldırılıyor. `PATCH /entries/{id}` boş gövdede `null`/200 yerine 400.
-- **Yeni testler** `tests/test_review_bank.py` (26): bank_csv tarih (和暦/年月日/geçersiz) ve tutar (△▲¥円) biçimleri, alt bilgi/0/boş satır atlama, başlık 15 satır sınırı, kısa satır; 消込 önerisi (fatura tarihinden önceki giriş yok, bir fatura tek öneri), tutar uyuşmazlığı 400, silme↔banka bağı, başka kullanıcının kaydı 404. Silme testi eski kodda kırmızı.
-- **Açılan:** T-051 (P2 review-fix) banka CSV'de birden çok 摘要 sütunu → karşı taraf adı kayboluyor.
-- Kapı: pytest 215 geçti (SQLite + yerel PostgreSQL 16).
-
-## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-07 01:48 JST · developer · T-040 hesap sistemi (API dilimi)
 - Yeni `bot/accounts.py`: scrypt (stdlib, 16 bayt tuz) parola, ≥10/≤128 karakter; tablolar `accounts`, `account_ledgers` (hesap ↔ tek defter), `password_resets` (yalnızca ekleyici, store.SCHEMA).
 - `/api/v1/auth/signup|login|me|link-line|password-reset/request|confirm`. Kayıt boş `web:…` defteri açar, oturum = mevcut `api_tokens` → tüm uçlar aynen çalışır. LINE 「パネル」 koduyla bağlama: web defterinde veri varsa / LINE defteri başka hesaptaysa 409 (veri birleştirme yok), kod ve eski token'lar iptal. Sıfırlama 1 saat, tek kullanım, tüm oturumları kapatır; e-posta keşfi yok.
 - `MAIL_PROVIDER`/`MAIL_API_KEY` render.yaml'a `sync: false` eklendi (Q-13'e not); sağlayıcı yokken e-posta log'a.
-- Yeni `tests/test_accounts.py` (15). Kapı: pytest 204 geçti (SQLite + yerel PostgreSQL 16).
+- Yeni `tests/test_accounts.py` (15). Kapı: rebase sonrası pytest 230 geçti (SQLite + yerel PostgreSQL 16).
 - Sonraki: T-040b (panel /signup /login /reset /connect), ardından T-042, T-043.
+
+## 2026-11-07 01:45 JST · reviewer · 5f49a70..58cca61 incelemesi (T-027, panel menüleri, T-028, T-029, T-029b, tax-watcher)
+- Kapı başta yeşil (189, SQLite); dashboard-next `next build` geçti. T-027 sayfalama, T-028 başlık+compare_digest, T-029/T-029b int4 sınırları doğru; LINE düzenleme yolu tutar değiştirmiyor (taşma riski yok). TAX_RULES değişiklikleri kaynaklı + tarihli.
+- **Düzeltme:** `store.delete_entry` banka kaynaklı 経費 silinince `bank_tx.entry_id` asılı kalıyordu → hareket bir daha kaydedilemiyordu (409). Artık bağ kaldırılıyor. `PATCH /entries/{id}` boş gövdede `null`/200 yerine 400.
+- **Yeni testler** `tests/test_review_bank.py` (26): bank_csv tarih (和暦/年月日/geçersiz) ve tutar (△▲¥円) biçimleri, alt bilgi/0/boş satır atlama, başlık 15 satır sınırı, kısa satır; 消込 önerisi (fatura tarihinden önceki giriş yok, bir fatura tek öneri), tutar uyuşmazlığı 400, silme↔banka bağı, başka kullanıcının kaydı 404. Silme testi eski kodda kırmızı.
+- **Açılan:** T-051 (P2 review-fix) banka CSV'de birden çok 摘要 sütunu → karşı taraf adı kayboluyor.
+- Kapı: pytest 215 geçti (SQLite + yerel PostgreSQL 16).
 
 ## 2026-11-07 00:40 JST · developer · T-029b kayıt tutarı int4 taşması
 - Seçenek (a): şema değişmeden `store.MAX_ENTRY_AMOUNT = 2,000,000,000` (< 2^31−1). 1e9 seçilmedi çünkü ödenen en büyük fatura 税込 ~1.1e9 → 売上 kaydı reddedilirdi.
