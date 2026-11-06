@@ -12,6 +12,13 @@ from dataclasses import dataclass
 
 RATES = (10, 8)
 
+# Tutar üst sınırları (T-029): veritabanı taşmasını 500 yerine 400 ile reddet.
+# invoices.subtotal*/tax*/total sütunları INTEGER (PostgreSQL int4, ≤ 2,147,483,647).
+# 税抜合計 < 1e9 → 税込 total ≤ 1.1e9 < 2^31; böylece şema değişikliği gerekmez.
+MAX_QTY = 1_000_000            # qty ≤ 1e6
+MAX_AMOUNT = 10**9             # unit_price, satır tutarı ve 税抜合計 < 1e9 円（10億円）
+MAX_ITEMS = 200
+
 
 @dataclass(frozen=True)
 class Totals:
@@ -29,6 +36,8 @@ def validate_items(items: list[dict]) -> list[dict]:
     """items: [{"name": str, "qty": int, "unit_price": int (税抜), "rate": 10|8}]"""
     if not items:
         raise ValueError("at least one item is required")
+    if len(items) > MAX_ITEMS:
+        raise ValueError(f"at most {MAX_ITEMS} items are allowed")
     out = []
     for it in items:
         name = str(it.get("name", "")).strip()
@@ -39,9 +48,17 @@ def validate_items(items: list[dict]) -> list[dict]:
             raise ValueError("item name is required")
         if qty <= 0 or price < 0:
             raise ValueError("qty must be > 0 and unit_price >= 0")
+        if qty > MAX_QTY:
+            raise ValueError(f"qty must be <= {MAX_QTY}")
+        if price >= MAX_AMOUNT:
+            raise ValueError(f"unit_price must be < {MAX_AMOUNT}")
+        if qty * price >= MAX_AMOUNT:
+            raise ValueError(f"line amount (qty * unit_price) must be < {MAX_AMOUNT}")
         if rate not in RATES:
             raise ValueError("rate must be 10 or 8")
         out.append({"name": name, "qty": qty, "unit_price": price, "rate": rate, "amount": qty * price})
+    if sum(i["amount"] for i in out) >= MAX_AMOUNT:
+        raise ValueError(f"invoice subtotal must be < {MAX_AMOUNT}")
     return out
 
 

@@ -1,6 +1,13 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## 2026-11-06 22:40 JST · developer · T-028 /admin/richmenu anahtarı başlığa taşındı
+Biçim: `## 2026-11-06 23:20 JST · developer · T-029 fatura kalemi tutar sınırları
+- `invoices.validate_items`: qty ≤ 1,000,000; unit_price, satır tutarı ve 税抜合計 < 1e9 円; en fazla 200 kalem → aşımda ValueError → API 400.
+- Not: inceleyicinin önerdiği 1e11 PostgreSQL'de yetmiyor — `invoices.subtotal*/tax*/total` INTEGER (int4); 1e11-1 fatura yerel PG 16'da hâlâ 500 verdi. 1e9 ile total ≤ 1.1e9 < 2^31, şema değişikliği yok.
+- Yeni `tests/test_invoice_limits.py` (13): her sınırın iki yanı, 10%/8% karışık en büyük fatura, API'de 400. Kapı: pytest 182 geçti (SQLite + yerel PostgreSQL 16).
+- Aynı int4 sorunu `entries.amount`'ta da var (API 1e11 kabul ediyor, 3e9 → 500) → T-029b (review-fix) açıldı.
+- Sonraki: T-029b, ardından P0 T-040.
+
+## 2026-11-06 22:40 JST · developer · T-028 /admin/richmenu anahtarı başlığa taşındı
 - `admin_richmenu` artık `X-Admin-Key` başlığını okuyor; `?key=` geriye uyum için kabul ediliyor ama log'a "deprecated" uyarısı yazıyor; başlık varsa sorgu yok sayılıyor. ADMIN_KEY boşsa her zaman 403.
 - Belgeler: README, `setup_richmenu.py` docstring, QUESTIONS Q-01 komutu başlıklı curl'e güncellendi.
 - Yeni `tests/test_admin_richmenu.py` (5, LINE çağrısı sahte modülle): başlıkla 200, yanlış/eksik 403, sorgu hâlâ 200, başlık önceliği, ADMIN_KEY yok → 403. Kapı: pytest 169 geçti (SQLite).

@@ -49,7 +49,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
 | T-027 | P1 | done (bu commit) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
 | T-028 | P2 | done (bu commit) | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
-| T-029 | P2 | doing (developer, 2026-11-06) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
+| T-029 | P2 | done (bu commit) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
+| T-029b | P2 | review-fix | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
 
 ---
 
@@ -152,6 +153,10 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-029 · Fatura kalemi tutar sınırları (review-fix, P2)
 - `bot/api.py` `ItemIn` / `bot/invoices.py:validate_items`: `qty`, `unit_price` için üst sınır yok; çok büyük değer PostgreSQL BIGINT'te 500 verir. Beklenen: ör. `qty ≤ 1e6`, `unit_price < 1e11`, satır tutarı < 1e11 → 400. Sınır testleri.
+
+## T-029b · Kayıt tutarı int4 taşması (review-fix, P2)
+- `store.py` `entries.amount INTEGER` → PostgreSQL'de int4 (≤ 2,147,483,647). `api.py` `EntryIn.amount` / `EntryPatch.amount` `lt=10**11` → 3e9 yen kayıt `NumericValueOutOfRange` → 500 (T-029 sırasında yerel PG 16'da doğrulandı).
+- Seçenekler: (a) API sınırını `lt=2**31` / ör. `< 1e9` yap (şema değişmez), (b) `ALTER TABLE entries ALTER COLUMN amount TYPE BIGINT` (veri kaybı yok, genişletme; `init_db`'de idempotent). LINE/WhatsApp/OCR yolu da aynı sınırı kullanmalı. Test: sınırda 201, üstünde 400 (SQLite + PG).
 
 ## T-040 · Hesap sistemi (P0)
 - Tablolar: `accounts(id, email UNIQUE, password_hash, created_at, email_verified)`; `account_ledgers(account_id, user_id)` (bir hesap ↔ defter `user_id`). Parola: `hashlib.scrypt` (stdlib, tuzlu), en az 10 karakter.
