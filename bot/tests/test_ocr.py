@@ -62,3 +62,17 @@ async def test_engine_selection(app_mod, monkeypatch):
     monkeypatch.setattr(app_mod, "OCR_ENGINE", "claude")
     await app_mod.ocr_receipt(b"x")
     assert len(called) == 2
+
+
+async def test_partial_result_message(app_mod, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+    async def fake_ocr(img):
+        return app_mod.normalize_ocr({"error": "合計金額を確認できませんでした", "date": "2025-09-23",
+                                      "store": "七尾白馬店", "invoice_no": "T5810773044260"})
+
+    monkeypatch.setattr(app_mod, "ocr_receipt", fake_ocr)
+    text, _ = await app_mod.process_image("P1", b"x", "1", "LINE")
+    assert "2025-09-23" in text and "七尾白馬店 1234" in text
+    import store
+    assert store.last_entry("P1") is None

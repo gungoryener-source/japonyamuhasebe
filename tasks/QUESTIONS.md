@@ -33,3 +33,7 @@ render.yaml'a `jsaas-db` (free) eklendi; artık kayıtlar yeniden başlatmada si
 ## Q-08 · Render servisinin Docker'a geçişi (kontrol gerekli)
 Sunucuda Tesseract olması için `tegaru-line-bot` servisi render.yaml'da `runtime: docker` yapıldı (`bot/Dockerfile`). Render mevcut bir servisin çalışma ortamını blueprint ile değiştirmeyi reddederse: Render → tegaru-line-bot → Settings → Delete Service, ardından Blueprints → japonyamuhasebe → Sync (servis Docker olarak yeniden oluşur; ortam değişkenleri yeniden girilmeli). Kontrol: `https://tegaru-line-bot.onrender.com/` yanıtında `"tesseract": true`.
 **Cevap:**
+
+## Q-09 · OCR hızı ve Render planı (bilgi)
+tessdata_best modeliyle fiş başına ~2–5 sn (tam çekirdek). Render free planı 0.1 CPU olduğundan 20–50 sn sürebilir; LINE'da yanıt gecikir (T-025 ile çözülecek). Canlı kullanıcıdan önce tegaru-line-bot için Starter (0.5 CPU) plana geçilmesi önerilir.
+**Cevap:**

@@ -11,14 +11,22 @@ from datetime import date
 
 from receipt_parser import parse_receipt
 
+import os
+
 TESSERACT = shutil.which("tesseract")
+# Ayarlar (ortam değişkeni): model klasörü (tessdata_best önerilir), hedef genişlik, ikili görüntü.
+# Varsayılanlar 67 gerçek fişle ölçüldü (docs/OCR.md): tessdata_best + 1200px + ikili görüntü kapalı.
+TESSDATA = os.environ.get("OCR_TESSDATA", "")
+TARGET_WIDTH = int(os.environ.get("OCR_WIDTH", "1200"))
+BINARIZE = os.environ.get("OCR_BINARIZE", "0") == "1"
 
 
 def available() -> bool:
     if not TESSERACT:
         return False
     try:
-        langs = subprocess.run([TESSERACT, "--list-langs"], capture_output=True, text=True, timeout=10).stdout
+        langs = subprocess.run([TESSERACT, "--list-langs"] + (["--tessdata-dir", TESSDATA] if TESSDATA else []),
+                               capture_output=True, text=True, timeout=10).stdout
     except Exception:
         return False
     return "jpn" in langs.split()
@@ -31,15 +39,13 @@ def preprocess(img_bytes: bytes) -> bytes:
     im = Image.open(io.BytesIO(img_bytes))
     im = ImageOps.exif_transpose(im).convert("L")
     w, h = im.size
-    if w < 1400:  # termal fiş fotoğrafları genelde küçük yazılı; ~1600px genişlik iyi sonuç verir
-        scale = 1600 / w
-        im = im.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-    elif w > 2600:
-        scale = 2200 / w
+    if abs(w - TARGET_WIDTH) > TARGET_WIDTH * 0.15:  # termal fişler küçük yazılı; hedef genişliğe ölçekle
+        scale = TARGET_WIDTH / w
         im = im.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
     im = im.filter(ImageFilter.MedianFilter(3))          # tuz-biber gürültüsü
     im = ImageOps.autocontrast(im, cutoff=2)
-    im = im.point(lambda v, th=_otsu(im): 255 if v > th else 0)  # ikili görüntü (termal kâğıt için)
+    if BINARIZE:
+        im = im.point(lambda v, th=_otsu(im): 255 if v > th else 0)  # ikili görüntü (termal kâğıt için)
     out = io.BytesIO()
     im.save(out, "PNG")
     return out.getvalue()
@@ -65,8 +71,12 @@ def _otsu(im) -> int:
 
 
 def _tesseract(png: bytes, lang: str, timeout: int) -> str:
+    args = [TESSERACT, "stdin", "stdout", "-l", lang, "--psm", os.environ.get("OCR_PSM", "6"),
+            "-c", "preserve_interword_spaces=1"]
+    if TESSDATA:
+        args[1:1] = ["--tessdata-dir", TESSDATA]
     r = subprocess.run(
-        [TESSERACT, "stdin", "stdout", "-l", lang, "--psm", "6", "-c", "preserve_interword_spaces=1"],
+        args,
         input=png, capture_output=True, timeout=timeout,
     )
     if r.returncode != 0:
@@ -82,17 +92,25 @@ def ocr_text(img_bytes: bytes, timeout: int = 60) -> str:
 
 def read_receipt(img_bytes: bytes, today: date | None = None) -> dict:
     """Görsel → normalize_ocr'ın beklediği dict (veya {"error": ...})."""
+    from receipt_parser import check_digit_ok, invoice_candidates, normalize
+
     try:
         png = preprocess(img_bytes)
-        text = _tesseract(png, "jpn", 60)
-        # İkinci geçiş (İngilizce model): rakam dizilerinde daha isabetli → T 番号 doğrulaması
-        latin = _tesseract(png, "eng", 60)
+        text = _tesseract(png, "jpn", 90)
+        jp_cands = invoice_candidates(normalize(text))
+        latin = ""
+        if not any(check_digit_ok(c[1:]) for c in jp_cands):
+            # İkinci geçiş (İngilizce model, rakamlarda daha isabetli) yalnızca T番号 doğrulanamadıysa
+            latin = _tesseract(png, "eng", 90)
     except Exception as ex:
         return {"error": f"OCRエラー（{type(ex).__name__}）"}
     data = parse_receipt(text, today)
-    from receipt_parser import find_invoice_no, normalize
-    alt = find_invoice_no(normalize(latin))
-    if alt and "error" not in data:
-        data["invoice_no"] = alt
+    cands = invoice_candidates(normalize(latin)) + jp_cands
+    valid = [c for c in cands if check_digit_ok(c[1:])]
+    if valid:
+        data["invoice_no"] = valid[0]
+    elif cands:
+        data["invoice_no"] = cands[0]
+        data["invoice_no_unverified"] = True   # チェックデジット不一致 → 要確認
     data["_raw_text"] = text[:2000]  # hata ayıklama için (DB'ye yazılmaz)
     return data

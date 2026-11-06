@@ -26,7 +26,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-019 | P2 | todo | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-020 | P1 | todo | dashboard-next: 確定申告 önizleme sayfası (`/api/v1/pl`, `/api/v1/tax/income`) |
 | T-022 | P1 | done | Yapay zekâsız fiş okuma: Tesseract (jpn) + kural tabanlı ayrıştırıcı, Docker imajı |
-| T-023 | P1 | todo | Gerçek fiş fotoğraflarıyla OCR doğruluk ölçümü (`bot/tests/fixtures/real/`, ≥20 fiş, alan bazında doğruluk raporu) |
+| T-023 | P1 | done | Gerçek fişlerle OCR ölçümü (67 fiş; tüm alanlar %70, toplam %85, yanlış kayıt %7 — docs/OCR.md) |
+| T-025 | P1 | todo | LINE görsel işleme süresi: OCR uzun sürerse önce 「読み取り中…」 yanıtı, sonuç push mesajla (reply token süresi) |
+| T-026 | P2 | todo | OCR: kırmızı damga (印) rengini ön işlemede bastır (HSV ile kırmızı → beyaz), tarih/rakam doğruluğu |
 | T-024 | P2 | todo | OCR sonrası kullanıcı onayı: düşük güvenli alanlarda (tarih yok, oran kırılımı tahmini) LINE'da 「確認」 butonlu özet |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |

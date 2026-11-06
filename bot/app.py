@@ -137,7 +137,8 @@ OCR_PROMPT = """これは日本のレシートまたは領収書の画像です�
 def normalize_ocr(data: dict) -> list[dict] | dict:
     """OCR JSON → 1件または税率ごとに分けた複数の帳簿レコード。エラーは {"error": ...}。"""
     if "error" in data:
-        return {"error": str(data["error"])[:100]}
+        partial = {k: data[k] for k in ("date", "store", "invoice_no") if data.get(k)}
+        return {"error": str(data["error"])[:100], "partial": partial}
     try:
         total = int(data.get("total") or data.get("amount") or 0)
         t10 = int(data.get("total10") or 0)
@@ -311,7 +312,12 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
         print("image error", type(ex).__name__)
         return "画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。", []
     if isinstance(result, dict):
-        return f"読み取れませんでした（{result['error']}）。\n「店名 金額」で送ってください。", []
+        p = result.get("partial") or {}
+        got = "・".join(x for x in (p.get("date"), p.get("store"), p.get("invoice_no")) if x)
+        hint = f"\n読み取れた項目: {got}" if got else ""
+        store = p.get("store") or "店名"
+        return (f"金額を読み取れませんでした（{result['error']}）。{hint}\n"
+                f"「{store} 1234」のように金額を送ってください。"), []
     for e in result:
         add_entry(user_id, e, image_path=path, source=source)
     if len(result) == 1:
