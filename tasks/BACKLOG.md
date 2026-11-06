@@ -32,7 +32,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-024 | P2 | todo | OCR sonrası kullanıcı onayı: düşük güvenli alanlarda (tarih yok, oran kırılımı tahmini) LINE'da 「確認」 butonlu özet |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
-| T-027 | P1 | review-fix | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
+| T-027 | P1 | doing (developer, 2026-11-06) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
 | T-028 | P2 | review-fix | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
 | T-029 | P2 | review-fix | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
 
