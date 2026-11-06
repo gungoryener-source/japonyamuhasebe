@@ -1,65 +1,117 @@
 "use client";
 
-/** /connect#tk_xxx — LINE「パネル」komutunun verdiği bağlantı. Token tarayıcıya kaydedilir ve panele dönülür. */
+/**
+ * /connect#tk_xxx — LINE「パネル」komutunun verdiği bağlantı.
+ * - Hesapla oturum açıksa (GET /auth/me → account): kod, onaydan sonra POST /auth/link-line ile hesaba bağlanır (T-040b).
+ * - Değilse eski davranış: kod token olarak tarayıcıya kaydedilir ve panele dönülür.
+ */
 import { useEffect, useState } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
-import { api, setToken } from "../lib/api";
+import { api, setToken, getToken } from "../lib/api";
+import { AuthCard, AuthInput, errorText, Notice, SubmitBtn } from "../components/auth";
+
+type Session = { state: "loading" } | { state: "none" } | { state: "account"; email: string };
 
 export default function ConnectPage() {
   const [value, setValue] = useState("");
-  const [state, setState] = useState<"idle" | "checking" | "error">("idle");
+  const [session, setSession] = useState<Session>({ state: "loading" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [welcome, setWelcome] = useState(false);
 
-  const connect = async (token: string) => {
-    const t = token.trim();
-    if (!t.startsWith("tk_")) { setState("error"); return; }
-    setState("checking");
+  /** Hesapsız: kodu oturum token'ı olarak kullan (T-040 öncesi davranış). */
+  const openWithCode = async (t: string) => {
+    setBusy(true);
+    setError(null);
     setToken(t);
     try {
       await api.profile();
-      history.replaceState(null, "", "/connect");
       location.href = "/";
     } catch {
       setToken(null);
-      setState("error");
+      setError("接続コードが正しくないか、サーバーに接続できません。");
+      setBusy(false);
     }
+  };
+
+  /** Hesap açık: LINE帳簿をアカウントに連携. Başarıda yeni token gelir, eskileri sunucuda iptal edilir. */
+  const link = async (t: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.linkLine(t);
+      setToken(r.token);
+      location.href = "/";
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(false);
+    }
+  };
+
+  const submit = () => {
+    const t = value.trim();
+    if (!t.startsWith("tk_")) { setError("接続コードは「tk_」で始まります。LINE で「パネル」と送って取得してください。"); return; }
+    if (session.state === "account") link(t);
+    else openWithCode(t);
   };
 
   useEffect(() => {
     const h = location.hash.slice(1);
-    if (h) connect(h);
+    if (h) history.replaceState(null, "", "/connect/"); // kod adres çubuğunda kalmasın
+    setWelcome(new URLSearchParams(location.search).has("welcome"));
+    const code = h.startsWith("tk_") ? h : "";
+    if (code) setValue(code);
+    const resolve = async (): Promise<Session> => {
+      if (!getToken()) return { state: "none" };
+      try {
+        const me = await api.me();
+        return me.account ? { state: "account", email: me.account.email } : { state: "none" };
+      } catch {
+        return { state: "none" }; // eski sunucu / geçersiz token: hesapsız akış
+      }
+    };
+    resolve().then((s) => {
+      setSession(s);
+      // Hesapsız oturumda LINE bağlantısı eskisi gibi doğrudan açılır; hesapta onay beklenir.
+      if (code && s.state === "none") openWithCode(code);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (session.state === "loading")
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#F9FAFB]">
+        <LoaderCircle size={20} className="animate-spin text-slate-400" />
+      </main>
+    );
+
+  const account = session.state === "account";
   return (
-    <main className="grid min-h-screen place-items-center p-4">
-      <form
-        onSubmit={(e) => { e.preventDefault(); connect(value); }}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-navy text-mint"><KeyRound size={18} /></div>
-          <div>
-            <h1 className="text-sm font-bold text-navy">帳簿に接続</h1>
-            <p className="text-[11px] text-slate-400">LINE で「パネル」と送ると接続コードが届きます</p>
-          </div>
-        </div>
-        <label className="block space-y-1 text-xs">
-          <span className="font-bold text-slate-600">接続コード</span>
-          <input
-            id="token"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="tk_..."
-            autoComplete="off"
-            className="h-10 w-full rounded-lg border border-slate-200 px-3 font-mono text-sm outline-none focus:border-navy"
-          />
-        </label>
-        {state === "error" && <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">接続コードが正しくないか、サーバーに接続できません。</p>}
-        <button disabled={state === "checking"} className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-navy text-sm font-bold text-white hover:bg-navy-700 disabled:opacity-60">
-          {state === "checking" && <LoaderCircle size={15} className="animate-spin" />}接続する
-        </button>
-        <a href="/" className="block text-center text-[11px] text-slate-400 hover:text-navy">デモデータで見る</a>
-      </form>
-    </main>
+    <AuthCard
+      icon={<KeyRound size={18} />}
+      title={account ? "LINEの帳簿をアカウントに連携" : "帳簿に接続"}
+      sub="LINE で「パネル」と送ると接続コードが届きます"
+      onSubmit={submit}
+      footer={account
+        ? <a href="/" className="font-bold text-navy hover:underline">あとで連携する</a>
+        : <><a href="/login/?next=/connect/" className="font-bold text-navy hover:underline">ログイン</a><a href="/signup/" className="hover:text-navy">新規登録</a></>}
+    >
+      {welcome && account && <Notice tone="ok">アカウントを登録しました。LINE で記録している場合は、接続コードで帳簿を連携できます。</Notice>}
+      {account && (
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+          ログイン中：<span className="font-bold text-navy">{session.email}</span><br />
+          連携すると、LINE で記録した帳簿がこのアカウントの帳簿になります。現在の帳簿にデータがある場合は連携できません。
+        </p>
+      )}
+      <AuthInput label="接続コード" value={value} onChange={(e) => setValue(e.target.value)} placeholder="tk_..." autoComplete="off" spellCheck={false}
+        className="font-mono" />
+      {error && <Notice tone="error">{error}</Notice>}
+      <SubmitBtn busy={busy}>{account ? "連携する" : "接続する"}</SubmitBtn>
+      {!account && (
+        <p className="text-[10px] leading-relaxed text-slate-400">
+          アカウントをお持ちの方は、ログインしてからコードを入力すると LINE の帳簿をアカウントに連携できます。
+        </p>
+      )}
+    </AuthCard>
   );
 }

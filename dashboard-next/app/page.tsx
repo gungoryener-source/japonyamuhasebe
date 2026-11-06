@@ -56,9 +56,11 @@ function useDashboardData() {
   const [invoices, setInvoices] = useState<Invoice[]>(MOCK.invoices);
   const [company, setCompany] = useState<Company>(MOCK.companies[0]);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!getToken()) { setMode("demo"); return; }
+    api.me().then((m) => setEmail(m.account?.email ?? null)).catch(() => setEmail(null));
     try {
       const now = new Date();
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -81,7 +83,7 @@ function useDashboardData() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, reload: load };
+  return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, email, reload: load };
 }
 
 
@@ -571,7 +573,7 @@ function InvoiceDrawer({ open, onClose, onCreate }: { open: boolean; onClose: ()
 
 export default function DashboardPage() {
   const data = useDashboardData();
-  const conn = { mode: data.mode, company: data.company, setCompany: data.setCompany, error: data.error };
+  const conn = { mode: data.mode, company: data.company, setCompany: data.setCompany, error: data.error, email: data.email };
   return (
     <AppShell title="ダッシュボード" sub={`${data.company.name} ・ ${data.company.fiscal}`} conn={conn}>
       <Dashboard data={data} />

@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 03:40 JST · developer · T-040b panel hesap sayfaları
+- Yeni `/signup` (e-posta + parola×2, ≥10 文字 istemci kontrolü → `/connect/?welcome=1`), `/login` (`?next=` yalnız site içi yol), `/reset` (hash `rs_…` → yeni parola formu, token adres çubuğundan silinir; yoksa e-posta isteği, her zaman aynı mesaj). Ortak `components/auth.tsx`; hata metni API `detail`'inden, ağ hatasında 「デモデータで見る」 yönlendirmesi.
+- `/connect`: hesapla oturum açıksa (`/auth/me`) kod hash'ten gelse bile onay butonuyla `POST /auth/link-line` (409 mesajı gösterilir); hesapsızsa eski davranış (kod = token, otomatik). Token saklama aynı `jsaas.token`.
+- Üst satır: hesap oturumunda e-posta + ログアウト (`DELETE /tokens/current` → /login); yalnızca LINE kodu oturumunda eski 切断 (yalnız yerel) + 「アカウント連携」; demo modunda ログイン / 新規登録 / LINEで接続.
+- Doğrulama: `next build` geçti; pytest 237 geçti. Yerel API (uvicorn + demo-seed) + statik `out/` ile Playwright: kayıt (kısa parola hatası) → hash kodla bağlama → ダッシュボード ライブ + e-posta → ログアウト → yanlış/doğru parola → sıfırlama isteği → `rs_` ile parola değişimi, ikinci kullanım reddi → ikinci hesapla aynı LINE defteri 409. Betik CI'a T-035 ile.
+- Sonraki: P0 T-042 (abonelik, Stripe test modu), ardından T-043.
+
 ## 2026-11-07 02:44 JST · developer · T-051 banka CSV çoklu 摘要 sütunu
 - `bank_csv.parse`: başlıktaki tüm 摘要 sütunları (摘要/摘要内容/備考/取引区分 …) soldan sağa boşlukla birleşir, boş hücreler atlanır (「口座振替 ﾗｸﾃﾝﾓﾊﾞｲﾙ」). Tutar/入出金 kalıbına da uyan sütunlar 摘要 sayılmaz; 200 karakter sınırı store'da korunuyor.
 - Geriye uyum: birleşik metin ilk sütundan farklıysa satırda `legacy_description`; `store.insert_bank_rows` eski parmak izini (eski biçimin aynı gün sayacıyla) da arar → T-051 öncesi alınmış dosya yeniden yüklenince yinelenme 3/3 doğru, yeni kayıt yok.

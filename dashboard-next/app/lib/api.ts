@@ -49,6 +49,34 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Token gerektirmeyen uçlar (kayıt / giriş / parola sıfırlama). Ağ hatası → ApiError(0). */
+async function publicCall<T>(path: string, body: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/v1${path}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, NETWORK_ERROR);
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorDetail(res));
+  return res.json() as Promise<T>;
+}
+
+export const NETWORK_ERROR = "サーバーに接続できません。時間をおいて再度お試しください。";
+
+/** FastAPI hata gövdesinden kullanıcıya gösterilecek metin (`detail` string ya da 422 listesi). */
+async function errorDetail(res: Response): Promise<string> {
+  try {
+    const d = (await res.json()).detail;
+    if (typeof d === "string") return d;
+    if (Array.isArray(d)) return "入力内容を確認してください。";
+  } catch {
+    /* non-JSON error */
+  }
+  return res.statusText || `HTTP ${res.status}`;
+}
+
 /** Yetkili dosya indirme (PDF / CSV): blob olarak alır. */
 export async function fetchBlob(path: string): Promise<Blob> {
   const token = getToken();
@@ -111,6 +139,9 @@ export type ApiIncomeTax = {
   year: number; revenue: number; expenses: number; business_income: number; blue_deduction: number; basic_deduction: number;
   taxable: number; base_tax: number; reconstruction: number; total: number; disclaimer: string;
 };
+export type ApiAuth = { account: { id: number; email: string }; user_id: string; token: string };
+export type ApiMe = { user_id: string; account: { id: number; email: string; email_verified: boolean } | null };
+
 export type ApiChannels = {
   line: { configured: boolean; webhook: string; linked: boolean };
   whatsapp: { configured: boolean; webhook: string };
@@ -158,7 +189,21 @@ export const api = {
   exportCsv: (format: "freee" | "mf" | "yayoi", year: number) => fetchBlob(`/export.csv${qs({ format, year })}`),
   channels: () => call<ApiChannels>("/channels"),
   revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
+  me: () => call<ApiMe>("/auth/me"),
+  linkLine: (code: string) => call<ApiAuth>("/auth/link-line", { method: "POST", body: JSON.stringify({ code }) }),
 };
+
+/** Hesap uçları (T-040, docs/API.md). Başarılı giriş/kayıtta token kaydedilir. */
+export const auth = {
+  signup: (email: string, password: string) => publicCall<ApiAuth>("/auth/signup", { email, password }),
+  login: (email: string, password: string) => publicCall<ApiAuth>("/auth/login", { email, password }),
+  resetRequest: (email: string) => publicCall<{ ok: boolean }>("/auth/password-reset/request", { email }),
+  resetConfirm: (token: string, password: string) => publicCall<{ ok: boolean }>("/auth/password-reset/confirm", { token, password }),
+};
+
+/** Parola kuralı: sunucu ile aynı (bot/accounts.py, 10〜128 文字). */
+export const PASSWORD_MIN = 10;
+export const PASSWORD_MAX = 128;
 
 export const CATEGORIES = ["売上高", "旅費交通費", "消耗品費", "会議費", "接待交際費", "通信費", "地代家賃", "水道光熱費",
   "外注工賃", "新聞図書費", "広告宣伝費", "支払手数料", "雑費"];

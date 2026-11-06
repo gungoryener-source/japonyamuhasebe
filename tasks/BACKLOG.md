@@ -37,7 +37,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-034 | P2 | todo | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
 | T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
-| T-040b | P0 | doing (developer, 2026-11-07) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
+| T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
 | T-041 | P1 | todo | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
 | T-042 | P0 | todo | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-043 | P0 | todo | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
@@ -190,6 +190,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `dashboard-next/app/signup`, `/login`, `/reset` (hash'teki `rs_…` token), `/connect`: oturum açıksa LINE kodunu `POST /auth/link-line` ile bağla, değilse mevcut davranış (kodu token olarak kaydet). Token saklama mevcut `connect` ile aynı yerde; menüde oturum e-postası + çıkış (`DELETE /tokens/current`).
 - Metinler Japonca; hata mesajları API'nin `detail` alanından. Demo modunda sayfalar "デモ" uyarısıyla çalışır.
 - Kabul: `next build` geçer; yerel API ile kayıt → giriş → LINE kodu bağlama → özet görünür (elle/Playwright notu LOG'a).
+- ✅ Yapıldı: `app/login`, `app/signup`, `app/reset`, `app/connect` (hesap varsa onaylı `link-line`), ortak `components/auth.tsx`; üst çubukta e-posta + ログアウト. Playwright e2e betiği CI'a T-035 ile girecek.
 
 ## T-041 · Ekip üyeleri (P1)
 - `members(user_id(defter), account_id, role)`; owner davet kodu üretir; accountant: okuma + düzenleme, viewer: yalnız okuma. Tüm yazma uçlarında rol kontrolü + testler.

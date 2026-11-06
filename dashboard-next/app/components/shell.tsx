@@ -285,8 +285,11 @@ export function useConnection() {
   const [mode, setMode] = useState<Mode>("loading");
   const [company, setCompany] = useState<Company>(MOCK.companies[0]);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   useEffect(() => {
     if (!getToken()) { setMode("demo"); return; }
+    // Hesap e-postası (T-040b). Eski sunucuda /auth/me yoksa yalnızca kod oturumu sayılır.
+    api.me().then((m) => setEmail(m.account?.email ?? null)).catch(() => setEmail(null));
     api.profile()
       .then((p) => {
         const y = new Date().getFullYear();
@@ -299,28 +302,55 @@ export function useConnection() {
         setMode("demo");
       });
   }, []);
-  return { mode, company, setCompany, error };
+  return { mode, company, setCompany, error, email };
 }
 
 type ShellCtx = { toast: (m: string) => void; mode: Mode; live: boolean; company: Company };
 const Ctx = createContext<ShellCtx>({ toast: () => {}, mode: "demo", live: false, company: MOCK.companies[0] });
 export const useShell = () => useContext(Ctx);
 
-export function ModeBadge({ mode }: { mode: Mode }) {
+/**
+ * Hesap oturumu: sunucuda token iptal (DELETE /tokens/current) + /login.
+ * Yalnızca LINE koduyla açılmış oturum: eskisi gibi yalnızca tarayıcıdan silinir (kod LINE'da tekrar kullanılabilir).
+ */
+async function logout(account: boolean) {
+  if (account) {
+    try { await api.revoke(); } catch { /* sunucuya ulaşılamasa da yerelden çık */ }
+  }
+  setToken(null);
+  if (account) location.href = "/login/";
+  else location.reload();
+}
+
+export function ModeBadge({ mode, email }: { mode: Mode; email?: string | null }) {
   if (mode === "loading") return <Badge tone="info" icon={false}><LoaderCircle size={11} className="animate-spin" />読み込み中</Badge>;
   if (mode === "demo")
     return (
       <span className="flex items-center gap-2">
         <Badge tone="warn">デモデータ</Badge>
-        <a href="/connect/" className="text-[11px] font-bold text-navy underline-offset-2 hover:underline">自分の帳簿に接続</a>
+        <a href="/login/" className="text-[11px] font-bold text-navy underline-offset-2 hover:underline">ログイン</a>
+        <a href="/signup/" className="text-[11px] text-slate-500 underline-offset-2 hover:text-navy hover:underline">新規登録</a>
+        <a href="/connect/" className="text-[11px] text-slate-500 underline-offset-2 hover:text-navy hover:underline">LINEで接続</a>
       </span>
     );
   return (
     <span className="flex items-center gap-2">
       <Badge tone="ok">ライブ</Badge>
-      <button onClick={() => { setToken(null); location.reload(); }} className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-navy">
-        <LogOut size={12} />切断
-      </button>
+      {email ? (
+        <>
+          <span className="max-w-[180px] truncate text-[11px] text-slate-500" title={email}>{email}</span>
+          <button onClick={() => logout(true)} className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-navy">
+            <LogOut size={12} />ログアウト
+          </button>
+        </>
+      ) : (
+        <>
+          <a href="/login/?next=/connect/" className="text-[11px] text-slate-400 hover:text-navy" title="ログイン後、LINEの帳簿をアカウントに連携できます">アカウント連携</a>
+          <button onClick={() => logout(false)} className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-navy">
+            <LogOut size={12} />切断
+          </button>
+        </>
+      )}
     </span>
   );
 }
@@ -360,7 +390,7 @@ export function AppShell({ title, en, sub, actions, conn, children }: {
               {sub && <p className="text-xs text-slate-400">{sub}</p>}
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 {actions}
-                <ModeBadge mode={c.mode} />
+                <ModeBadge mode={c.mode} email={c.email} />
               </div>
             </div>
             {c.error && c.mode === "demo" && (
