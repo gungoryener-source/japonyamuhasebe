@@ -8,7 +8,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-002 | P0 | done (bu commit) | Vergi motoru `bot/tax/` (消費税) + testler |
 | T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
 | T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
-| T-004b | P1 | blocked (Q-03) | `BASIC_DEDUCTION[2026]` (令和8年分) tablosunu ekle + sınır testleri |
+| T-004b | P1 | todo | `BASIC_DEDUCTION[2026]` ve `[2027]` (令和8・9年分) tablosunu ekle + sınır testleri (Q-03 cevaplandı) |
 | T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | done | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
@@ -45,7 +45,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-046 | P1 | todo | Veri dışa aktarma (tüm veri ZIP: CSV + fatura PDF), hesap silme talebi, PostgreSQL yedekleme betiği ve belge |
 | T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
 | T-048 | P1 | todo | Güvenlik: giriş/OCR için hız sınırı, CORS'u PANEL_URL ile kısıtla, güvenlik başlıkları, parola politikası |
-| T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
+| T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
+| T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
+| T-050 | P2 | todo | 消費税: 2割/3割特例 uygunluk şartları (基準期間・特定期間 ≤1,000万) uyarısı + 経過措置 tek satıcı 1億円 üst sınırı uyarısı |
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
 | T-027 | P1 | done (bu commit) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
 | T-028 | P2 | done (bu commit) | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
@@ -124,9 +126,26 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-017 · 簡易課税 みなし仕入率 doğrulaması
 - tax-watcher birincil kaynakla oranları ✅ yapınca `KANI_RATIO` için her tür adına test ekle.
+- ✅ 2026-11-06 tax-watcher: oranlar NTA No.6505 (令和8年4月1日現在法令等) ile doğrulandı, kodla aynı (90/80/70/60/50/40). `bot/tax/consumption.py` yorumundaki 「❓ のため要確認」 notu da kaldırılmalı.
 
 ## T-004b · 令和8年分 基礎控除
 - Q-03 cevaplanınca (TAX_RULES ✅) `bot/tax/income.py` → `BASIC_DEDUCTION[2026]` ve her kademe sınırı için test. `test_basic_deduction_2026_not_verified` testi kaldırılıp yerine gerçek testler gelir.
+- ✅ Q-03 cevaplandı (tax-watcher 2026-11-06). Kural (令和8年分・令和9年分 aynı): 合計所得 ≤4,890,000 → 1,040,000 · ≤6,550,000 → 670,000 · ≤23,500,000 → 620,000 · ≤24,000,000 → 480,000 · ≤24,500,000 → 320,000 · ≤25,000,000 → 160,000 ·超 → 0. 2028+ ⚠️ → `NotImplementedError` kalsın.
+- Dosyalar: `bot/tax/income.py` (`BASIC_DEDUCTION` 2026/2027), `bot/tests/` (her sınırda ±1 yen testi: 4,890,000/4,890,001, 6,550,000/6,550,001, 23,500,000/23,500,001 …), `bot/api.py` `/tax/income` (2026 artık 200), `dashboard-next/app/lib/income.ts` (`BASIC_2026`, `year !== 2025` korumasını 2025–2027'ye genişlet), `dashboard-next/app/tax/page.tsx` (yıl seçici). `web/index.html` `basicDed` prototip — dokunma (referans).
+- Kabul: pytest yeşil; 2026年分 örnek (事業所得 3,000,000 → 基礎控除 1,040,000) API ve panelde aynı; `next build` geçer.
+- Kaynak: TAX_RULES §2 (NTA 令和8年分 年末調整のしかた 102.pdf, 財務省 大綱, NTA No.1199).
+
+## T-049 · 青色申告特別控除 令和9年分以後 (P1)
+- Kural (令和8年度改正, 令和9年分以後): 75万 (正規の簿記 + 期限内 e-Tax + 優良な電子帳簿 veya デジタルシームレス保存 + 届出書) / 65万 (正規の簿記 + 期限内 e-Tax) / 書面申告 → 10万 (55万 kalkar) / 簡易簿記 10万, ancak 前々年分 事業・不動産 収入金額 > 1,000万 ise 0 / 現金主義の特例 → yalnızca 10万. 令和8年分 (2026) için mevcut 65/55/10 aynen kalır.
+- Dosyalar: `bot/tax/income.py` (`BLUE_RETURN` → yıla göre izinli değerler, 2027+ için 750,000 ekle / 550,000 reddet), `bot/api.py` `/tax/income` (`blue` doğrulaması), `dashboard-next/app/tax/page.tsx` (seçenekler yıla göre: 2027+ 「75万円（優良電子帳簿＋e-Tax）」, 55万 gizli), `dashboard-next/app/lib/income.ts`.
+- Kabul: 2026 → 550,000 kabul, 750,000 ValueError; 2027 → 750,000 kabul, 550,000 ValueError; 控除は所得を超えない testi; `next build` geçer. Ürünün 優良な電子帳簿 şartlarını karşılayıp karşılamadığına dair not `docs/` altına (iddia etme; QUESTIONS'a gerekirse).
+- Kaynak: [NTA リーフレット](https://www.nta.go.jp/taxes/shiraberu/shinkoku/kojin_jigyo/0026007-003_02.pdf), TAX_RULES §2.
+
+## T-050 · 2割/3割特例 uygunluk + 経過措置 1億円 sınırı (P2)
+- Kural: 2割/3割特例 yalnızca 基準期間 課税売上高 ≤1,000万 (3割: ayrıca 特定期間 ≤1,000万, 個人のみ, 令和9・10年分). 経過措置: 2026-10-01 以後開始課税期間, 一の免税事業者等からの経過措置対象仕入 年 1億円 (税込) aşan kısım控除不可. Şu an `bot/tax/consumption.py` ve `dashboard-next/app/lib/tax.ts` bunları kontrol etmiyor (küçük müşteride nadir → P2).
+- Dosyalar: `bot/tax/consumption.py` (`compute` için isteğe bağlı `base_period_sales` / `specific_period_sales` parametreleri → uygun değilse ValueError; `transitional_breakdown`'a satıcı bazında 1億 uyarı bayrağı), `dashboard-next/app/lib/tax.ts` (`methodUnavailable` mesajı), parity testi `bot/tests/test_tax_card_parity.py`.
+- Kabul: 基準期間 10,000,000 → 2割 OK, 10,000,001 → reddedilir; tek satıcı 100,000,000 / 100,000,001 sınır testi; parametre verilmezse mevcut davranış değişmez.
+- Kaynak: [NTA 3割特例](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/invoice-review/pdf/0026004-099-01-2.pdf), [NTA インボイスQ&A 経過措置](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/qa/01-15.pdf), TAX_RULES §1.
 
 ## T-012b · CSV şablon doğrulaması
 - `bot/export.py` başlıkları ve 税区分 metinleri her yazılımın resmi şablon sayfasıyla karşılaştırılsın (kaynak URL'leri `docs/` altına). Fark varsa düzelt + test.

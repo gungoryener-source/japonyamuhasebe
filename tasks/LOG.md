@@ -1,6 +1,14 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## 2026-11-06 23:20 JST · developer · T-029 fatura kalemi tutar sınırları
+Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+
+## 2026-11-06 23:58 JST · tax-watcher · haftalık vergi kuralı kontrolü
+- **Q-03 kapandı (✅):** 令和8・9年分 基礎控除 = ≤489万 104万 · ≤655万 67万 · ≤2,350万 62万 (2,350万超 değişmedi); 104万 tüm ≤2,350万 için değil. Kaynak: NTA 令和8年分 年末調整のしかた, 財務省 大綱, NTA No.1199. T-004b → todo. 令和10年分以後 ⚠️ (yalnızca ≤132万 99万 kesin).
+- **Yeni kural:** 青色申告特別控除 令和9年分以後 75万/65万/10万 (書面55万 kalkar, 簡易簿記 前々年収入>1,000万 → 0) → T-049 (P1).
+- ✅'a çekilen: 簡易課税 みなし仕入率 (No.6505; kodla aynı → T-017 yalnızca test), 3割特例 şartları, 経過措置 tablosu + 1億円/10億円 sınırı (NTA Q&A), 電帳法 電子取引 検索要件/猶予措置. Kod 1億 sınırını ve 2割/3割 uygunluk şartlarını kontrol etmiyor → T-050 (P2).
+- Takvim (60 gün) yenilendi: 11/10, 11/30 予定納税 第2期, 12/1 改正施行, 12/10; yakın: 2027-01-12 年末調整分 源泉, 01-20 納期の特例. Kod değişmedi; kapı: bot pytest.
+
+## 2026-11-06 23:20 JST · developer · T-029 fatura kalemi tutar sınırları
 - `invoices.validate_items`: qty ≤ 1,000,000; unit_price, satır tutarı ve 税抜合計 < 1e9 円; en fazla 200 kalem → aşımda ValueError → API 400.
 - Not: inceleyicinin önerdiği 1e11 PostgreSQL'de yetmiyor — `invoices.subtotal*/tax*/total` INTEGER (int4); 1e11-1 fatura yerel PG 16'da hâlâ 500 verdi. 1e9 ile total ≤ 1.1e9 < 2^31, şema değişikliği yok.
 - Yeni `tests/test_invoice_limits.py` (13): her sınırın iki yanı, 10%/8% karışık en büyük fatura, API'de 400. Kapı: pytest 182 geçti (SQLite + yerel PostgreSQL 16).
@@ -17,8 +25,6 @@ Biçim: `## 2026-11-06 23:20 JST · developer · T-029 fatura kalemi tutar sın�
 - Panel artık sayfa yönlendirmeli: ortak kabuk `components/shell.tsx` (menü, arama, bağlantı/demo modu), ortak UI `components/ui.tsx`, demo veri `lib/demo.ts`.
 - 請求書管理 (çok kalemli 適格請求書, 消込, PDF), 経費精算 (fiş OCR önizleme→onay, elle giriş, 電帳法 arama, satır içi düzenleme/silme), 銀行連携 (CSV içe aktarma Shift_JIS/UTF-8, tekrar korumalı, otomatik 消込 önerisi, çekimi gidere çevirme), 確定申告/税務 (損益, 所得税, 消費税 yöntemleri, freee/MF/弥生 CSV, takvim), 設定 (事業者情報 + 登録番号 kontrol hanesi, kanal durumu, bağlantı).
 - API: PATCH/DELETE /entries/{id}, POST /receipts/ocr, /bank/import|transactions|match|{id}/entry, /channels. Testler: 164 (SQLite). Uçtan uca: yerel API + panel, tüm menüler canlı ve demo modda, 1366/390 px.
-
-## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-06 15:10 JST · developer · T-027 yıllık toplamlarda 5000 satır kesmesi
 - `store.entries_in_range()`: (d, id) anahtar kümesiyle sayfalı tam okuma (sayfa 2000). `/tax/consumption`, `/pl`, `/export.csv` ve `/entries/{user_id}` artık `limit=5000` yerine bunu kullanıyor; `search_entries` (電帳法 arama) değişmedi.

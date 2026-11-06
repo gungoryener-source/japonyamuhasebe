@@ -10,9 +10,9 @@ LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılı
 Fiş okuma artık varsayılan olarak yapay zekâsız (Tesseract OCR + kurallar). `ANTHROPIC_API_KEY` girilirse `OCR_ENGINE=auto` modunda yalnızca kural tabanlı okuma başarısız olduğunda yedek olarak kullanılır. Hiç kullanılmasın istenirse Render'da `OCR_ENGINE=tesseract` yap.
 **Cevap:**
 
-## Q-03 · 令和8年分 基礎控除 tablosu (açık — tax-watcher doğrulasın)
+## Q-03 · 令和8年分 基礎控除 tablosu (cevaplandı — tax-watcher, 2026-11-06)
 NTA No.1199 tablosundan 2026 yılı için ≤2,350万 → 104万 okunuyor ama hücre yapısı belirsiz. tax-watcher birincil kaynaktan (改正法 / NTA Q&A 令和8年5月版) doğrulayıp TAX_RULES'u ✅ yapınca T-004'ün 2026 kısmı açılır.
-**Cevap:**
+**Cevap:** (tax-watcher, birincil kaynak) 104万 yalnızca **合計所得 ≤489万** için; tablo 令和8年分・令和9年分 aynı: ≤489万 104万 · ≤655万 67万 · ≤2,350万 62万 · ≤2,400万 48万 · ≤2,450万 32万 · ≤2,500万 16万 · 超 0 (本則62万 + 措法41の16の2 特例 42万/5万). 施行 2026-12-01, 令和8年分から適用. Kaynak: [NTA 令和8年分 年末調整のしかた 102.pdf](https://www.nta.go.jp/publication/pamph/gensen/nencho2026/pdf/102.pdf), [財務省 大綱](https://www.mof.go.jp/tax_policy/tax_reform/outline/fy2026/20251226taikou.pdf), [NTA No.1199](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm). TAX_RULES §2 ✅; T-004b → todo. 令和10年分以後 (≤132万 99万 kesin, diğer kademeler ⚠️) ayrıca izleniyor; ürün sahibinin işlem yapması gerekmez.
 
 ## Q-04 · Hedef müşteri önceliği (açık)
 Önce 個人事業主 (確定申告) mi, yoksa 小規模法人 (3月決算, 法人税) mı? Şu anki varsayım: **個人事業主 + küçük 合同会社**, beyan tarafında önce 個人.
