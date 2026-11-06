@@ -41,7 +41,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-041 | P1 | todo | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
-| T-043 | P0 | todo | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
+| T-043 | P0 | doing (developer, 2026-11-06) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
 | T-044 | P1 | todo | Tanıtım sayfası (/lp), kayıt akışı ve ilk kurulum sihirbazı (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | todo | 確定申告 çıktıları: 青色申告決算書 (損益計算書) PDF, 申告書 alan numaralarıyla özet; e-Tax xtx araştırma notu (docs/ETAX.md) |
 | T-046 | P1 | todo | Veri dışa aktarma (tüm veri ZIP: CSV + fatura PDF), hesap silme talebi, PostgreSQL yedekleme betiği ve belge |
