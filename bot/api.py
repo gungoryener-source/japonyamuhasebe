@@ -133,7 +133,7 @@ def create_entry(body: EntryIn, uid: str = Depends(current_user)):
 @router.get("/tax/consumption")
 def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "honsoku",
                     kani_type: int | None = None, uid: str = Depends(current_user)):
-    rows = store.search_entries(uid, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
+    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
     sales = [ct.Sale(r["amount"], r["rate"]) for r in rows if r["kind"] == "inc"]
     purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]))
                  for r in rows if r["kind"] == "exp"]
@@ -152,7 +152,7 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
 @router.get("/pl")
 def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
     """青色申告決算書（損益計算書）の簡易版: 売上・勘定科目別経費・所得金額。"""
-    rows = store.search_entries(uid, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
+    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
     revenue = sum(r["amount"] for r in rows if r["kind"] == "inc")
     by_cat: dict[str, int] = {}
     for r in rows:
@@ -266,7 +266,7 @@ def invoice_pdf(no: str, uid: str = Depends(current_user)):
 def export_csv(format: str = "freee", year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
     if format not in export.FORMATS:
         raise HTTPException(400, f"format must be one of {export.FORMATS}")
-    rows = store.search_entries(uid, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
+    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
     body = export.to_csv(rows, format)
     # 会計ソフトは Shift_JIS(CP932) 取込が一般的
     return Response(body.encode("cp932", errors="replace"), media_type="text/csv; charset=Shift_JIS",

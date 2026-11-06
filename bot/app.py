@@ -373,8 +373,8 @@ def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default=
         raise HTTPException(401, "admin key required")
     if not re.fullmatch(r"\d{4}", year):
         raise HTTPException(400, "year must be YYYY")
-    from store import search_entries
-    return search_entries(user_id, date_from=f"{year}-01-01", date_to=f"{year}-12-31", limit=5000)
+    from store import entries_in_range
+    return entries_in_range(user_id, f"{year}-01-01", f"{year}-12-31")
 
 
 @app.get("/")

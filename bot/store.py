@@ -214,6 +214,27 @@ def search_entries(user_id: str, *, date_from: str | None = None, date_to: str |
         return [dict(r) for r in con.execute(sql, args).fetchall()]
 
 
+def entries_in_range(user_id: str, date_from: str, date_to: str, page_size: int = 2000) -> list[dict]:
+    """期間内の全仕訳を (d, id) 順に返す（年次集計・CSV 用）。
+
+    `search_entries` の上限（5000 件）で年次の消費税・損益・CSV が黙って欠けないよう、
+    キーセット方式で全件を読む。
+    """
+    out: list[dict] = []
+    last_d, last_id = "", 0
+    with tx() as con:
+        while True:
+            rows = con.execute(
+                """SELECT * FROM entries WHERE user_id=? AND d>=? AND d<=?
+                   AND (d>? OR (d=? AND id>?)) ORDER BY d, id LIMIT ?""",
+                (user_id, date_from, date_to, last_d, last_d, last_id, page_size),
+            ).fetchall()
+            out.extend(dict(r) for r in rows)
+            if len(rows) < page_size:
+                return out
+            last_d, last_id = rows[-1]["d"], rows[-1]["id"]
+
+
 # ---------------------------------------------------------------- tokens
 def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()

@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-06 15:10 JST · developer · T-027 yıllık toplamlarda 5000 satır kesmesi
+- `store.entries_in_range()`: (d, id) anahtar kümesiyle sayfalı tam okuma (sayfa 2000). `/tax/consumption`, `/pl`, `/export.csv` ve `/entries/{user_id}` artık `limit=5000` yerine bunu kullanıyor; `search_entries` (電帳法 arama) değişmedi.
+- Yeni `tests/test_year_totals.py` (5): 5001+1 kayıtta 損益 toplamı, 仕入税額 (¥100×5001), CSV satır sayısı, admin listesi; sayfa sınırlarında boşluk/çift kayıt yok; aralık dışı ve başka tenant hariç. Eski kodda 4'ü kırmızı.
+- Kapı: pytest 157 geçti (SQLite + yerel PostgreSQL 16).
+- Sonraki: T-020 (確定申告 önizleme) veya P2 review-fix'ler T-028/T-029.
+
 ## 2026-11-06 13:27 JST · reviewer · son 26 saat (c46d946..f1e4297)
 - Kapı başta yeşil (143). 外税 regresyonu düzeltildi (T-023): `RATE_EXCLUDE` 「外税8%対象額」 satırlarını atıyordu → karışık oranlı 外税 fişte tüm tutar 10%'a yazılıyordu; artık yalnızca 外税額 hariç. `_rate_amount` 「税額 ¥80」 sonrasını tutar saymıyor.
 - `hmac.compare_digest` str + ASCII olmayan girdi → TypeError/500 (LINE imza, WhatsApp imza/verify, ADMIN_KEY ×3); bayt karşılaştırmasına geçildi → 400/401/403.
