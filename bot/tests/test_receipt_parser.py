@@ -170,3 +170,45 @@ def test_real_vietnamese_receipt():
 def test_bag_fee_only_is_not_saved():
     r = parse_receipt("(10%対象 \\5)\n( 8 え計 \\671)", TODAY)
     assert "error" in r
+
+
+# ---- inceleyici (2026-11-06): kapsanmayan dallar + 外税 regresyonu
+SOTOZEI_MIXED = """スーパー山田
+2026年11月01日
+小計 ¥1,500
+外税8%対象額 ¥1,000
+外税8% ¥80
+外税10%対象額 ¥500
+外税10% ¥50
+合計 ¥1,630"""
+
+
+def test_exclusive_tax_mixed_rates_split_correctly():
+    # 「外税8%対象額」は税抜 → 8%: 1,000+80, 10%: 500+50. Eskiden tüm tutar 10%'a yazılıyordu.
+    r = parse_receipt(SOTOZEI_MIXED, TODAY)
+    assert (r["total"], r["total10"], r["total8"]) == (1630, 550, 1080)
+
+
+def test_rate_amount_stops_at_tax_amount():
+    r = parse_receipt("スーパー山田\n2026年11月01日\n(8%対象 ¥1,080 税額 ¥80)\n合計 ¥1,080", TODAY)
+    assert (r["total"], r["total10"], r["total8"]) == (1080, 0, 1080)
+
+
+def test_dash_style_ryoshusho_total():
+    r = parse_receipt("領収書\n山田商店\n2026年11月01日\n¥1,688-\n但し 品代として", TODAY)
+    assert (r["store"], r["total"], r["total10"]) == ("山田商店", 1688, 1688)
+
+
+def test_subtotal_fallback_when_no_total():
+    r = parse_receipt("山田商店\n2026年11月01日\n小計 ¥2,000\n※は軽減税率対象", TODAY)
+    assert (r["total"], r["total10"], r["total8"]) == (2000, 0, 2000)
+
+
+def test_reiwa_gannen_date():
+    assert find_date("令和元年5月1日", TODAY) == "2019-05-01"
+    assert find_date("平成31年4月30日 2018/12/31", TODAY) is None  # 2019 öncesi kabul edilmez
+
+
+def test_one_rate_unreadable_without_total_is_error():
+    r = parse_receipt("山田商店\n2026/11/01\n10%対象 ¥1,000\n8%対象 ¥", TODAY)
+    assert "error" in r and r["date"] == "2026-11-01"

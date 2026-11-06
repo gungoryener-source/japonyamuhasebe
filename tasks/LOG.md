@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-06 13:27 JST · reviewer · son 26 saat (c46d946..f1e4297)
+- Kapı başta yeşil (143). 外税 regresyonu düzeltildi (T-023): `RATE_EXCLUDE` 「外税8%対象額」 satırlarını atıyordu → karışık oranlı 外税 fişte tüm tutar 10%'a yazılıyordu; artık yalnızca 外税額 hariç. `_rate_amount` 「税額 ¥80」 sonrasını tutar saymıyor.
+- `hmac.compare_digest` str + ASCII olmayan girdi → TypeError/500 (LINE imza, WhatsApp imza/verify, ADMIN_KEY ×3); bayt karşılaştırmasına geçildi → 400/401/403.
+- Yeni testler: `test_auth_hardening.py` (3), `test_receipt_parser.py` (+6: 外税 karışık, 税額 kesme, ¥…- 領収書, 小計 yedeği, 令和元年, okunamayan oran). Toplam 152. Not: 68 gerçek fiş depoda olmadığından 外税 değişikliği gerçek set üzerinde yeniden ölçülmeli.
+- Açılan review-fix: T-027 (P1, yıllık toplamlar 5000 satırda kesiliyor), T-028 (richmenu anahtarı URL'de), T-029 (fatura kalemi üst sınır).
+- Vergi oranları/eşikleri TAX_RULES ile tutarlı; みなし仕入率 hâlâ ❓ (T-017).
+
 ## 2026-11-06 06:30 JST · kurulum (Claude) · T-023 gerçek fişlerle OCR
 - Ürün sahibinin 68 gerçek fişiyle ölçüm (görseller depoda değil). Tüm alanlar %6 → %70, toplam %19 → %85, yanlış kayıt %7 (docs/OCR.md).
 - Toplam artık 10%/8%対象 satırlarından; 外税, kayıp baş rakam (内消費税 ile), 登録番号 kontrol hanesi, gün adıyla tarih onarımı, Vietnamca fişler.

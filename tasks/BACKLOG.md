@@ -32,6 +32,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-024 | P2 | todo | OCR sonrası kullanıcı onayı: düşük güvenli alanlarda (tarih yok, oran kırılımı tahmini) LINE'da 「確認」 butonlu özet |
 | T-017 | P2 | todo | `TAX_RULES` ❓ satırlarını doğrula: 簡易課税 みなし仕入率 (tax-watcher) ve `KANI_RATIO` testleri |
 | T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
+| T-027 | P1 | review-fix | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
+| T-028 | P2 | review-fix | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
+| T-029 | P2 | review-fix | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
 
 ---
 
@@ -124,3 +127,13 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-024 · Düşük güvenli OCR sonucu onayı
 - `parse_receipt` güven bayrakları döndürsün (date_found, rate_breakdown_found); eksikse LINE yanıtında "日付を確認してください" vb. ve hızlı düzeltme butonları.
+
+## T-027 · Yıllık toplamlarda 5000 satır kesmesi (review-fix, P1)
+- `bot/api.py:136` (`/tax/consumption`), `:156` (`/pl` → `/tax/income`), `:270` (`/export.csv`) ve `bot/app.py` `/entries/{user_id}` `store.search_entries(..., limit=5000)` kullanıyor; `store.py:212` limiti 5000'e kırpıyor. Yılda >5000 kaydı olan kullanıcıda vergi/損益 **sessizce eksik** hesaplanır.
+- Beklenen: toplamlar SQL `SUM ... GROUP BY kind, rate, ...` ile ya da sayfalı tam okuma ile; CSV tüm satırları içermeli. Kabul: 5001 kayıtlı testte toplam ve CSV satır sayısı doğru.
+
+## T-028 · `/admin/richmenu` anahtarı sorgu dizesinde (review-fix, P2)
+- `bot/app.py` `admin_richmenu(key: str = "")` → anahtar erişim log'larına düşer. Beklenen: `X-Admin-Key` başlığı (geriye uyum için sorgu bir süre kabul edilebilir, docs güncellenir). Test: başlıkla 200/403.
+
+## T-029 · Fatura kalemi tutar sınırları (review-fix, P2)
+- `bot/api.py` `ItemIn` / `bot/invoices.py:validate_items`: `qty`, `unit_price` için üst sınır yok; çok büyük değer PostgreSQL BIGINT'te 500 verir. Beklenen: ör. `qty ≤ 1e6`, `unit_price < 1e11`, satır tutarı < 1e11 → 400. Sınır testleri.

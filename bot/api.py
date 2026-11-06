@@ -28,7 +28,7 @@ CATEGORIES = ["売上高", "旅費交通費", "消耗品費", "会議費", "接�
 
 def _admin_ok(key: str) -> bool:
     admin = os.environ.get("ADMIN_KEY", "")
-    return bool(admin) and hmac.compare_digest(key or "", admin)
+    return bool(admin) and hmac.compare_digest((key or "").encode(), admin.encode())
 
 
 def current_user(authorization: str = Header(default="")) -> str:

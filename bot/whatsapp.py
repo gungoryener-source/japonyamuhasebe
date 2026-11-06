@@ -32,7 +32,7 @@ def verify_signature(body: bytes, header: str) -> bool:
     if not secret or not header.startswith("sha256="):
         return False
     mac = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(mac, header.removeprefix("sha256="))
+    return hmac.compare_digest(mac.encode(), header.removeprefix("sha256=").encode())
 
 
 def build_message(to: str, text: str, options: list[tuple[str, str]]) -> dict:
@@ -108,7 +108,7 @@ async def handle_message(msg: dict) -> None:
 def verify(mode: str = Query("", alias="hub.mode"), token: str = Query("", alias="hub.verify_token"),
            challenge: str = Query("", alias="hub.challenge")):
     expected = _env("WHATSAPP_VERIFY_TOKEN")
-    if mode == "subscribe" and expected and hmac.compare_digest(token, expected):
+    if mode == "subscribe" and expected and hmac.compare_digest(token.encode(), expected.encode()):
         return PlainTextResponse(challenge)
     raise HTTPException(403, "verification failed")
 

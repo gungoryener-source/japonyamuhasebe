@@ -57,7 +57,7 @@ app.include_router(api_router)
 # ---------------------------------------------------------------- LINE helpers
 def verify_signature(body: bytes, signature: str) -> bool:
     mac = hmac.new(CHANNEL_SECRET.encode(), body, hashlib.sha256).digest()
-    return hmac.compare_digest(base64.b64encode(mac).decode(), signature or "")
+    return hmac.compare_digest(base64.b64encode(mac), (signature or "").encode())
 
 
 def quick_reply(*labels: str) -> dict:
@@ -369,7 +369,7 @@ async def callback(request: Request, bg: BackgroundTasks,
 @app.get("/entries/{user_id}")
 def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default="")):
     """Kayıt listesi (geçici: yalnızca ADMIN_KEY ile; tenant API'si T-005)."""
-    if not ADMIN_KEY or not hmac.compare_digest(x_admin_key, ADMIN_KEY):
+    if not ADMIN_KEY or not hmac.compare_digest(x_admin_key.encode(), ADMIN_KEY.encode()):
         raise HTTPException(401, "admin key required")
     if not re.fullmatch(r"\d{4}", year):
         raise HTTPException(400, "year must be YYYY")
@@ -388,7 +388,7 @@ def health():
 async def admin_richmenu(key: str = ""):
     """Alttaki 3 butonlu menüyü kurar. Render'da kabuk olmadığı için HTTP ile çağrılır:
     curl -X POST "https://<adres>/admin/richmenu?key=<ADMIN_KEY>" """
-    if not ADMIN_KEY or not hmac.compare_digest(key, ADMIN_KEY):
+    if not ADMIN_KEY or not hmac.compare_digest(key.encode(), ADMIN_KEY.encode()):
         raise HTTPException(403, "bad key")
     from setup_richmenu import create_and_set
     with open(os.path.join(os.path.dirname(__file__), "richmenu.png"), "rb") as f:

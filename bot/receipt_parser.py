@@ -25,7 +25,7 @@ EXCLUDE_TOTAL = r"(\d\s*点|ポイント|小\s*計|商\s*品\s*合|値\s*引|税
 # "10%対象" + OCR varyantları: "10%%対象", "10O%対象", "109%対象", "89対象", "8名対象", "8対象", "10%対旬"
 RATE_LINE = re.compile(r"(?<![\d.,])(1\s*[0OoD]\s*[0O]?|8)\s*9?\s*[%％]{0,2}\s*[^\d\s()（）]{0,2}?\s*[%％]?\s*(?:対|[タﾀ]\s*[イｲ]\s*[ソシｼッｯ])")
 RATE_LINE_AFTER = re.compile(r"(?:対\s*象\s*額?|課\s*税|[タﾀ]\s*[イｲ]\s*[ソシｼッｯ]\S{0,2})\s*[(（]?\s*(1\s*[0OoD]|8)\s*[%％]")
-RATE_EXCLUDE = re.compile(r"(小\s*計|消\s*費\s*税|税\s*額|税\s*等|外\s*税)")
+RATE_EXCLUDE = re.compile(r"(小\s*計|消\s*費\s*税|税\s*額|税\s*等|外\s*税\s*額)")
 YEN_NUM = re.compile(r"[¥￥\\]?\s*(\d{1,3}(?:[,，.]\d{3})+|\d+)\s*円?")
 STORE_SKIP = re.compile(r"(TEL|電話|〒|\d{2,4}-\d{2,4}-\d{3,4}|領収書|レシート|登録番号|毎度|ありがとう|いらっしゃい|営業時間|http|www|様$|No\.|レジ|担当|責)", re.I)
 
@@ -164,7 +164,7 @@ def find_total(lines: list[str]) -> int:
 
 
 def _rate_amount(rest: str) -> int | None:
-    rest = re.split(r"(内\s*消\s*費|消\s*費\s*税)", rest)[0]   # "(10%対象 ¥3,410 内消費税 ¥310)"
+    rest = re.split(r"(内\s*消\s*費|消\s*費\s*税|税\s*額)", rest)[0]   # "(10%対象 ¥3,410 内消費税 ¥310)" · "外税額 ¥100"
     rest = re.sub(r"\(\s*\d+\s*点\s*\)|\d+\s*点", " ", rest)     # "( 8点)" adet bilgisi
     nums = _amounts(rest)
     return nums[-1] if nums else None
