@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 07:45 JST · developer · T-053 kayıt yarışında 500 (review-fix)
+- `store.is_integrity_error(exc)`: sqlite3.IntegrityError ve psycopg.IntegrityError (UniqueViolation dahil) tanır; psycopg yoksa güvenle False.
+- `accounts.signup`: işlem bloğu bütünlük hatası verirse (SELECT–INSERT arası rakip kayıt) ve e-posta artık kayıtlıysa `AccountError(…, 409)` 「このメールアドレスはすでに登録されています。」; e-posta kayıtlı değilse hata gizlenmez, aynen yükselir. tx rollback → yarım hesap/defter yok.
+- Yeni `tests/test_signup_race.py` (4; ön kontrolü atlayan monkeypatch ile API 409 + tek hesap/tek defter + ilk hesap giriş yapabilir, doğrudan çağrıda 409, maskelenmeyen başka bütünlük hatası, sürücü tanıma). 3'ü eski kodda kırmızı. Kapı: pytest 297 geçti (SQLite); hesap testleri yerel PostgreSQL 16'da 19 geçti. dashboard-next değişmedi.
+- Not: kod commit'i (c5108d7) BACKLOG/LOG'suz gitti (güncelleme betiği hata verdi); bu kayıt ayrı commit'te.
+- Sonraki: P0 T-043 (yasal sayfalar, Q-12 yer tutucu ile).
+
 ## 2026-11-07 06:44 JST · developer · T-052 Stripe webhook olay sırası (review-fix)
 - `subscriptions`'a ekleyici sütun `last_event_created` (unix sn). `store.ADDED_COLUMNS` + `_add_columns`: mevcut veritabanlarına `init_db` sırasında eklenir (SQLite `PRAGMA table_info` kontrolü, PG `ADD COLUMN IF NOT EXISTS`); veri korunur, yıkıcı migration yok.
 - `billing._upsert(event_created=…)`: karşılaştırma + yazma tek koşullu UPDATE (`WHERE last_event_created<=?`) → eski olay `ignored`, eşit/yeni uygulanır; eşzamanlı teslimde de eski olay kazanamaz. `checkout.session.completed` ve `customer.subscription.*` aynı kurala tabi; `cancel()` API yanıtı zamanı değiştirmez. Eksik/bozuk `created` → 0.

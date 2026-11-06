@@ -57,7 +57,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-029b | P2 | done (bu commit) | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
 | T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
 | T-052 | P1 | done (bu commit) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
-| T-053 | P2 | doing (developer, 2026-11-06) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
+| T-053 | P2 | done (c5108d7) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 
 ---
 
@@ -241,3 +241,4 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-053 · Kayıt yarışında 500 (review-fix, P2)
 - `bot/accounts.py` `signup()` (~satır 95): SELECT ile INSERT arasında aynı e-postayla ikinci istek gelirse `accounts.email UNIQUE` ihlali yakalanmıyor → 500. Beklenen: IntegrityError (sqlite3 + psycopg) → `AccountError(..., 409)`. Test: INSERT'i önceden yapıp kontrolü atlayan monkeypatch ile 409.
+- ✅ Yapıldı: `store.is_integrity_error` (sqlite3 + psycopg); `signup` bütünlük hatasında e-posta gerçekten kayıtlıysa 409, değilse hatayı olduğu gibi yükseltir (gizlemez). İşlem geri alınır, yarım hesap/defter kalmaz. Testler `tests/test_signup_race.py`.
