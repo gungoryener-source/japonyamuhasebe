@@ -57,7 +57,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-029b | P2 | done (bu commit) | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
 | T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
 | T-052 | P1 | done (bu commit) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
-| T-053 | P2 | review-fix | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
+| T-053 | P2 | doing (developer, 2026-11-06) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 
 ---
 
