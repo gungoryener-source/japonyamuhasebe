@@ -12,6 +12,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
+import accounts
 import bank_csv
 import export
 import invoices as inv_mod
@@ -437,6 +438,70 @@ def export_csv(format: str = "freee", year: int = Query(..., ge=2023, le=2035), 
 def revoke_current(authorization: str = Header(default=""), uid: str = Depends(current_user)):
     store.revoke_token(authorization.removeprefix("Bearer ").strip())
     return Response(status_code=204)
+
+
+# ---------------------------------------------------------------- auth (T-040)
+class SignupIn(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=accounts.PASSWORD_MAX)
+
+
+class LinkIn(BaseModel):
+    code: str = Field(min_length=1, max_length=200)
+
+
+class ResetRequestIn(BaseModel):
+    email: str = Field(min_length=1, max_length=254)
+
+
+class ResetConfirmIn(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=1, max_length=accounts.PASSWORD_MAX)
+
+
+def _auth_result(acc: dict, token: str) -> dict:
+    return {"account": {"id": acc["id"], "email": acc["email"]}, "user_id": acc["user_id"], "token": token}
+
+
+def _account_call(fn, *args):
+    try:
+        return fn(*args)
+    except accounts.AccountError as e:
+        raise HTTPException(e.code, str(e))
+
+
+@router.post("/auth/signup", status_code=201)
+def auth_signup(body: SignupIn):
+    return _auth_result(*_account_call(accounts.signup, body.email, body.password))
+
+
+@router.post("/auth/login")
+def auth_login(body: SignupIn):
+    return _auth_result(*_account_call(accounts.login, body.email, body.password))
+
+
+@router.get("/auth/me")
+def auth_me(uid: str = Depends(current_user)):
+    acc = accounts.account_for_ledger(uid)
+    return {"user_id": uid, "account": ({"id": acc["id"], "email": acc["email"],
+                                          "email_verified": bool(acc["email_verified"])} if acc else None)}
+
+
+@router.post("/auth/link-line")
+def auth_link_line(body: LinkIn, uid: str = Depends(current_user)):
+    return _auth_result(*_account_call(accounts.link_ledger, uid, body.code))
+
+
+@router.post("/auth/password-reset/request", status_code=202)
+def auth_reset_request(body: ResetRequestIn):
+    accounts.request_password_reset(body.email)  # hesap olsun olmasın aynı yanıt
+    return {"ok": True}
+
+
+@router.post("/auth/password-reset/confirm")
+def auth_reset_confirm(body: ResetConfirmIn):
+    _account_call(accounts.confirm_password_reset, body.token, body.password)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------- admin

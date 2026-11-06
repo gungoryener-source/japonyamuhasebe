@@ -2,6 +2,7 @@
 
 Taban: `https://tegaru-line-bot.onrender.com/api/v1` · Kimlik: `Authorization: Bearer tk_...`
 Token alma: LINE'da 「パネル」 yaz **veya** admin: `POST /api/v1/admin/tokens {"user_id": "..."}` (`X-Admin-Key`).
+Hesap (T-040): `POST /auth/signup` / `POST /auth/login` `{email, password}` → `{account:{id,email}, user_id, token}` (token yukarıdaki Bearer ile aynı).
 Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri + token.
 
 | Yöntem | Yol | Açıklama |
@@ -28,3 +29,9 @@ Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şem
 | POST | `/bank/match` | `{tx_id, invoice_no}` → fatura 支払済 (ödeme tarihi = hareket tarihi) |
 | POST | `/bank/{id}/entry` | Çekimi 経費 olarak kaydet `{category, rate}` |
 | GET | `/channels` | LINE / WhatsApp / OCR durumu (sırsız) |
+| POST | `/auth/signup` | Hesap aç `{email, password(≥10)}` → 201 + boş web defteri (`web:…`) ve token. Aynı e-posta 409 |
+| POST | `/auth/login` | `{email, password}` → token (hatalı 401, e-posta varlığı sızdırılmaz) |
+| GET | `/auth/me` | Oturumdaki defter + hesap (`account: null` = yalnızca LINE kodu ile bağlı) |
+| POST | `/auth/link-line` | `{code}` (LINE 「パネル」 kodu) → hesabın defteri LINE defteri olur, yeni token. Web defterinde veri varsa veya LINE defteri başka hesaba bağlıysa 409; eski token'lar ve kod iptal |
+| POST | `/auth/password-reset/request` | `{email}` → her zaman 202; bağlantı e-postayla (`MAIL_PROVIDER` yoksa yalnızca log, Q-13), 1 saat geçerli |
+| POST | `/auth/password-reset/confirm` | `{token, password}` → parola değişir, tüm oturumlar kapanır; geçersiz/süresi dolmuş 400 |

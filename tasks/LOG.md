@@ -9,6 +9,13 @@ Biçim: `## 2026-11-07 01:45 JST · reviewer · 5f49a70..58cca61 incelemesi (T-0
 
 ## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 01:48 JST · developer · T-040 hesap sistemi (API dilimi)
+- Yeni `bot/accounts.py`: scrypt (stdlib, 16 bayt tuz) parola, ≥10/≤128 karakter; tablolar `accounts`, `account_ledgers` (hesap ↔ tek defter), `password_resets` (yalnızca ekleyici, store.SCHEMA).
+- `/api/v1/auth/signup|login|me|link-line|password-reset/request|confirm`. Kayıt boş `web:…` defteri açar, oturum = mevcut `api_tokens` → tüm uçlar aynen çalışır. LINE 「パネル」 koduyla bağlama: web defterinde veri varsa / LINE defteri başka hesaptaysa 409 (veri birleştirme yok), kod ve eski token'lar iptal. Sıfırlama 1 saat, tek kullanım, tüm oturumları kapatır; e-posta keşfi yok.
+- `MAIL_PROVIDER`/`MAIL_API_KEY` render.yaml'a `sync: false` eklendi (Q-13'e not); sağlayıcı yokken e-posta log'a.
+- Yeni `tests/test_accounts.py` (15). Kapı: pytest 204 geçti (SQLite + yerel PostgreSQL 16).
+- Sonraki: T-040b (panel /signup /login /reset /connect), ardından T-042, T-043.
+
 ## 2026-11-07 00:40 JST · developer · T-029b kayıt tutarı int4 taşması
 - Seçenek (a): şema değişmeden `store.MAX_ENTRY_AMOUNT = 2,000,000,000` (< 2^31−1). 1e9 seçilmedi çünkü ödenen en büyük fatura 税込 ~1.1e9 → 売上 kaydı reddedilirdi.
 - `store.check_amount` → `add_entry`/`update_entry` merkezi kontrol (`AmountOutOfRange`). API `EntryIn`/`EntryPatch` `lt=MAX_ENTRY_AMOUNT` (422, mevcut doğrulama kuralıyla aynı), `/bank/{id}/entry` büyük çekimde 400; LINE/WhatsApp metin ve fiş yolu 「金額が大きすぎます。1件20億円未満で入力してください。」 yanıtı, kayıt yok.

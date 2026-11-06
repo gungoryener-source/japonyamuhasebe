@@ -51,5 +51,5 @@ Zorunlu: 販売業者名, 運営責任者, 所在地, 電話番号, メールア
 **Cevap:**
 
 ## Q-13 · E-posta gönderim servisi (açık)
-Şifre sıfırlama ve bildirimler için: Resend / SendGrid / Amazon SES. Seçilen servisin anahtarı Render'a `MAIL_PROVIDER` + `MAIL_API_KEY` olarak girilmeli; o zamana kadar e-postalar yalnızca sunucu log'una yazılır.
+Şifre sıfırlama ve bildirimler için: Resend / SendGrid / Amazon SES. Seçilen servisin anahtarı Render'a `MAIL_PROVIDER` + `MAIL_API_KEY` olarak girilmeli; o zamana kadar e-postalar yalnızca sunucu log'una yazılır. (2026-11-07 developer: iki değişken `render.yaml`'a `sync: false` ile eklendi — **değer girilmeli**; T-040 parola sıfırlama e-postası şu an yalnızca log'a düşüyor.)
 **Cevap:**
