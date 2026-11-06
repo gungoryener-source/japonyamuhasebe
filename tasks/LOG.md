@@ -1,6 +1,13 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+Biçim: `## 2026-11-07 01:45 JST · reviewer · 5f49a70..58cca61 incelemesi (T-027, panel menüleri, T-028, T-029, T-029b, tax-watcher)
+- Kapı başta yeşil (189, SQLite); dashboard-next `next build` geçti. T-027 sayfalama, T-028 başlık+compare_digest, T-029/T-029b int4 sınırları doğru; LINE düzenleme yolu tutar değiştirmiyor (taşma riski yok). TAX_RULES değişiklikleri kaynaklı + tarihli.
+- **Düzeltme:** `store.delete_entry` banka kaynaklı 経費 silinince `bank_tx.entry_id` asılı kalıyordu → hareket bir daha kaydedilemiyordu (409). Artık bağ kaldırılıyor. `PATCH /entries/{id}` boş gövdede `null`/200 yerine 400.
+- **Yeni testler** `tests/test_review_bank.py` (26): bank_csv tarih (和暦/年月日/geçersiz) ve tutar (△▲¥円) biçimleri, alt bilgi/0/boş satır atlama, başlık 15 satır sınırı, kısa satır; 消込 önerisi (fatura tarihinden önceki giriş yok, bir fatura tek öneri), tutar uyuşmazlığı 400, silme↔banka bağı, başka kullanıcının kaydı 404. Silme testi eski kodda kırmızı.
+- **Açılan:** T-051 (P2 review-fix) banka CSV'de birden çok 摘要 sütunu → karşı taraf adı kayboluyor.
+- Kapı: pytest 215 geçti (SQLite + yerel PostgreSQL 16).
+
+## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-07 00:40 JST · developer · T-029b kayıt tutarı int4 taşması
 - Seçenek (a): şema değişmeden `store.MAX_ENTRY_AMOUNT = 2,000,000,000` (< 2^31−1). 1e9 seçilmedi çünkü ödenen en büyük fatura 税込 ~1.1e9 → 売上 kaydı reddedilirdi.

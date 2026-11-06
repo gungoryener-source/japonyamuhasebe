@@ -394,7 +394,10 @@ def delete_entry(user_id: str, entry_id: int) -> bool:
     """Kullanıcının kendi kaydını silmesi (LINE 「取消」 ile aynı yetki)."""
     with tx() as con:
         cur = con.execute("DELETE FROM entries WHERE id=? AND user_id=?", (entry_id, user_id))
-    return cur.rowcount > 0
+        if cur.rowcount > 0:  # 銀行明細からの経費なら紐付けを外し、再登録できるようにする
+            con.execute("UPDATE bank_tx SET entry_id=NULL WHERE entry_id=? AND user_id=?", (entry_id, user_id))
+            return True
+    return False
 
 
 # ---------------------------------------------------------------- bank

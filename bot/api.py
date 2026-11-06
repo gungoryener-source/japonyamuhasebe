@@ -145,6 +145,8 @@ def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(current_user
     if not store.get_entry(uid, entry_id):
         raise HTTPException(404, "entry not found")
     f = body.model_dump(exclude_none=True)
+    if not f:
+        raise HTTPException(400, "no fields to update")
     if "date" in f:
         f["d"] = _valid_date(f.pop("date"), "date")
     if "rate" in f and f["rate"] not in (10, 8, 0):
