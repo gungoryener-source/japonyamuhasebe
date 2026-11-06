@@ -385,10 +385,16 @@ def health():
 
 
 @app.post("/admin/richmenu")
-async def admin_richmenu(key: str = ""):
+async def admin_richmenu(x_admin_key: str = Header(default=""), key: str = ""):
     """Alttaki 3 butonlu menüyü kurar. Render'da kabuk olmadığı için HTTP ile çağrılır:
-    curl -X POST "https://<adres>/admin/richmenu?key=<ADMIN_KEY>" """
-    if not ADMIN_KEY or not hmac.compare_digest(key.encode(), ADMIN_KEY.encode()):
+    curl -X POST -H "X-Admin-Key: <ADMIN_KEY>" "https://<adres>/admin/richmenu"
+    `?key=` sorgusu geriye uyum için hâlâ kabul edilir ama anahtar erişim log'una düştüğü
+    için kullanımdan kalktı (T-028); başlık verilmişse sorgu yok sayılır."""
+    supplied = x_admin_key
+    if not supplied and key:
+        print("admin/richmenu: ?key= deprecated, use X-Admin-Key header")
+        supplied = key
+    if not ADMIN_KEY or not hmac.compare_digest(supplied.encode(), ADMIN_KEY.encode()):
         raise HTTPException(403, "bad key")
     from setup_richmenu import create_and_set
     with open(os.path.join(os.path.dirname(__file__), "richmenu.png"), "rb") as f:

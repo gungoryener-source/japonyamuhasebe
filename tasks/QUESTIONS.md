@@ -3,7 +3,7 @@
 Ürün sahibi cevabı `**Cevap:**` satırına yazar. Ajanlar cevaplanmış soruya göre ilgili `blocked` görevi `todo` yapar.
 
 ## Q-01 · LINE kanalı (açık)
-LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılışı, `LINE_CHANNEL_SECRET` ve `LINE_CHANNEL_ACCESS_TOKEN` değerlerinin Render → tegaru-line-bot → Environment'a girilmesi, Webhook URL `https://tegaru-line-bot.onrender.com/callback`, ardından `POST /admin/richmenu?key=<ADMIN_KEY>`.
+LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılışı, `LINE_CHANNEL_SECRET` ve `LINE_CHANNEL_ACCESS_TOKEN` değerlerinin Render → tegaru-line-bot → Environment'a girilmesi, Webhook URL `https://tegaru-line-bot.onrender.com/callback`, ardından `curl -X POST -H "X-Admin-Key: <ADMIN_KEY>" https://tegaru-line-bot.onrender.com/admin/richmenu` (eski `?key=` biçimi de geçici olarak çalışır).
 **Cevap:**
 
 ## Q-02 · Anthropic API anahtarı (isteğe bağlı)

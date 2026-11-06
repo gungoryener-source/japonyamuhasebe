@@ -1,6 +1,6 @@
 """LINE リッチメニュー（画面下の3ボタン）を作成して全ユーザーに設定する。
 
-- Sunucuda: POST /admin/richmenu?key=ADMIN_KEY (hazır richmenu.png kullanılır)
+- Sunucuda: POST /admin/richmenu, başlık X-Admin-Key: ADMIN_KEY (hazır richmenu.png kullanılır)
 - Yerelde:  python setup_richmenu.py   (görseli yeniden çizer; Pillow + Japonca font gerekir)
 """
 import io

@@ -27,7 +27,7 @@ Bu depo zamanlanmış Claude ajanlarıyla sürekli geliştirilir. Kurallar `CLAU
 1. LINE Developers → Provider → Messaging API kanalı. Auto-reply ve Greeting kapalı.
 2. Render → `tegaru-line-bot` → Environment: `LINE_CHANNEL_SECRET`, `LINE_CHANNEL_ACCESS_TOKEN`, `ANTHROPIC_API_KEY`.
 3. Webhook URL: `https://tegaru-line-bot.onrender.com/callback` → Verify → Use webhook.
-4. Menü: `curl -X POST "https://tegaru-line-bot.onrender.com/admin/richmenu?key=<ADMIN_KEY>"` (ADMIN_KEY Render'da otomatik üretildi).
+4. Menü: `curl -X POST -H "X-Admin-Key: <ADMIN_KEY>" "https://tegaru-line-bot.onrender.com/admin/richmenu"` (ADMIN_KEY Render'da otomatik üretildi).
 
 Bot komutları (LINE ve WhatsApp): `タクシー 2300 T1234567890123` · `ローソン 540円 軽減` · `入金 330000 合同会社ミナト` · fotoğraf · `合計` · `取消` · `科目変更` · `税率8%` · `パネル` (web paneli bağlantısı) · `ヘルプ`
 

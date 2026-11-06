@@ -1,6 +1,12 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## 2026-11-06 21:30 JST · kurulum (Claude) · T-015, T-020, T-030–T-032 panel menüleri
+Biçim: `## 2026-11-06 22:40 JST · developer · T-028 /admin/richmenu anahtarı başlığa taşındı
+- `admin_richmenu` artık `X-Admin-Key` başlığını okuyor; `?key=` geriye uyum için kabul ediliyor ama log'a "deprecated" uyarısı yazıyor; başlık varsa sorgu yok sayılıyor. ADMIN_KEY boşsa her zaman 403.
+- Belgeler: README, `setup_richmenu.py` docstring, QUESTIONS Q-01 komutu başlıklı curl'e güncellendi.
+- Yeni `tests/test_admin_richmenu.py` (5, LINE çağrısı sahte modülle): başlıkla 200, yanlış/eksik 403, sorgu hâlâ 200, başlık önceliği, ADMIN_KEY yok → 403. Kapı: pytest 169 geçti (SQLite).
+- Sonraki: T-029 (fatura kalemi üst sınırları, review-fix), ardından P0 T-040.
+
+## 2026-11-06 21:30 JST · kurulum (Claude) · T-015, T-020, T-030–T-032 panel menüleri
 - Panel artık sayfa yönlendirmeli: ortak kabuk `components/shell.tsx` (menü, arama, bağlantı/demo modu), ortak UI `components/ui.tsx`, demo veri `lib/demo.ts`.
 - 請求書管理 (çok kalemli 適格請求書, 消込, PDF), 経費精算 (fiş OCR önizleme→onay, elle giriş, 電帳法 arama, satır içi düzenleme/silme), 銀行連携 (CSV içe aktarma Shift_JIS/UTF-8, tekrar korumalı, otomatik 消込 önerisi, çekimi gidere çevirme), 確定申告/税務 (損益, 所得税, 消費税 yöntemleri, freee/MF/弥生 CSV, takvim), 設定 (事業者情報 + 登録番号 kontrol hanesi, kanal durumu, bağlantı).
 - API: PATCH/DELETE /entries/{id}, POST /receipts/ocr, /bank/import|transactions|match|{id}/entry, /channels. Testler: 164 (SQLite). Uçtan uca: yerel API + panel, tüm menüler canlı ve demo modda, 1366/390 px.
