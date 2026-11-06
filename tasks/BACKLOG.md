@@ -56,6 +56,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-029 | P2 | done (bu commit) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
 | T-029b | P2 | done (bu commit) | `entries.amount` INTEGER (PG int4) ama API `lt=10**11` kabul ediyor → ¥2,147,483,648+ kayıt PostgreSQL'de 500 |
 | T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
+| T-052 | P1 | review-fix | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
+| T-053 | P2 | review-fix | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 
 ---
 
@@ -230,3 +232,11 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Beklenen: tüm `desc` eşleşen sütunları sırayla boşlukla birleştir (「口座振替 ﾗｸﾃﾝﾓﾊﾞｲﾙ」), boşları atla, 200 karakter sınırı korunur. Parmak izi değişeceği için mevcut içe aktarmaların yeniden alınmasında yinelenme tespiti bozulmamalı (ör. eski parmak izi biçimini de kontrol et) → test.
 - Test: `tests/test_bank_and_entries.py::test_bank_csv_parse_variants` beklentisi güncellenir + yeniden içe aktarmada `duplicates` sayısı.
 - ✅ Yapıldı: `bank_csv.parse` tüm 摘要 sütunlarını (boşları atlayarak) birleştirir; farklıysa `legacy_description` (yalnızca ilk sütun) döner. `store.insert_bank_rows` eski biçimin parmak izini de (eski sıra sayacıyla) kontrol eder → eski içe aktarmalar çoğalmaz. Testler `tests/test_bank_multi_desc.py`.
+
+## T-052 · Stripe webhook olay sırası (review-fix, P1)
+- `bot/billing.py` `_apply_subscription_object` (~satır 250) her olayda durumu koşulsuz yazar. Stripe olay sırasını garanti etmez: `customer.subscription.deleted` (status=canceled) sonrası yeniden denenen eski bir `updated` (status=active) gelirse defter tekrar ücretli olur.
+- Beklenen: `subscriptions`'a ekleyici sütun (ör. `last_event_created INTEGER DEFAULT 0`); olayın `created` zamanı kayıttakinden eskiyse durum yazılmaz (`ignored`). `checkout.session.completed` için de aynı.
+- Test: deleted(created=200) → updated(created=100, active) → plan `free` kalır; eşit/yeni zamanlı olay uygulanır.
+
+## T-053 · Kayıt yarışında 500 (review-fix, P2)
+- `bot/accounts.py` `signup()` (~satır 95): SELECT ile INSERT arasında aynı e-postayla ikinci istek gelirse `accounts.email UNIQUE` ihlali yakalanmıyor → 500. Beklenen: IntegrityError (sqlite3 + psycopg) → `AccountError(..., 409)`. Test: INSERT'i önceden yapıp kontrolü atlayan monkeypatch ile 409.

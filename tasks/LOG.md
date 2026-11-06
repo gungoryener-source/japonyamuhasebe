@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 05:45 JST · reviewer · 1709d00..37ed9ee incelemesi (T-040, T-051, T-040b, T-042)
+- Kapı başta yeşil (255, SQLite); T-051 eski parmak izi mantığı, T-040b `nextPath` (açık yönlendirme yok), T-042 sınır 30/31·3/4 ve imza doğrulaması doğru. Vergi kuralı değişikliği yok.
+- **Düzeltmeler:** (1) `accounts.send_mail` sağlayıcı yokken sıfırlama bağlantısını INFO log'a ve tam e-postayı WARNING'e yazıyordu → gövde DEBUG, adres `t***@…` maskeli. (2) Parola sıfırlanınca hesabın diğer kullanılmamış `rs_` bağlantıları da geçersiz. (3) `link_ledger`: web defterinde abonelik varsa 409 (ücretli plan sahipsiz kalıyordu). (4) `billing.handle_event`: işleme hata verirse olay kaydı geri alınır → Stripe yeniden denemesi `duplicate` sayılmaz.
+- **Yeni testler** `tests/test_review_auth_billing.py` (15): yukarıdakiler (5'i eski kodda kırmızı), abonelik durum sınırları (active/trialing/past_due ↔ unpaid/canceled/incomplete*), bilinmeyen price, e-posta büyük/küçük harf.
+- **Açılan:** T-052 (P1) webhook olay sırası, T-053 (P2) kayıt yarışında 500.
+- Kapı: pytest 270 geçti (SQLite + yerel PostgreSQL 16); dashboard-next değişmedi.
+
 ## 2026-11-07 04:46 JST · developer · T-042 abonelik (API dilimi)
 - Yeni `bot/billing.py`: planlar (free 30 経費/3 請求書 aylık, personal/business sınırsız; fiyatlar yer tutucu Q-11), aylık kullanım (JST, `created_at`; BANK/INVOICE/DEMO kaynakları fiş sayılmaz), `check_limit` → 402 Japonca. Sınırlar yalnızca `STRIPE_SECRET_KEY` varken ve `BILLING_ENFORCE_LIMITS≠0` uygulanır (yükseltme yolu yokken kimse engellenmez).
 - Stripe REST (httpx, SDK yok): Checkout oturumu (abonelik, `client_reference_id`=defter), dönem sonu iptal, webhook `Stripe-Signature` HMAC (300 sn), olay kimliğiyle idempotent; `checkout.session.completed` + `customer.subscription.*` işlenir. Anahtar yoksa ödeme uçları 503.

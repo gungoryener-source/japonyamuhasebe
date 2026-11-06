@@ -128,7 +128,8 @@ def login(email: str, password: str) -> tuple[dict, str]:
 
 
 def _ledger_has_data(con, user_id: str) -> bool:
-    for table in ("entries", "invoices", "bank_tx"):
+    # subscriptions (T-042): ücretli abonelik web defterindeyse bağlama onu sahipsiz bırakırdı
+    for table in ("entries", "invoices", "bank_tx", "subscriptions"):
         if con.execute(f"SELECT 1 FROM {table} WHERE user_id=? LIMIT 1", (user_id,)).fetchone():
             return True
     return False
@@ -167,10 +168,17 @@ def send_mail(to: str, subject: str, body: str) -> None:
     """E-posta gönderimi soyutlaması. Sağlayıcı seçilene kadar (Q-13) yalnızca log."""
     provider = os.environ.get("MAIL_PROVIDER", "")
     if not provider:
-        log.warning("MAIL_PROVIDER not set; mail to %s not sent: %s", to, subject)
-        log.info("mail body (dev only): %s", body)
+        # Gövde (sıfırlama bağlantısı = parola ele geçirme anahtarı) ve tam adres üretim log'una yazılmaz.
+        log.warning("MAIL_PROVIDER not set; mail to %s not sent: %s", mask_email(to), subject)
+        log.debug("mail body (dev only): %s", body)
         return
-    log.warning("MAIL_PROVIDER=%s is not implemented yet (Q-13); mail to %s not sent", provider, to)
+    log.warning("MAIL_PROVIDER=%s is not implemented yet (Q-13); mail to %s not sent", provider, mask_email(to))
+
+
+def mask_email(email: str) -> str:
+    """Log için: taro@example.jp → t***@example.jp"""
+    local, _, domain = (email or "").partition("@")
+    return f"{local[:1]}***@{domain}" if domain else "***"
 
 
 def request_password_reset(email: str) -> str | None:
@@ -201,7 +209,9 @@ def confirm_password_reset(token: str, new_password: str) -> None:
         if not row or row["used_at"] or datetime.fromisoformat(row["expires_at"]) < datetime.now(JST):
             raise AccountError("再設定リンクが無効か期限切れです。もう一度お試しください。", 400)
         con.execute("UPDATE accounts SET password_hash=? WHERE id=?", (hash_password(new_password), row["account_id"]))
-        con.execute("UPDATE password_resets SET used_at=? WHERE token_hash=?", (store.now(), _hash(token)))
+        # Bu hesabın kullanılmamış tüm sıfırlama bağlantıları da geçersiz (eski e-postadaki bağlantı çalışmasın)
+        con.execute("UPDATE password_resets SET used_at=? WHERE account_id=? AND used_at=''",
+                    (store.now(), row["account_id"]))
         led = con.execute("SELECT user_id FROM account_ledgers WHERE account_id=?", (row["account_id"],)).fetchone()
         if led:
             # Parola değişince tüm oturumları kapat

@@ -295,6 +295,16 @@ def handle_event(event: dict) -> str:
         if con.execute("SELECT 1 FROM billing_events WHERE event_id=?", (eid,)).fetchone():
             return "duplicate"
         con.execute("INSERT INTO billing_events(event_id,type,received_at) VALUES(?,?,?)", (eid, etype, store.now()))
+    try:
+        return _process_event(etype, obj)
+    except Exception:
+        # İşlenemeyen olay kaydı geri alınır → Stripe'ın yeniden denemesi 'duplicate' sayılmaz
+        with tx() as con:
+            con.execute("DELETE FROM billing_events WHERE event_id=?", (eid,))
+        raise
+
+
+def _process_event(etype: str, obj: dict) -> str:
     if etype == "checkout.session.completed" and obj.get("mode") == "subscription":
         user_id = obj.get("client_reference_id") or (obj.get("metadata") or {}).get("user_id")
         plan = (obj.get("metadata") or {}).get("plan")
