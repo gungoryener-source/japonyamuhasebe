@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from pydantic import BaseModel, Field
 
 import accounts
+import ai_usage
 import archive
 import bank_csv
 import billing
@@ -214,7 +215,9 @@ async def receipt_ocr(request: Request, uid: str = Depends(writer_user)):
     """Fiş görseli (ham gövde, image/*) → okunan kayıt önerileri. Kaydetmez; kullanıcı onaylayınca POST /entries."""
     raw = await _body(request)
     import app as app_mod  # OCR motoru seçimi app.py'de
-    result = await app_mod.ocr_receipt(raw)
+    ai_usage.current_user.set(uid)
+    reader = store.get_receipt_reader(uid)
+    result = await (app_mod.ocr_receipt(raw, reader) if reader else app_mod.ocr_receipt(raw))
     if isinstance(result, dict):
         return {"ok": False, "error": result.get("error"), "partial": result.get("partial", {}), "entries": []}
     return {"ok": True, "entries": result}
@@ -311,6 +314,7 @@ async def slip_upload(request: Request, uid: str = Depends(writer_user)):
     """パネルから仕切書の画像をアップロード → 確認待ちに追加（AI キーがあれば読み取り）。"""
     raw = await _body(request)
     import app as app_mod
+    ai_usage.current_user.set(uid)
     return await app_mod.receive_slip(uid, raw, f"web{int(__import__('time').time())}", "web")
 
 
@@ -425,6 +429,7 @@ async def bank_passbook(request: Request, account: str = "", uid: str = Depends(
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         raise HTTPException(503, "通帳の読み取りには AI の設定（ANTHROPIC_API_KEY）が必要です")
+    ai_usage.current_user.set(uid)
     parsed = await passbook.ai_read(raw, key, os.environ.get("OCR_MODEL", "claude-sonnet-5-5"))
     return passbook.import_rows(uid, parsed, account)
 
@@ -670,6 +675,30 @@ def bank_xlsx(date_from: str = Query(...), date_to: str = Query(...), uid: str =
     wb.save(buf)
     return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="bank-{date_from}-{date_to}.xlsx"'})
+
+# ---------------------------------------------------------------- AI 読み取りの設定と概算料金
+class AiSettingsIn(BaseModel):
+    receipt_reader: str = Field(..., pattern="^(|ocr|ai|auto)$")
+
+
+def _ai_settings(uid: str) -> dict:
+    return {"receipt_reader": store.get_receipt_reader(uid), "server_default": os.environ.get("OCR_ENGINE", "tesseract"),
+            "ai_available": bool(os.environ.get("ANTHROPIC_API_KEY")), "per_unit": ai_usage.per_unit_jpy(uid),
+            "month": ai_usage.month_summary(uid), "prices": ai_usage.prices()}
+
+
+@router.get("/settings/ai")
+def ai_settings(uid: str = Depends(current_user)):
+    return _ai_settings(uid)
+
+
+@router.put("/settings/ai")
+def ai_settings_put(body: AiSettingsIn, uid: str = Depends(writer_user)):
+    if body.receipt_reader in ("ai", "auto") and not os.environ.get("ANTHROPIC_API_KEY"):
+        raise HTTPException(409, "AI 読み取りはサーバーに ANTHROPIC_API_KEY が設定されてから選べます")
+    store.set_receipt_reader(uid, body.receipt_reader)
+    return _ai_settings(uid)
+
 
 # ---------------------------------------------------------------- settings
 @router.get("/channels")

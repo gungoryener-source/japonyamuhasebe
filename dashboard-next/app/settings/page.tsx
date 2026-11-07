@@ -7,6 +7,7 @@ import { API_BASE, api, saveBlob, setToken, type ApiChannels } from "../lib/api"
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Field, inputCls, ReadOnlyNote, registrationOk } from "../components/ui";
 import { MembersCard } from "./members";
+import { AiReadingCard } from "./ai-reading";
 import { DeleteRequestCard } from "./delete-request";
 import { LangSwitcher, useT } from "../components/lang";
 
@@ -144,6 +145,8 @@ function Settings() {
           <span className="min-w-0 flex-1 text-slate-500">{t("表示言語を選んでください。帳簿データ・勘定科目・請求書PDFは日本語のままです。")}</span>
         </div>
       </Card>
+
+      <AiReadingCard />
 
       <MembersCard />
 

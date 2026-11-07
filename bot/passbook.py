@@ -99,6 +99,9 @@ async def ai_read(data: bytes, api_key: str, model: str) -> dict:
         )
         r.raise_for_status()
         text = "".join(b.get("text", "") for b in r.json()["content"])
+        import ai_usage
+        pages = len(re.findall(rb"/Type\s*/Page[^s]", data)) if data[:5] == b"%PDF-" else 1
+        ai_usage.record("passbook", r.json().get("usage"), units=max(1, pages))
     return parse_ai(text)
 
 

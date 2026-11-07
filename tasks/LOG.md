@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · AI okuma seçeneği + tahmini ücret
+- Ürün sahibi isteği: market fişlerinde yapay zekâ seçeneği ve tahmini ücret. Kullanıcı başına `user_prefs.receipt_reader` ('' / ocr / ai / auto).
+- `bot/ai_usage.py`: görsel token = ⌈w/28⌉×⌈h/28⌉ (resmi Vision dokümanı), fiyat env (AI_PRICE_INPUT/OUTPUT_USD_PER_MTOK, USD_JPY; varsayılan Sonnet 5.5 $2/$10, ¥155), gönderim öncesi küçültme (fiş 1600px, 仕切書 2000px), gerçek usage kaydı (`ai_usage` tablosu), 5 kayıttan sonra gerçek ortalama.
+- API GET/PUT /settings/ai; LINE 「読取設定」/「okuma ayarı」; panel 設定'de kart. 6 test.
+
 ## 2026-11-07 · developer (oturum) · T-063 登録番号の確認
 - Resmi şartname (k-web-api-kinou.pdf): GET web-api.invoice-kohyo.nta.go.jp/1/num?id&number(≤10, virgüllü)&type=21&history=0.
 - Kimlik yokken biçim + kontrol hanesi; NTA_INVOICE_APP_ID (yoksa NTA_APP_ID) ile valid/expired/notfound. counterparties'e 3 sütun.

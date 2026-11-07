@@ -113,6 +113,8 @@ AI_PROMPT = """これは日本のスクラップ買取の仕切書（または�
 async def ai_extract(img: bytes, api_key: str, model: str) -> dict:
     import httpx
 
+    import ai_usage
+    img = ai_usage.shrink(img, "slip")
     media = "image/png" if img[:8].startswith(b"\x89PNG") else "image/jpeg"
     async with httpx.AsyncClient(timeout=90) as c:
         r = await c.post(
@@ -124,6 +126,7 @@ async def ai_extract(img: bytes, api_key: str, model: str) -> dict:
         )
         r.raise_for_status()
         text = "".join(b.get("text", "") for b in r.json()["content"])
+        ai_usage.record("slip", r.json().get("usage"))
     return parse_ai(text)
 
 

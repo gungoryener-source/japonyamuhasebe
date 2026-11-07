@@ -61,6 +61,8 @@ from api import router as api_router  # noqa: E402
 
 init_db()
 
+import ai_usage  # noqa: E402
+import store as _store  # noqa: E402  (fonksiyon içindeki `store` yerel adıyla çakışmasın)
 import passbook  # noqa: E402  (T-062: 通帳)
 import slips  # noqa: E402  (T-060: 仕切書)
 import storage  # noqa: E402  (T-011: fiş görselleri local | S3/R2)
@@ -193,6 +195,7 @@ def normalize_ocr(data: dict) -> list[dict] | dict:
 
 
 async def ocr_receipt_claude(img: bytes) -> list[dict] | dict:
+    img = ai_usage.shrink(img, "receipt")   # 長辺 1600px（トークン = 料金を抑える）
     media = "image/png" if img[:8].startswith(b"\x89PNG") else "image/jpeg"
     async with httpx.AsyncClient(timeout=60) as c:
         r = await c.post(
@@ -211,6 +214,7 @@ async def ocr_receipt_claude(img: bytes) -> list[dict] | dict:
         )
         r.raise_for_status()
         text = "".join(b.get("text", "") for b in r.json()["content"])
+        ai_usage.record("receipt", r.json().get("usage"))
     m = re.search(r"\{.*\}", text, re.S)
     try:
         data = json.loads(m.group(0)) if m else {"error": "JSONなし"}
@@ -232,10 +236,13 @@ async def ocr_receipt_tesseract(img: bytes) -> list[dict] | dict:
     return normalize_ocr(data)
 
 
-async def ocr_receipt(img: bytes) -> list[dict] | dict:
+async def ocr_receipt(img: bytes, reader: str = "") -> list[dict] | dict:
+    """reader: 利用者の選択（'' = サーバー既定 OCR_ENGINE / ocr / ai / auto）。AI はキーがあるときのみ。"""
     import receipt_ocr
 
-    engine = OCR_ENGINE
+    engine = {"ocr": "tesseract", "ai": "claude", "auto": "auto"}.get(reader, OCR_ENGINE)
+    if engine in ("claude", "auto") and not ANTHROPIC_KEY:
+        engine = "tesseract"
     if engine == "claude":
         if not ANTHROPIC_KEY:
             return {"error": "AI読取が未設定です"}
@@ -282,6 +289,21 @@ def localize(lang: str, msg: str, options: Options) -> tuple[str, Options]:
 
 
 def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
+    m_reader = re.match(r"^(読取設定|読み取り設定|okuma ayarı|okuma ayari|ocr ayarı|reading)(?:[:：\s]+(ocr|ai|auto|自動))?$", t, re.I)
+    if m_reader:
+        if m_reader.group(2):
+            choice = {"自動": "auto"}.get(m_reader.group(2), m_reader.group(2).lower())
+            if choice in ("ai", "auto") and not ANTHROPIC_KEY:
+                return "AI 読み取りはまだ設定されていません（管理者に連絡してください）。", []
+            _store.set_receipt_reader(user_id, choice)
+            label = {"ocr": "OCR（無料）", "ai": "AI", "auto": "自動（OCR → 読めなければ AI）"}[choice]
+            return f"レシートの読み取り方法を「{label}」にしました。", opts(CAMERA)
+        per = ai_usage.per_unit_jpy(user_id)["receipt"]["jpy"]
+        cur = _store.get_receipt_reader(user_id) or ("ai" if OCR_ENGINE == "claude" else "auto" if OCR_ENGINE == "auto" else "ocr")
+        return (f"レシートの読み取り方法を選んでください（現在: {cur}）\n"
+                f"・OCR: 無料（印字のレシート向け）\n・AI: 約{per:.1f}円/枚（手書き・かすれにも強い）\n"
+                f"・自動: まず OCR、読めなかったときだけ AI（読めなかった分だけ約{per:.1f}円）"), \
+            [("OCR（無料）", "読取設定 ocr"), (f"AI 約{per:.0f}円", "読取設定 ai"), ("自動", "読取設定 auto")]
     if t.lower() in ("通帳", "通帳取込", "banka defteri", "banka", "passbook", "bankbook"):
         passbook.start_mode(user_id)
         return ("通帳のページを1枚ずつ撮影して送ってください（PDF ファイルでも可）。\n"
@@ -407,6 +429,7 @@ async def receive_passbook(user_id: str, data: bytes) -> tuple[str, Options]:
 async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
         return notice, opts("合計")
+    ai_usage.current_user.set(user_id)
     if (passbook.mode_active(user_id) and not slips.mode_active(user_id)) or img[:5] == b"%PDF-":
         return await receive_passbook(user_id, img)   # 通帳: 個人情報を含むため画像は保存しない
     try:
@@ -415,7 +438,8 @@ async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> 
         await storage.put(path, img, "image/jpeg")
         if slips.mode_active(user_id):
             return slips.line_reply(await receive_slip(user_id, img, ref, source, path)), opts("パネル", "合計")
-        result = await ocr_receipt(img)
+        reader = _store.get_receipt_reader(user_id)
+        result = await (ocr_receipt(img, reader) if reader else ocr_receipt(img))
         if isinstance(result, dict) and result.get("slip"):
             return slips.line_reply(await receive_slip(user_id, img, ref, source, path)), opts("パネル", "合計")
     except Exception as ex:  # ağ / API hatası

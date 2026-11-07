@@ -41,6 +41,8 @@ services:
         sync: false
       - key: MAIL_API_KEY
         sync: false
+      - key: USD_JPY            # AI 概算料金の換算レート（任意、既定 155）
+        value: "155"
       - key: NTA_APP_ID
         sync: false
       - key: NTA_INVOICE_APP_ID   # インボイス公表サイト Web-API（法人番号と別 ID の場合のみ）

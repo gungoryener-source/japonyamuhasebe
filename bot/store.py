@@ -19,6 +19,17 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # AI 読み取りの利用量（概算料金の表示用）
+    """CREATE TABLE IF NOT EXISTS ai_usage(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        units INTEGER NOT NULL DEFAULT 1,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        cost_jpy REAL NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+    )""",
     # T-061: 取引先マスタ（通帳の摘要 → 正式名称・登録番号・科目）
     """CREATE TABLE IF NOT EXISTS counterparties(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,6 +276,8 @@ def _schema() -> list[str]:
 # Sonradan eklenen sütunlar (yalnızca ekleyici; mevcut veritabanlarında init_db sırasında eklenir).
 # (tablo, sütun, SQLite tanımı, PostgreSQL tanımı)
 ADDED_COLUMNS: list[tuple[str, str, str, str]] = [
+    # レシートの読み取り方法（'' = サーバー既定 / ocr / ai / auto）
+    ("user_prefs", "receipt_reader", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
     # T-063: 登録番号の確認結果（形式 / 国税庁 インボイス公表サイト）
     ("counterparties", "invoice_status", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
     ("counterparties", "invoice_name", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
@@ -494,6 +507,29 @@ def set_lang(user_id: str, lang: str) -> str:
             (user_id, lang, datetime.now(JST).isoformat(timespec="seconds")),
         )
     return lang
+
+
+READERS = ("", "ocr", "ai", "auto")
+
+
+def get_receipt_reader(user_id: str) -> str:
+    try:
+        with tx() as con:
+            row = con.execute("SELECT receipt_reader FROM user_prefs WHERE user_id=?", (user_id,)).fetchone()
+    except Exception:
+        return ""
+    return row["receipt_reader"] if row and row["receipt_reader"] in READERS else ""
+
+
+def set_receipt_reader(user_id: str, reader: str) -> str:
+    if reader not in READERS:
+        raise ValueError("reader")
+    with tx() as con:
+        con.execute(
+            """INSERT INTO user_prefs(user_id,lang,updated_at,receipt_reader) VALUES(?,?,?,?)
+               ON CONFLICT(user_id) DO UPDATE SET receipt_reader=excluded.receipt_reader, updated_at=excluded.updated_at""",
+            (user_id, "ja", now(), reader))
+    return reader
 
 
 def get_profile(user_id: str) -> dict:

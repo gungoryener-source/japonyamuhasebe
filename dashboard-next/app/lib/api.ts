@@ -44,6 +44,12 @@ export type ApiReviewRow = {
 export type ApiReview = { rows: ApiReviewRow[]; counts: { total: number; open: number; unknown: number; balance_errors: number }; nta_enabled: boolean; ai_enabled: boolean };
 export type ApiPassbookResult = { account: string; read: number; imported: number; duplicates: number; balance_errors: number; date_from: string; date_to: string };
 
+export type ApiAiSettings = {
+  receipt_reader: "" | "ocr" | "ai" | "auto"; server_default: string; ai_available: boolean;
+  per_unit: Record<"receipt" | "slip" | "passbook", { jpy: number; basis: "measured" | "estimate"; samples: number }>;
+  month: { by_kind: Partial<Record<"receipt" | "slip" | "passbook", { count: number; jpy: number }>>; total_jpy: number };
+  prices: { input_usd_per_mtok: number; output_usd_per_mtok: number; usd_jpy: number; model: string };
+};
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -249,6 +255,8 @@ export const api = {
     call<unknown>(`/bank/${id}`, { method: "PATCH", body: JSON.stringify({ amount, balance }) }),
   bankConfirmMatched: (ids: number[]) => call<{ confirmed: number; skipped: number }>("/bank/confirm-matched", { method: "POST", body: JSON.stringify({ ids }) }),
   counterparties: () => call<{ counterparties: ApiCounterparty[]; nta_enabled: boolean }>("/counterparties"),
+  aiSettings: () => call<ApiAiSettings>("/settings/ai"),
+  aiSettingsPut: (receipt_reader: "" | "ocr" | "ai" | "auto") => call<ApiAiSettings>("/settings/ai", { method: "PUT", body: JSON.stringify({ receipt_reader }) }),
   counterpartyVerify: () => call<{ checked: number; online: boolean; valid: number; expired: number; notfound: number; format_ng: number; unchecked: number }>("/counterparties/verify", { method: "POST" }),
   counterpartyImport: (file: Blob) => call<{ imported: number }>("/counterparties/import", { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
   counterpartyLookup: (desc: string) =>

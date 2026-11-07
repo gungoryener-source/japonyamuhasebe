@@ -32,6 +32,21 @@ COMMANDS: dict[str, tuple[str, str]] = {
 
 # Japonca parça → (tr, en). Uzun parçalar önce uygulanır.
 PHRASES: dict[str, tuple[str, str]] = {
+    # AI 読み取りの設定
+    "レシートの読み取り方法を選んでください（現在: ": ("Fiş okuma yöntemini seçin (şu an: ", "Choose how receipts are read (now: "),
+    "・OCR: 無料（印字のレシート向け）": ("・OCR: ücretsiz (basılı fişler için)", "・OCR: free (for printed receipts)"),
+    "・AI: 約": ("・Yapay zekâ: yaklaşık ", "・AI: about "),
+    "円/枚（手書き・かすれにも強い）": (" yen/fiş (el yazısı ve silik fişlerde de iyi)", " yen/receipt (handles handwriting and faded print)"),
+    "・自動: まず OCR、読めなかったときだけ AI（読めなかった分だけ約": (
+        "・Otomatik: önce OCR, okuyamazsa yapay zekâ (yalnızca okunamayanlar için yaklaşık ",
+        "・Auto: OCR first, AI only if unreadable (about "),
+    "円）": (" yen)", " yen)"),
+    "レシートの読み取り方法を「": ("Fiş okuma yöntemi 「", "Receipt reading set to 「"),
+    "」にしました。": ("」 olarak ayarlandı.", "」."),
+    "OCR（無料）": ("OCR (ücretsiz)", "OCR (free)"),
+    "自動（OCR → 読めなければ AI）": ("Otomatik (OCR → olmazsa yapay zekâ)", "Auto (OCR → AI if needed)"),
+    "AI 読み取りはまだ設定されていません（管理者に連絡してください）。": (
+        "Yapay zekâ ile okuma henüz ayarlanmadı (yöneticiye haber verin).", "AI reading isn't set up yet (contact the admin)."),
     # T-062 通帳
     "通帳のページを1枚ずつ撮影して送ってください（PDF ファイルでも可）。\nこれから30分間、送られた写真は通帳として読み取ります。": (
         "Banka defterinin sayfalarını tek tek çekip gönderin (PDF de olur).\n30 dakika boyunca gönderilen fotoğraflar banka defteri olarak okunur.",
