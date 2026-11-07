@@ -2,6 +2,7 @@
 
 /** Ortak UI parçaları ve biçimlendirme yardımcıları. */
 import { useEffect, useRef, useState } from "react";
+import { useLang } from "./lang";
 
 /* ============================================================
  * HELPERS
@@ -18,11 +19,13 @@ export const daysUntil = (iso: string) => Math.ceil((new Date(iso + "T00:00:00+0
  * ============================================================ */
 
 export function Card({ title, en, right, className, children }: { title: string; en?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
+  const { t, lang } = useLang();
+  const small = lang === "ja" ? en : title;   // tr/en: yanında Japonca başlık kalır
   return (
     <section className={cx("flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>
       <header className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h2 className="text-[13px] font-bold text-navy">{title}</h2>
-        {en && <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{en}</span>}
+        <h2 className="text-[13px] font-bold text-navy">{t(title)}</h2>
+        {small && <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{small}</span>}
         {right && <div className="ml-auto">{right}</div>}
       </header>
       {children}

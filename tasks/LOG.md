@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-047 dilim 1
+- `app/lib/i18n.ts` (Japonca metinle anahtarlı ja/tr/en sözlük, `{x}` yer tutucu) + `components/lang.tsx` (LangProvider, useT, LangSwitcher; localStorage `jsaas.lang`, `<html lang>`).
+- Üst çubukta dil seçici; 設定'de "表示言語" kartı. Kabuk (menü, üst çubuk, arama, mod rozeti, sayfa başlık/alt başlıkları) ve 設定 tamamen çevrildi; `Card` başlıkları tüm sayfalarda çevriliyor (tr/en'de Japonca başlık küçük etiket).
+- Kalan: T-047b (sayfa gövdeleri), T-047c (bot). `next build` yeşil, tr ekran görüntüsüyle kontrol edildi.
+
 ## 2026-11-07 15:20 JST · developer · T-048 hız sınırı
 - Yeni `bot/ratelimit.py`: (kural, IP) başına bellek içi kayan pencere; login 10/dk, signup 5/dk, password-reset/request 5/dk, `/receipts/ocr` 20/dk → 429 + `Retry-After` + 「リクエストが多すぎます…」. Reddedilen istek pencereye sayılmaz; anahtar sayısı 20.000 ile sınırlı (süresi dolanlar temizlenir).
 - IP: `X-Forwarded-For` ilk değeri (görev tanımı). Not (reviewer): istemci kendi XFF'ini gönderip vekil sonuna eklerse ilk değer sahtelenebilir → `RATE_LIMIT_PROXY_HOPS=1` sağdan değeri kullanır; Render'ın XFF davranışı doğrulanınca varsayılan değiştirilebilir. Sınırlar `RATE_LIMIT_<KURAL>` ile ayarlanır (render.yaml değişmedi, kod varsayılanı).

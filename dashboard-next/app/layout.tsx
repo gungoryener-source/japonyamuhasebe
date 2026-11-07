@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { LangProvider } from "./components/lang";
 
 export const metadata: Metadata = {
   title: "J-SaaS 会計 | ダッシュボード",
@@ -11,7 +12,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="font-sans">{children}</body>
+      <body className="font-sans"><LangProvider>{children}</LangProvider></body>
     </html>
   );
 }
