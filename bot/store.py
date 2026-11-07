@@ -116,6 +116,24 @@ SCHEMA = [
         type TEXT NOT NULL,
         received_at TEXT NOT NULL
     )""",
+    # T-041 ekip üyeleri (team.py) — sahip (owner) account_ledgers / LINE token'ıdır; burada yalnızca davetliler
+    """CREATE TABLE IF NOT EXISTS ledger_members(
+        user_id TEXT NOT NULL,
+        account_id BIGINT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('accountant','viewer')),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(user_id, account_id)
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_members_account ON ledger_members(account_id)",
+    """CREATE TABLE IF NOT EXISTS team_invites(
+        code_hash TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('accountant','viewer')),
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT DEFAULT '',
+        used_by BIGINT NOT NULL DEFAULT 0
+    )""",
 ]
 
 
@@ -192,6 +210,8 @@ def _schema() -> list[str]:
 ADDED_COLUMNS: list[tuple[str, str, str, str]] = [
     # T-052: işlenen son Stripe olayının `created` zamanı (unix sn) — eski olaylar durumu ezmesin
     ("subscriptions", "last_event_created", "INTEGER NOT NULL DEFAULT 0", "BIGINT NOT NULL DEFAULT 0"),
+    # T-041: 0 = defter sahibi / eski token; >0 = o hesabın ekip üyesi oturumu (rol ledger_members'tan)
+    ("api_tokens", "account_id", "INTEGER NOT NULL DEFAULT 0", "BIGINT NOT NULL DEFAULT 0"),
 ]
 
 
@@ -343,17 +363,21 @@ def _hash(token: str) -> str:
 MAX_TOKENS_PER_USER = 5
 
 
-def issue_token(user_id: str, label: str = "") -> str:
-    """Yeni token üretir; kullanıcı başına en fazla MAX_TOKENS_PER_USER (en eskiler iptal edilir)."""
+def issue_token(user_id: str, label: str = "", account_id: int = 0) -> str:
+    """Yeni token üretir; (defter, hesap) başına en fazla MAX_TOKENS_PER_USER (en eskiler iptal edilir).
+
+    `account_id=0` sahip/eski token'dır. Ekip üyesi oturumları (T-041) kendi hesap kimliğiyle ayrı sayılır,
+    böylece üyeler birbirinin (veya sahibin) oturumunu düşürmez.
+    """
     token = "tk_" + secrets.token_urlsafe(24)
     with tx() as con:
-        con.execute("INSERT INTO api_tokens(token_hash,user_id,label,created_at) VALUES(?,?,?,?)",
-                    (_hash(token), user_id, label, datetime.now(JST).isoformat()))
+        con.execute("INSERT INTO api_tokens(token_hash,user_id,label,created_at,account_id) VALUES(?,?,?,?,?)",
+                    (_hash(token), user_id, label, datetime.now(JST).isoformat(), int(account_id)))
         con.execute(
-            """DELETE FROM api_tokens WHERE user_id=? AND token_hash NOT IN (
-                   SELECT token_hash FROM (SELECT token_hash FROM api_tokens WHERE user_id=?
+            """DELETE FROM api_tokens WHERE user_id=? AND account_id=? AND token_hash NOT IN (
+                   SELECT token_hash FROM (SELECT token_hash FROM api_tokens WHERE user_id=? AND account_id=?
                                            ORDER BY created_at DESC LIMIT ?) AS keep)""",
-            (user_id, user_id, MAX_TOKENS_PER_USER),
+            (user_id, int(account_id), user_id, int(account_id), MAX_TOKENS_PER_USER),
         )
     return token
 
@@ -370,6 +394,16 @@ def user_for_token(token: str) -> str | None:
     with tx() as con:
         row = con.execute("SELECT user_id FROM api_tokens WHERE token_hash=?", (_hash(token),)).fetchone()
     return row["user_id"] if row else None
+
+
+def token_info(token: str) -> dict | None:
+    """{user_id, account_id} — account_id 0 ise sahip/eski token (T-041)."""
+    if not token:
+        return None
+    with tx() as con:
+        row = con.execute("SELECT user_id, account_id FROM api_tokens WHERE token_hash=?",
+                          (_hash(token),)).fetchone()
+    return {"user_id": row["user_id"], "account_id": int(row["account_id"] or 0)} if row else None
 
 
 # ---------------------------------------------------------------- profiles

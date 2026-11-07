@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 12:45 JST · developer · T-041 ekip üyeleri (API dilimi)
+- `bot/team.py`: roller owner / accountant / viewer. Sahip = `account_ledgers` hesabı veya `account_id=0` token (LINE 「パネル」, admin; eski token'lar owner kalır). Davet: tek kullanımlık `iv_…` (7 gün, hash'li saklanır, koşullu UPDATE ile yarışta tek kullanım), açık davet ≤10, üye ≤20.
+- Yeni ekleyici şema: `ledger_members`, `team_invites`, `api_tokens.account_id` (yıkıcı migration yok). Rol her istekte `ledger_members`'tan çözülür → rol değişimi/çıkarma eski token'lara hemen yansır. Token sınırı (5) (defter, hesap) başına.
+- `api.py`: `writer_user` tüm muhasebe yazma uçlarında (viewer 403), `owner_user` abonelik + `/auth/link-line` (üyenin sahibin defterini yeniden bağlaması engellendi) + `/team/*`. Yeni uçlar: `/team/invites|members|join|ledgers|switch`. `/auth/me` + `role` (eski testte beklenti buna göre güncellendi). Parola sıfırlama üyenin diğer defterlerdeki oturumlarını da kapatır; üyesi olan web defteri LINE'a bağlanamaz (409).
+- Testler: yeni `tests/test_team.py` (21). Kapı: pytest 380 geçti (SQLite); yerel PostgreSQL 16'da 378 geçti + 2 atlandı. dashboard-next değişmedi.
+- Sonraki: T-041b (panel: üye yönetimi, /join, defter seçici) veya P1 T-048 (güvenlik).
+
 ## 2026-11-07 11:44 JST · developer · T-025 LINE OCR uzun sürerse 「読み取り中…」 + push
 - `app.handle_image`: görsel alma + OCR + kayıt tek görev; `LINE_REPLY_WAIT_SEC` (varsayılan 8 sn, 0–50 arası sınırlanır) içinde biterse sonuç reply ile (push kotası harcanmaz). Bitmezse önce 「レシートを読み取り中です…」 reply, görev iptal edilmeden (shield) tamamlanır, sonuç hızlı yanıt butonlarıyla `push` (`/v2/bot/message/push`) ile gider.
 - Push yolunda OCR/DB hatası → 「画像を読み取れませんでした…」 push; push ağ hatası yutulur (log). Hızlı yolda beklenmedik hata → aynı metin reply. `/callback` ve metin akışı değişmedi; render.yaml değişmedi (kod varsayılanı).

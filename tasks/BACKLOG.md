@@ -38,7 +38,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
-| T-041 | P1 | doing (developer, 2026-11-07) | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
+| T-041 | P1 | done (bu commit; panel → T-041b) | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
+| T-041b | P1 | todo | Panel: /settings 「メンバー」 bölümü (davet kodu üret/iptal, rol değiştir, çıkar) + /join sayfası + üst menüde defter değiştirici; viewer'da düzenleme düğmeleri gizli (T-041 API'si) |
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
@@ -199,6 +200,12 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-041 · Ekip üyeleri (P1)
 - `members(user_id(defter), account_id, role)`; owner davet kodu üretir; accountant: okuma + düzenleme, viewer: yalnız okuma. Tüm yazma uçlarında rol kontrolü + testler.
+- ✅ API dilimi yapıldı: `bot/team.py`, tablolar `ledger_members`, `team_invites`, `api_tokens.account_id` (ekleyici). `api.py` `current_principal` / `writer_user` / `owner_user`; `/api/v1/team/*` (docs/API.md). Testler `tests/test_team.py`. LINE/WhatsApp kanalları değişmedi (yalnızca sahibin kanalı). Plan bazlı üye sınırı yok (sabit 20) — fiyatlandırma kararıyla (Q-11) gerekirse eklenir.
+
+## T-041b · Ekip paneli (P1)
+- `dashboard-next/app/settings`: 「メンバー」 kartı — `GET /team/members`, 「招待コードを発行」 (役割: 編集者=accountant / 閲覧者=viewer) → kodu bir kez göster + kopyala, 招待取消, 役割変更, 削除 (onaylı). Yalnızca `auth/me.role === "owner"` görür.
+- `/join` sayfası: kod gir → `POST /team/join` → token'ı kaydet, panele yönlendir. Üst menü: `GET /team/ledgers` ile defter seçici → `POST /team/switch`.
+- Viewer: kayıt ekle/düzenle/sil, fatura oluştur, banka içe aktar düğmeleri gizli/pasif + 「閲覧専用」 rozeti. Demo modunda statik. `next build` geçer.
 
 ## T-042 · Abonelik (P0)
 - `plans` sabitleri `bot/billing.py`: free (aylık 30 fiş, 3 fatura), personal, business — fiyatlar Q-11 cevaplanana kadar yer tutucu ve yapılandırmadan.

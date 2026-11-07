@@ -42,3 +42,19 @@ Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şem
 | POST | `/billing/webhook` | Stripe webhook (`Stripe-Signature`, 300 sn tolerans). `checkout.session.completed`, `customer.subscription.created|updated|deleted` işlenir; olay kimliğiyle idempotent. Sır yoksa 503, imza hatalı 400 |
 
 Plan sınırları yalnızca ödeme açıkken (`STRIPE_SECRET_KEY` var ve `BILLING_ENFORCE_LIMITS≠0`) uygulanır: ücretsiz planda ay içinde 31. 経費 (`POST /entries`, kind=exp) veya 4. fatura → **402** (Japonca `detail`). LINE/WhatsApp: 31. 経費 kaydı (metin veya fiş görseli; görselde OCR'dan önce) kaydedilmez, Japonca uyarı + `{PANEL_URL}/billing/` bağlantısı döner (T-042b). Checkout dönüşü `/billing/?billing=success|cancel`.
+
+## Ekip üyeleri (T-041)
+Roller: **owner** (defter sahibi: hesabın kendi defteri veya LINE/admin token'ı — her şey), **accountant** (muhasebe verisini okur + yazar: kayıt, fiş OCR, banka, fatura, `/profile`), **viewer** (yalnızca GET: özet, liste, CSV/PDF). Viewer'ın yazma isteği → **403**. Abonelik (`/billing/checkout|cancel`), `/auth/link-line` ve `/team/*` yönetimi yalnızca owner (diğerleri 403). Rol her istekte okunur: rol değişikliği/çıkarma eski token'lara hemen yansır (çıkarılan üye 401).
+
+| Yöntem | Yol | Açıklama |
+|---|---|---|
+| POST | `/team/invites` | (owner) `{role: accountant|viewer}` → 201 `{code: "iv_…", role, expires_at}`; tek kullanımlık, 7 gün. Açık davet en fazla 10 (409) |
+| GET | `/team/members` | (owner) `{members: [{account_id, email, role, joined_at?}], invites: [{id, role, created_at, expires_at}]}` (kod tekrar gösterilmez) |
+| DELETE | `/team/invites/{id}` | (owner) daveti iptal; yoksa 404 |
+| PATCH | `/team/members/{account_id}` | (owner) `{role}` → rol değişir; üye yoksa 404 |
+| DELETE | `/team/members/{account_id}` | (owner) üyelik + o üyenin bu defterdeki oturumları silinir |
+| POST | `/team/join` | (hesapla giriş yapmış herkes) `{code}` → 201 `{user_id, role, token}` (token = davet eden defter için üye oturumu). Geçersiz/süresi dolmuş/kullanılmış 400, kendi defteri veya zaten üye 409, hesapsız (yalnızca LINE) token 403. Defter başına en fazla 20 üye |
+| GET | `/team/ledgers` | `{current, ledgers: [{user_id, role, business_name}]}` — kendi defteri (owner) + üye olunan defterler |
+| POST | `/team/switch` | `{user_id}` → `{user_id, role, token}`; erişim yoksa 403 |
+
+`GET /auth/me` yanıtına `role` eklendi; üye oturumunda `account` üyenin kendi hesabıdır. Token sınırı (5) artık (defter, hesap) başınadır: üye oturumları sahibin token'larını düşürmez.

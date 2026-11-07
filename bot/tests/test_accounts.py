@@ -91,7 +91,7 @@ def test_users_are_isolated(client):
 
 def test_me_without_account(client):
     tok = client.post("/api/v1/admin/tokens", json={"user_id": "U-line"}, headers={"X-Admin-Key": "test-admin"}).json()["token"]
-    assert client.get("/api/v1/auth/me", headers=bearer(tok)).json() == {"user_id": "U-line", "account": None}
+    assert client.get("/api/v1/auth/me", headers=bearer(tok)).json() == {"user_id": "U-line", "role": "owner", "account": None}
     assert client.get("/api/v1/auth/me").status_code == 401
 
 

@@ -18,6 +18,7 @@ import billing
 import export
 import invoices as inv_mod
 import store
+import team
 from store import MAX_ENTRY_AMOUNT
 from tax import consumption as ct
 from tax import income as it
@@ -35,12 +36,32 @@ def _admin_ok(key: str) -> bool:
     return bool(admin) and hmac.compare_digest((key or "").encode(), admin.encode())
 
 
-def current_user(authorization: str = Header(default="")) -> str:
+def current_principal(authorization: str = Header(default="")) -> dict:
+    """{user_id, role, account_id} — rol her istekte çözülür (T-041)."""
     token = authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
-    uid = store.user_for_token(token)
-    if not uid:
+    p = team.resolve(token)
+    if not p:
         raise HTTPException(401, "invalid or missing bearer token")
-    return uid
+    return p
+
+
+def current_user(p: dict = Depends(current_principal)) -> str:
+    """Okuma: tüm roller (owner / accountant / viewer)."""
+    return p["user_id"]
+
+
+def writer_user(p: dict = Depends(current_principal)) -> str:
+    """Muhasebe verisi yazma: owner / accountant."""
+    if p["role"] not in team.WRITE_ROLES:
+        raise HTTPException(403, "閲覧専用のメンバーは編集できません。")
+    return p["user_id"]
+
+
+def owner_user(p: dict = Depends(current_principal)) -> str:
+    """Abonelik, LINE 連携, ekip yönetimi: yalnızca sahip."""
+    if p["role"] != "owner":
+        raise HTTPException(403, "この操作は帳簿のオーナーのみ行えます。")
+    return p["user_id"]
 
 
 def _valid_date(s: str, name: str) -> str:
@@ -120,7 +141,7 @@ def list_entries(date_from: str | None = None, date_to: str | None = None, q: st
 
 
 @router.post("/entries", status_code=201)
-def create_entry(body: EntryIn, uid: str = Depends(current_user)):
+def create_entry(body: EntryIn, uid: str = Depends(writer_user)):
     _valid_date(body.date, "date")
     if body.rate not in (10, 8, 0):
         raise HTTPException(400, "rate must be 10, 8 or 0")
@@ -145,7 +166,7 @@ class EntryPatch(BaseModel):
 
 
 @router.patch("/entries/{entry_id}")
-def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(current_user)):
+def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(writer_user)):
     if not store.get_entry(uid, entry_id):
         raise HTTPException(404, "entry not found")
     f = body.model_dump(exclude_none=True)
@@ -163,7 +184,7 @@ def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(current_user
 
 
 @router.delete("/entries/{entry_id}", status_code=204)
-def remove_entry(entry_id: int, uid: str = Depends(current_user)):
+def remove_entry(entry_id: int, uid: str = Depends(writer_user)):
     if not store.delete_entry(uid, entry_id):
         raise HTTPException(404, "entry not found")
     return Response(status_code=204)
@@ -182,7 +203,7 @@ async def _body(request: Request) -> bytes:
 
 
 @router.post("/receipts/ocr")
-async def receipt_ocr(request: Request, uid: str = Depends(current_user)):
+async def receipt_ocr(request: Request, uid: str = Depends(writer_user)):
     """Fiş görseli (ham gövde, image/*) → okunan kayıt önerileri. Kaydetmez; kullanıcı onaylayınca POST /entries."""
     raw = await _body(request)
     import app as app_mod  # OCR motoru seçimi app.py'de
@@ -194,7 +215,7 @@ async def receipt_ocr(request: Request, uid: str = Depends(current_user)):
 
 # ---------------------------------------------------------------- bank (CSV)
 @router.post("/bank/import")
-async def bank_import(request: Request, account: str = "", uid: str = Depends(current_user)):
+async def bank_import(request: Request, account: str = "", uid: str = Depends(writer_user)):
     raw = await _body(request)
     try:
         rows = bank_csv.parse(raw)
@@ -232,7 +253,7 @@ class MatchIn(BaseModel):
 
 
 @router.post("/bank/match")
-def bank_match(body: MatchIn, uid: str = Depends(current_user)):
+def bank_match(body: MatchIn, uid: str = Depends(writer_user)):
     t = store.get_bank_tx(uid, body.tx_id)
     inv = store.get_invoice(uid, body.invoice_no)
     if not t or not inv:
@@ -253,7 +274,7 @@ class ToEntryIn(BaseModel):
 
 
 @router.post("/bank/{tx_id}/entry", status_code=201)
-def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(current_user)):
+def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(writer_user)):
     """出金 hareketini 経費 olarak kaydet (口座振替: 家賃, 通信費 vb.)."""
     t = store.get_bank_tx(uid, tx_id)
     if not t:
@@ -358,7 +379,7 @@ def get_profile(uid: str = Depends(current_user)):
 
 
 @router.put("/profile")
-def put_profile(body: ProfileIn, uid: str = Depends(current_user)):
+def put_profile(body: ProfileIn, uid: str = Depends(writer_user)):
     if body.registration_no and not re.fullmatch(r"T\d{13}", body.registration_no):
         raise HTTPException(400, "registration_no must be T + 13 digits")
     return store.save_profile(uid, business_name=body.business_name, registration_no=body.registration_no,
@@ -390,7 +411,7 @@ def list_invoices(status: str | None = None, uid: str = Depends(current_user)):
 
 
 @router.post("/invoices", status_code=201)
-def create_invoice(body: InvoiceIn, uid: str = Depends(current_user)):
+def create_invoice(body: InvoiceIn, uid: str = Depends(writer_user)):
     issued = _valid_date(body.issued, "issued") if body.issued else store.today().isoformat()
     _valid_date(body.due, "due")
     if body.due < issued:
@@ -408,7 +429,7 @@ def create_invoice(body: InvoiceIn, uid: str = Depends(current_user)):
 
 
 @router.post("/invoices/{no}/paid")
-def pay_invoice(no: str, paid_on: str | None = None, uid: str = Depends(current_user)):
+def pay_invoice(no: str, paid_on: str | None = None, uid: str = Depends(writer_user)):
     paid_on = _valid_date(paid_on, "paid_on") if paid_on else store.today().isoformat()
     inv = store.mark_invoice_paid(uid, no, paid_on)
     if not inv:
@@ -485,14 +506,16 @@ def auth_login(body: SignupIn):
 
 
 @router.get("/auth/me")
-def auth_me(uid: str = Depends(current_user)):
-    acc = accounts.account_for_ledger(uid)
-    return {"user_id": uid, "account": ({"id": acc["id"], "email": acc["email"],
-                                          "email_verified": bool(acc["email_verified"])} if acc else None)}
+def auth_me(p: dict = Depends(current_principal)):
+    """İsteği yapan hesap (üye oturumunda üyenin kendi hesabı) + defter ve rol."""
+    acc = accounts.account_by_id(p["account_id"]) if p["account_id"] else None
+    return {"user_id": p["user_id"], "role": p["role"],
+            "account": ({"id": acc["id"], "email": acc["email"],
+                         "email_verified": bool(acc["email_verified"])} if acc else None)}
 
 
 @router.post("/auth/link-line")
-def auth_link_line(body: LinkIn, uid: str = Depends(current_user)):
+def auth_link_line(body: LinkIn, uid: str = Depends(owner_user)):
     return _auth_result(*_account_call(accounts.link_ledger, uid, body.code))
 
 
@@ -506,6 +529,75 @@ def auth_reset_request(body: ResetRequestIn):
 def auth_reset_confirm(body: ResetConfirmIn):
     _account_call(accounts.confirm_password_reset, body.token, body.password)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- team (T-041)
+def _team_call(fn, *args):
+    try:
+        return fn(*args)
+    except team.TeamError as e:
+        raise HTTPException(e.code, str(e))
+
+
+class InviteIn(BaseModel):
+    role: str = Field(pattern="^(accountant|viewer)$")
+
+
+class JoinIn(BaseModel):
+    code: str = Field(min_length=1, max_length=200)
+
+
+class RoleIn(BaseModel):
+    role: str = Field(pattern="^(accountant|viewer)$")
+
+
+class SwitchIn(BaseModel):
+    user_id: str = Field(min_length=1, max_length=200)
+
+
+@router.get("/team/members")
+def team_members(uid: str = Depends(owner_user)):
+    return {"members": team.list_members(uid), "invites": team.list_invites(uid)}
+
+
+@router.post("/team/invites", status_code=201)
+def team_invite(body: InviteIn, uid: str = Depends(owner_user)):
+    return _team_call(team.create_invite, uid, body.role)
+
+
+@router.delete("/team/invites/{invite_id}", status_code=204)
+def team_revoke_invite(invite_id: str, uid: str = Depends(owner_user)):
+    if not team.revoke_invite(uid, invite_id):
+        raise HTTPException(404, "invite not found")
+    return Response(status_code=204)
+
+
+@router.patch("/team/members/{account_id}")
+def team_set_role(account_id: int, body: RoleIn, uid: str = Depends(owner_user)):
+    return _team_call(team.set_role, uid, account_id, body.role)
+
+
+@router.delete("/team/members/{account_id}", status_code=204)
+def team_remove(account_id: int, uid: str = Depends(owner_user)):
+    _team_call(team.remove_member, uid, account_id)
+    return Response(status_code=204)
+
+
+@router.post("/team/join", status_code=201)
+def team_join(body: JoinIn, p: dict = Depends(current_principal)):
+    membership, token = _team_call(team.join, p["account_id"], body.code)
+    return {**membership, "token": token}
+
+
+@router.get("/team/ledgers")
+def team_ledgers(p: dict = Depends(current_principal)):
+    return {"current": p["user_id"], "ledgers": team.ledgers_for(p["account_id"])}
+
+
+@router.post("/team/switch")
+def team_switch(body: SwitchIn, p: dict = Depends(current_principal)):
+    target, token = _team_call(team.switch, p["account_id"], body.user_id)
+    return {**target, "token": token}
 
 
 # ---------------------------------------------------------------- billing (T-042)
@@ -538,14 +630,14 @@ def billing_status(uid: str = Depends(current_user)):
 
 
 @router.post("/billing/checkout")
-async def billing_checkout(body: CheckoutIn, uid: str = Depends(current_user)):
+async def billing_checkout(body: CheckoutIn, uid: str = Depends(owner_user)):
     acc = accounts.account_for_ledger(uid)
     url = await _billing_await(billing.create_checkout(uid, body.plan, acc["email"] if acc else ""))
     return {"url": url}
 
 
 @router.post("/billing/cancel")
-async def billing_cancel(uid: str = Depends(current_user)):
+async def billing_cancel(uid: str = Depends(owner_user)):
     return await _billing_await(billing.cancel(uid))
 
 

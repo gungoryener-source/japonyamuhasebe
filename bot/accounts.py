@@ -86,6 +86,13 @@ def ledger_of(account_id: int) -> str | None:
     return row["user_id"] if row else None
 
 
+def account_by_id(account_id: int) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT id, email, email_verified, created_at FROM accounts WHERE id=?",
+                          (account_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def account_for_ledger(user_id: str) -> dict | None:
     with tx() as con:
         row = con.execute(
@@ -142,7 +149,8 @@ def login(email: str, password: str) -> tuple[dict, str]:
 
 def _ledger_has_data(con, user_id: str) -> bool:
     # subscriptions (T-042): ücretli abonelik web defterindeyse bağlama onu sahipsiz bırakırdı
-    for table in ("entries", "invoices", "bank_tx", "subscriptions"):
+    # ledger_members (T-041): ekip üyeleri boş kalan eski defterde mahsur kalmasın
+    for table in ("entries", "invoices", "bank_tx", "subscriptions", "ledger_members"):
         if con.execute(f"SELECT 1 FROM {table} WHERE user_id=? LIMIT 1", (user_id,)).fetchone():
             return True
     return False
@@ -229,3 +237,5 @@ def confirm_password_reset(token: str, new_password: str) -> None:
         if led:
             # Parola değişince tüm oturumları kapat
             con.execute("DELETE FROM api_tokens WHERE user_id=?", (led["user_id"],))
+        # T-041: bu hesabın başka defterlerdeki üye oturumları da kapanır
+        con.execute("DELETE FROM api_tokens WHERE account_id=?", (row["account_id"],))
