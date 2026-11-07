@@ -84,3 +84,5 @@ jobs:
         run: npm run check:team
       - name: check:lp (tanıtım sayfası ↔ bot/billing.py)
         run: npm run check:lp
+      - name: check:welcome (初期設定ウィザード)
+        run: npm run check:welcome

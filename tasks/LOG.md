@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 23:46 JST · developer · T-044b /welcome kurulum sihirbazı
+- Yeni `/welcome/` (3 adım, adım göstergesi, `?step=` ile yenilemede korunur, her adım 「あとで」 ile atlanır, sonunda ホーム): 1 事業者情報 (PUT /profile, 登録番号 チェックデジット), 2 LINE 連携 (tk_ kodu → POST /auth/link-line; `NEXT_PUBLIC_LINE_ADD_URL` varsa 友だち追加 bağlantısı), 3 最初の領収書 (経費精算'e bağlantı / LINE ile gönderme).
+- `/signup` artık `/connect/?welcome=1` yerine `/welcome/`'a yönlendiriyor; davet kodu bekleyen kayıt eskisi gibi `/join/` (sihirbaz yok). Canlı oturumda accountant/viewer gelirse ホーム'a yönlendirilir; demo (token yok) statik, API çağrısı yok.
+- Yorum: LINE bağlanınca oturum LINE defterine geçtiği için adım 1 bilgisi kaybolurdu → LINE defterinde 事業者名 boşsa taslak oraya yazılıyor, doluysa LINE'daki korunuyor (`lib/welcome.ts` `profileAfterLink`).
+- Kapı: pytest 514 geçti; `next build` + check:tax/legal/team/lp + yeni `check:welcome` (CI'a eklendi) yeşil. Playwright demo akışı 375/1280px: taşma yok, konsol hatası yok. ja/tr/en metinler eklendi.
+- Sonraki: T-049 (青色申告特別控除 令和9年分以後), sonra T-056 / T-057 / T-063.
+
 ## 2026-11-07 · developer (oturum) · T-061/T-062 通帳取込・取引先照合
 - Ürün sahibi isteği: banka defteri (通帳) LINE'dan/panelden → firma resmi adı + 登録番号 + 勘定科目 → kontrol → resmi muhasebe. Karar: AI ile okuma + banka CSV.
 - `bot/passbook.py` (PDF/foto → AI → bakiye kontrolü → bank_tx, görsel saklanmaz), `bot/counterparties.py` (kana anahtar, Excel'den rehber, öğrenme, 国税庁 API NTA_APP_ID ile).

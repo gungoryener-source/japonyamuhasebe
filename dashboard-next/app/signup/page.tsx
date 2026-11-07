@@ -6,6 +6,7 @@ import { UserPlus } from "lucide-react";
 import { auth, PASSWORD_MAX, PASSWORD_MIN, setToken } from "../lib/api";
 import { AuthCard, AuthInput, EMAIL_RE, errorText, Notice, SubmitBtn, pendingInvite } from "../components/auth";
 import { T } from "../lib/i18n";
+import { signupRedirect } from "../lib/welcome";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,7 @@ export default function SignupPage() {
     try {
       const r = await auth.signup(email.trim(), password);
       setToken(r.token);
-      location.href = pendingInvite() ? "/join/" : "/connect/?welcome=1"; // davetle gelen: katılıma dön (T-041b)
+      location.href = signupRedirect(!!pendingInvite()); // davetle gelen: katılıma (T-041b), değilse kurulum sihirbazı (T-044b)
     } catch (e) {
       setError(errorText(e));
       setBusy(false);
@@ -50,7 +51,7 @@ export default function SignupPage() {
       </p>
       <SubmitBtn busy={busy}>{T("登録する")}</SubmitBtn>
       <p className="text-[10px] leading-relaxed text-slate-400">
-        {T("登録後、LINE で「パネル」と送って届く接続コードを入力すると、LINE で記録した帳簿をこのアカウントで使えます。")}
+        {T("登録後、かんたん初期設定（事業者情報・LINE 連携・最初の領収書）をご案内します。")}
       </p>
     </AuthCard>
   );
