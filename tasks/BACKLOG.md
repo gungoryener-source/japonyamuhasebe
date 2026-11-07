@@ -36,7 +36,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-031 | P1 | done | dashboard-next: 銀行連携 sayfası (banka CSV içe aktarma, faturalarla otomatik eşleştirme) |
 | T-032 | P1 | done | dashboard-next: 設定 sayfası (事業者情報, kanal bağlantıları, oturum) + sayfa yönlendirmeli menü |
 | T-033 | P2 | todo | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
-| T-034 | P2 | todo | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
+| T-034 | P1 | doing (developer-oturum, 2026-11-07) | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
 | T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
@@ -58,7 +58,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | done (bu commit) | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
-| T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
+| T-049 | P1 | doing (developer-oturum, 2026-11-07) | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
 | T-050 | P2 | todo | 消費税: 2割/3割特例 uygunluk şartları (基準期間・特定期間 ≤1,000万) uyarısı + 経過措置 tek satıcı 1億円 üst sınırı uyarısı |
 | T-021 | P1 | done (bu commit) | CI: dashboard işi (Node 22, `npm ci`, `next build`, `check:tax`, `check:legal`, `check:team`) — panel kontrolleri şu an CI'da yok |
 | T-027 | P1 | done (bu commit) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
@@ -70,7 +70,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-053 | P2 | done (c5108d7) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 | T-054 | P2 | done (bu commit) | Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor |
 | T-055 | P0 | done (bu commit) | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
-| T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
+| T-056 | P1 | doing (developer-oturum, 2026-11-07) | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
 | T-057 | P1 | done | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 | T-059 | P2 | done (bu commit) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
