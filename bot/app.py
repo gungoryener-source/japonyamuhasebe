@@ -4,7 +4,8 @@
 Akış:
   LINE kullanıcısı mesaj / fiş fotoğrafı gönderir
   → /callback (imza doğrulanır, 200 hemen döner)
-  → arka planda: metin ise parser, fotoğraf ise Claude ile fiş okuma
+  → arka planda: metin ise parser, fotoğraf ise OCR ile fiş okuma
+    (OCR LINE_REPLY_WAIT_SEC (8 sn) içinde bitmezse önce 「読み取り中」 reply, sonuç push)
   → SQLite'a kayıt → LINE'a hızlı yanıt butonlu cevap
 
 Çalıştırma:  uvicorn app:app --host 0.0.0.0 --port 8000
@@ -86,6 +87,18 @@ async def reply(token: str, messages: list[dict]):
         )
         if r.status_code != 200:
             print("LINE reply error", r.status_code, r.text)
+
+
+async def push(user_id: str, messages: list[dict]):
+    """reply token kullanılamadığında (uzun OCR) sonucu push ile gönder."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.post(
+            f"{LINE_API}/message/push",
+            headers={"Authorization": f"Bearer {CHANNEL_TOKEN}"},
+            json={"to": user_id, "messages": messages[:5]},
+        )
+        if r.status_code != 200:
+            print("LINE push error", r.status_code, r.text)
 
 
 async def get_image(message_id: str) -> bytes:
@@ -319,6 +332,10 @@ async def handle_text(user_id: str, token: str, text: str):
     await reply(token, [to_line(*respond(user_id, text, "LINE"))])
 
 
+READING_TEXT = "レシートを読み取り中です…\n結果はこのあと届きます（少しお待ちください）。"
+IMAGE_FAIL_TEXT = "画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。"
+
+
 async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     """Fiş görseli → OCR → kayıt. Kanaldan bağımsız."""
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
@@ -332,7 +349,7 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
         result = await ocr_receipt(img)
     except Exception as ex:  # ağ / API hatası
         print("image error", type(ex).__name__)
-        return "画像を読み取れませんでした。もう一度送るか「店名 金額」で入力してください。", []
+        return IMAGE_FAIL_TEXT, []
     if isinstance(result, dict):
         p = result.get("partial") or {}
         got = "・".join(x for x in (p.get("date"), p.get("store"), p.get("invoice_no")) if x)
@@ -352,13 +369,47 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
             f"{result[0]['category']}・{result[0]['date']}\n\n間違っていたら「取消」を押してください"), opts("取消", "合計", CAMERA)
 
 
-async def handle_image(user_id: str, token: str, message_id: str):
+def reply_wait_seconds() -> float:
+    """reply token ile sonucu beklemek için süre (sn). Aşılırsa önce 「読み取り中」, sonuç push ile."""
+    try:
+        return max(0.0, min(float(os.environ.get("LINE_REPLY_WAIT_SEC", "8")), 50.0))
+    except ValueError:
+        return 8.0
+
+
+async def _image_result(user_id: str, message_id: str) -> dict:
     try:
         img = await get_image(message_id)
     except Exception as ex:
         print("LINE content error", type(ex).__name__)
-        return await reply(token, [text_msg("画像を取得できませんでした。もう一度送ってください。")])
-    await reply(token, [to_line(*await process_image(user_id, img, message_id, "LINE"))])
+        return text_msg("画像を取得できませんでした。もう一度送ってください。")
+    return to_line(*await process_image(user_id, img, message_id, "LINE"))
+
+
+async def handle_image(user_id: str, token: str, message_id: str):
+    """Fiş görseli. OCR (özellikle Render free planında) uzun sürebilir; reply token kısa ömürlü
+    olduğundan `reply_wait_seconds()` içinde biterse sonuç reply ile (push kotası harcanmaz),
+    bitmezse önce 「読み取り中」 reply edilir ve sonuç push mesajla gönderilir."""
+    import asyncio
+    task = asyncio.ensure_future(_image_result(user_id, message_id))
+    try:
+        msg = await asyncio.wait_for(asyncio.shield(task), timeout=reply_wait_seconds())
+    except asyncio.TimeoutError:
+        await reply(token, [text_msg(READING_TEXT)])
+        try:
+            msg = await task
+        except Exception as ex:
+            print("image task error", type(ex).__name__)
+            msg = text_msg(IMAGE_FAIL_TEXT)
+        try:
+            await push(user_id, [msg])
+        except Exception as ex:
+            print("LINE push error", type(ex).__name__)
+        return
+    except Exception as ex:
+        print("image task error", type(ex).__name__)
+        msg = text_msg(IMAGE_FAIL_TEXT)
+    await reply(token, [msg])
 
 
 async def handle_event(ev: dict):

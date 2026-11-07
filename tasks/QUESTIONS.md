@@ -4,6 +4,7 @@
 
 ## Q-01 · LINE kanalı (açık)
 LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılışı, `LINE_CHANNEL_SECRET` ve `LINE_CHANNEL_ACCESS_TOKEN` değerlerinin Render → tegaru-line-bot → Environment'a girilmesi, Webhook URL `https://tegaru-line-bot.onrender.com/callback`, ardından `curl -X POST -H "X-Admin-Key: <ADMIN_KEY>" https://tegaru-line-bot.onrender.com/admin/richmenu` (eski `?key=` biçimi de geçici olarak çalışır).
+(2026-11-07 developer, T-025: OCR 8 sn'den uzun sürerse sonuç **push** mesajla gönderiliyor; push mesajları LINE Official Account aylık ücretsiz mesaj kotasına sayılır (reply sayılmaz). Kota küçükse Render'da `LINE_REPLY_WAIT_SEC` (en fazla 50) artırılabilir; daha hızlı plan (Q-09) push ihtiyacını azaltır. Bilgi — işlem gerekmez.)
 **Cevap:**
 
 ## Q-02 · Anthropic API anahtarı (isteğe bağlı)

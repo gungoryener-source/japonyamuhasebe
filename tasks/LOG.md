@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 11:44 JST · developer · T-025 LINE OCR uzun sürerse 「読み取り中…」 + push
+- `app.handle_image`: görsel alma + OCR + kayıt tek görev; `LINE_REPLY_WAIT_SEC` (varsayılan 8 sn, 0–50 arası sınırlanır) içinde biterse sonuç reply ile (push kotası harcanmaz). Bitmezse önce 「レシートを読み取り中です…」 reply, görev iptal edilmeden (shield) tamamlanır, sonuç hızlı yanıt butonlarıyla `push` (`/v2/bot/message/push`) ile gider.
+- Push yolunda OCR/DB hatası → 「画像を読み取れませんでした…」 push; push ağ hatası yutulur (log). Hızlı yolda beklenmedik hata → aynı metin reply. `/callback` ve metin akışı değişmedi; render.yaml değişmedi (kod varsayılanı).
+- Yeni `tests/test_line_image_async.py` (14: hızlı → yalnız reply, yavaş → 読み取り中 + push + tek kayıt, yavaş hata/beklenmedik hata push, push hatası, get_image hatası, bekleme süresi sınırları, push isteği gövdesi/5 mesaj kesmesi). Kapı: pytest 359 geçti (SQLite); webhook/OCR/T-025 testleri yerel PostgreSQL 16'da 30 geçti. dashboard-next değişmedi.
+- Not (Q-01'e eklendi): push mesajları LINE aylık mesaj kotasına sayılır; reply sayılmaz.
+- Sonraki: P1 T-041 (ekip üyeleri) veya T-044/T-048.
+
 ## 2026-11-07 11:10 JST · developer · T-054 çok oranlı fiş kotası (review-fix)
 - Yorum (ürün kararı gerekmedi): Q-11 planı 「ayda 30 fiş」 → kota fiş başına. `billing.usage` 経費 sayımı `COUNT(DISTINCT image_path | 'id:'+id)`: 税率ごとに分割された tek fiş 1 件, görselsiz (metin/web) kayıt satır başına. Şema değişmedi.
 - Sonuç: 29/30 kullanımda 8%+10% fiş kabul edilir → kullanım 30 (31 satır); sonraki fiş OCR öncesi, metin girişi de reddedilir. Panel kullanım çubuğu `status()` ile aynı sayıyı gösterir.
