@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 17:50 JST · developer · T-055 kesin fiyatlar
+- `billing.PLANS` Free ¥0 / 個人 ¥980 / 法人 ¥2,980 (aylık, 税抜) `placeholder=False`; `/billing/plans` yanıtına `tax_excluded: true`, `interval: "month"` eklendi (alan adları korunur, geriye uyumlu).
+- Panel 料金プラン: 「仮」 rozeti ve 「価格は仮のものです」 notu kaldırıldı → 「価格はすべて月額・税抜です」 (ja/tr/en). Demo planlar `placeholder: false`.
+- 特商法 販売価格 satırı gerçek fiyatlarla; 税込 gösterim sorusu (Q-12) açık olduğundan 「要確認」 işareti duruyor. `check:legal`'e fiyat/「仮」 kontrolü eklendi. docs/API.md güncellendi.
+- Kapı: pytest 430 geçti (rebase sonrası), `next build` + check:legal/tax/team yeşil. Tanıtım sayfası henüz yok (T-044 fiyatları `PLANS`'tan alacak).
+- Sonraki: T-058 (review-fix, XFF hız sınırı), sonra T-011 (R2 depolama, P0).
+
 ## 2026-11-07 17:44 JST · reviewer · 732e831..7332dab incelemesi (T-041b, T-021, T-048, T-047/b/c, T-045, T-048b)
 - Kapı başta yeşil (425, SQLite). Vergi oranı/eşik değişikliği yok; render.yaml değişmedi; SecurityHeaders en dışta, CORS PATCH/DELETE düzeltmesi doğru. T-045 PDF `current_user` arkasında, 控除 所得'i aşmıyor.
 - **Hata düzeltmesi (T-047c):** `i18n.parse_lang_command` 「Dil kursu 2000」「Language school 30000」 gibi kayıtları dil komutu sanıp seçenek gösteriyor, kaydı yutuyordu. Bilinmeyen değer artık yalnızca 「:」 ile yazılırsa (「dil: klingon」) komut sayılır.

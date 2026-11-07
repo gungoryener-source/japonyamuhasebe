@@ -42,6 +42,11 @@ for (const kw of ["利用目的", "第三者提供", "外国にある第三者",
 assert.ok(termsDoc(set).intro.includes("テスト合同会社"));
 assert.ok(JSON.stringify(termsDoc(set)).includes("税理士法"), "terms: 税務相談でない旨");
 
+// 4b) 特商法の販売価格は確定価格（Q-11 / T-055）と一致し、「仮」表記がない
+const price = tokushohoDoc(set).rows.find((r) => r.label === "販売価格").value;
+for (const v of ["980円", "2,980円", "税抜"]) assert.ok(price.includes(v), `特商法: 販売価格に ${v} がない`);
+assert.ok(!price.includes("仮"), "特商法: 販売価格に「仮」が残っている");
+
 // 5) ビルド済みなら、各ページの静的 HTML にドラフト表示と本文が含まれる（JS なしで読める）
 const out = new URL("../out/legal/", import.meta.url);
 if (existsSync(out)) {

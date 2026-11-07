@@ -153,6 +153,7 @@ export type ApiSession = { user_id: string; role: string; token: string };
 export type ApiPlan = {
   id: "free" | "personal" | "business"; name: string; price_jpy: number;
   receipts_per_month: number | null; invoices_per_month: number | null; placeholder: boolean; available: boolean;
+  tax_excluded?: boolean; interval?: "month";
 };
 export type ApiBillingStatus = {
   plan: ApiPlan["id"]; plan_name: string;

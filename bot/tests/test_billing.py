@@ -64,13 +64,16 @@ def sub_event(eid, uid="U1", status="active", price="price_personal", sub_id="su
 
 
 # ------------------------------------------------------------ planlar / ödeme kapalı
-def test_plans_public_and_placeholder(client, no_stripe):
+def test_plans_public_final_prices(client, no_stripe):
     r = client.get("/api/v1/billing/plans").json()
     ids = [p["id"] for p in r["plans"]]
     assert ids == ["free", "personal", "business"]
     assert r["payments_enabled"] is False
     free = r["plans"][0]
-    assert free["receipts_per_month"] == 30 and free["invoices_per_month"] == 3 and free["placeholder"] is True
+    assert free["receipts_per_month"] == 30 and free["invoices_per_month"] == 3 and free["placeholder"] is False
+    # T-055 / Q-11: kesin fiyatlar (aylık, 税抜), yer tutucu değil, yıllık plan yok
+    assert [p["price_jpy"] for p in r["plans"]] == [0, 980, 2980]
+    assert all(p["placeholder"] is False and p["tax_excluded"] is True and p["interval"] == "month" for p in r["plans"])
     assert [p["available"] for p in r["plans"]] == [True, False, False]
 
 

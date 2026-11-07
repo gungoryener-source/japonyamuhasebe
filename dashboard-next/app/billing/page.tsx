@@ -16,11 +16,11 @@ export default function BillingPage() {
   );
 }
 
-/** bot/billing.py PLANS の写し（デモ表示・サーバー未接続時）。価格は仮（Q-11）。 */
+/** bot/billing.py PLANS の写し（デモ表示・サーバー未接続時）。価格は確定（Q-11 / T-055、月額・税抜）。 */
 const DEMO_PLANS: ApiPlan[] = [
-  { id: "free", name: "フリー", price_jpy: 0, receipts_per_month: 30, invoices_per_month: 3, placeholder: true, available: true },
-  { id: "personal", name: "個人", price_jpy: 980, receipts_per_month: null, invoices_per_month: null, placeholder: true, available: false },
-  { id: "business", name: "法人", price_jpy: 2980, receipts_per_month: null, invoices_per_month: null, placeholder: true, available: false },
+  { id: "free", name: "フリー", price_jpy: 0, receipts_per_month: 30, invoices_per_month: 3, placeholder: false, available: true },
+  { id: "personal", name: "個人", price_jpy: 980, receipts_per_month: null, invoices_per_month: null, placeholder: false, available: false },
+  { id: "business", name: "法人", price_jpy: 2980, receipts_per_month: null, invoices_per_month: null, placeholder: false, available: false },
 ];
 const DEMO_STATUS: ApiBillingStatus = {
   plan: "free", plan_name: "フリー", limits: { receipts_per_month: 30, invoices_per_month: 3 },
@@ -163,7 +163,6 @@ function Billing() {
               <header className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-navy">{currentLang() === "ja" ? `${p.name}プラン` : `${T(p.name)} plan`}</h2>
                 {current && <Badge tone="ok">{T("ご利用中")}</Badge>}
-                {p.placeholder && p.price_jpy > 0 && <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500" title={T("正式な価格は決定後に表示されます")}>{T("仮")}</span>}
               </header>
               <p className="font-mono text-2xl font-semibold text-navy tabular">
                 {p.price_jpy === 0 ? "¥0" : yen(p.price_jpy)}
@@ -195,7 +194,7 @@ function Billing() {
         })}
       </div>
       <p className="text-[11px] text-slate-400">
-        {T("価格は仮のものです。お支払いは Stripe（クレジットカード）で安全に処理され、カード情報は当サービスに保存されません。")}
+        {T("価格はすべて月額・税抜です。お支払いは Stripe（クレジットカード）で安全に処理され、カード情報は当サービスに保存されません。")}
         {" "}<a href="/legal/tokushoho/" className="underline-offset-2 hover:text-navy hover:underline">{T("特定商取引法に基づく表記")}</a>
         {" "}<a href="/legal/terms/" className="underline-offset-2 hover:text-navy hover:underline">{T("利用規約")}</a>
         {" "}<a href="/settings/" className="underline-offset-2 hover:text-navy hover:underline">{T("設定に戻る")}</a>

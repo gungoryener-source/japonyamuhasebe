@@ -1,8 +1,8 @@
 """Abonelik (T-042): planlar, plan bazlı sınırlar, Stripe Checkout + webhook (test modu).
 
 - Abonelik defter (`user_id`) bazındadır; LINE/WhatsApp/web hepsi aynı defteri paylaşır.
-- Fiyatlar Q-11 cevaplanana kadar **yer tutucu** (`PLANS[...]["price_jpy"]`, `placeholder=True`).
-  Stripe'ta tahsil edilen gerçek tutar Stripe Price nesnesindedir (`STRIPE_PRICE_PERSONAL` / `_BUSINESS`).
+- Fiyatlar Q-11 ile kesinleşti (T-055): Free / 個人 ¥980 / 法人 ¥2,980 (aylık, 税抜), yıllık plan yok.
+  `placeholder=False` (API alanı geriye uyum için korunur). Stripe'ta tahsil edilen gerçek tutar Stripe Price nesnesindedir (`STRIPE_PRICE_PERSONAL` / `_BUSINESS`).
 - `STRIPE_SECRET_KEY` yoksa ödeme kapalıdır: ödeme uçları 503, sınırlar **uygulanmaz** (yükseltme yolu
   olmadan kullanıcıyı engellememek için). `BILLING_ENFORCE_LIMITS=0` ile anahtar varken de kapatılabilir.
 - Stripe REST'i httpx ile çağrılır (SDK yok). Webhook imzası `Stripe-Signature` (t=…,v1=…) HMAC-SHA256.
@@ -28,11 +28,14 @@ from store import tx
 STRIPE_API = "https://api.stripe.com/v1"
 SIGNATURE_TOLERANCE = 300  # saniye
 
-# Fiyatlar yer tutucu (Q-11). Sınır None = sınırsız.
+# Kesin fiyatlar (Q-11, 2026-11-07): aylık, vergi hariç (税抜). Sınır None = sınırsız.
 PLANS: dict[str, dict] = {
-    "free": {"name": "フリー", "price_jpy": 0, "receipts_per_month": 30, "invoices_per_month": 3},
-    "personal": {"name": "個人", "price_jpy": 980, "receipts_per_month": None, "invoices_per_month": None},
-    "business": {"name": "法人", "price_jpy": 2980, "receipts_per_month": None, "invoices_per_month": None},
+    "free": {"name": "フリー", "price_jpy": 0, "receipts_per_month": 30, "invoices_per_month": 3,
+             "placeholder": False},
+    "personal": {"name": "個人", "price_jpy": 980, "receipts_per_month": None, "invoices_per_month": None,
+                 "placeholder": False},
+    "business": {"name": "法人", "price_jpy": 2980, "receipts_per_month": None, "invoices_per_month": None,
+                 "placeholder": False},
 }
 PAID_PLANS = ("personal", "business")
 # Stripe aboneliğinin bu durumlarında ücretli plan geçerlidir
@@ -87,7 +90,8 @@ def plan_for_price(pid: str) -> str | None:
 
 
 def public_plans() -> list[dict]:
-    return [{"id": k, **v, "placeholder": True, "available": k == "free" or bool(payments_enabled() and price_id(k))}
+    return [{"id": k, **v, "tax_excluded": True, "interval": "month",
+             "available": k == "free" or bool(payments_enabled() and price_id(k))}
             for k, v in PLANS.items()]
 
 

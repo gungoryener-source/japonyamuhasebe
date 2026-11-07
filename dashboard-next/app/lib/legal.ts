@@ -162,7 +162,7 @@ export function tokushohoDoc(s: Seller): LegalDoc {
       { label: "所在地", value: s.address, todo: p(s.address) },
       { label: "電話番号", value: s.phone, todo: p(s.phone) },
       { label: "メールアドレス", value: s.email, todo: p(s.email) },
-      { label: "販売価格", value: "各プランの価格は料金プランページに表示します（現在の価格は仮のもので、正式な価格は確定後に表示します）。", todo: true },
+      { label: "販売価格", value: "フリー：無料／個人：月額980円（税抜）／法人：月額2,980円（税抜）。詳細は料金プランページに表示します。税込価格の表示方法は要確認。", todo: true },
       { label: "商品代金以外の必要料金", value: "本サービスの利用に必要なインターネット接続料金・通信料金は利用者の負担となります。" },
       { label: "支払方法", value: "クレジットカード（決済代行：Stripe）" },
       { label: "支払時期", value: "お申し込み時に初回分を決済し、以後は毎月の契約更新日に自動で決済されます。" },
