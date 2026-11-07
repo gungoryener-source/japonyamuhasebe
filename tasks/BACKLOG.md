@@ -72,7 +72,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-055 | P0 | done (bu commit) | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
 | T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
 | T-057 | P1 | todo | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
-| T-058 | P1 | review-fix | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
+| T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 
 ---
 
@@ -336,3 +336,4 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/ratelimit.py` `client_ip` (~satır 55): `RATE_LIMIT_PROXY_HOPS=0` varsayılanı XFF'in **ilk** (istemci yazabilir) değerini anahtar yapar. Render vekili istemci başlığına ekliyorsa (çoğu vekil öyle yapar) `X-Forwarded-For: <rastgele>` ile her istek yeni kova → `/auth/login` kaba kuvvet koruması etkisiz.
 - Beklenen: Render'ın XFF davranışını (append mi, overwrite mı; Cloudflare katmanı var mı) belgelerden doğrula, `docs/ARCHITECTURE.md`'ye yaz; varsayılanı güvenilir vekil sayısına göre sağdan değere çevir (muhtemelen 1). Ek savunma: login için IP'den bağımsız e-posta başına kova (ör. `login_email` 20/10dk).
 - Test: hops varsayılanıyla farklı sahte ilk XFF değerleri + aynı gerçek (sağdaki) IP → N+1'inci istek 429.
+- ✅ Yapıldı: Render davranışı (istemci XFF'i silinmez; Cloudflare gerçek istemciyi, Render Cloudflare kenar IP'sini ekler) [rohitpaulk.com](https://rohitpaulk.com/articles/render-rails-remote-ip) ve [Render topluluk](https://community.render.com/t/accessing-client-ips-in-a-node-express-app/36282) kaynaklarıyla doğrulandı → `RATE_LIMIT_PROXY_HOPS` varsayılanı 2 (sağdan 2.). Ek: `/auth/login` e-posta başına 20/10dk (`login_email`). Not: e-posta kovası saldırganın bir hesabı 10 dk kilitlemesine izin verir (bilinçli ödünleşim). Testler `tests/test_ratelimit.py` (+2).

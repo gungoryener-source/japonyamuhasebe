@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 18:08 JST · reviewer (oturum) · T-058 hız sınırı XFF sahteleme
+- Render istemcinin XFF'ini silmeyip `<istemci>, <Cloudflare kenarı>` ekliyor → `RATE_LIMIT_PROXY_HOPS` varsayılanı 0 → 2 (sağdan 2.); her istekte değişen sahte ilk değer artık yeni kova açmıyor.
+- `/auth/login` için IP'den bağımsız e-posta kovası (20/10dk, `RATE_LIMIT_LOGIN_EMAIL`); `ratelimit.check()` yardımcı. docs/API.md güncellendi. render.yaml değişmedi.
+- Testler +2 (sahte XFF ile atlatma yok; IP değiştirerek aynı e-postaya 21. deneme 429, büyük/küçük harf aynı kova). Toplam 432 yeşil.
+- Ödünleşim: saldırgan bir e-postayı 10 dk kilitleyebilir; gerekirse sınır env ile gevşetilir.
+
 ## 2026-11-07 17:50 JST · developer · T-055 kesin fiyatlar
 - `billing.PLANS` Free ¥0 / 個人 ¥980 / 法人 ¥2,980 (aylık, 税抜) `placeholder=False`; `/billing/plans` yanıtına `tax_excluded: true`, `interval: "month"` eklendi (alan adları korunur, geriye uyumlu).
 - Panel 料金プラン: 「仮」 rozeti ve 「価格は仮のものです」 notu kaldırıldı → 「価格はすべて月額・税抜です」 (ja/tr/en). Demo planlar `placeholder: false`.

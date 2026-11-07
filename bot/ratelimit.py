@@ -4,8 +4,10 @@ Anahtar: (kural adı, istemci IP). Tek süreç / tek örnek içindir (Render tek
 yeniden başlatmada sayaçlar sıfırlanır. Sınır aşılırsa 429 + `Retry-After` (saniye).
 
 Yapılandırma (ortam değişkeni, isteğe bağlı): `RATE_LIMIT_<KURAL>` = "adet/saniye" (ör. "10/60"),
-"0" kuralı kapatır. `RATE_LIMIT_PROXY_HOPS`: 0 (varsayılan) → `X-Forwarded-For` ilk değeri;
-N>0 → sağdan N'inci değer (istemcinin başlığı sahteleyebildiği ortamlarda güvenilir vekil sayısı).
+"0" kuralı kapatır. `RATE_LIMIT_PROXY_HOPS`: sağdan N'inci `X-Forwarded-For` değeri (varsayılan 2).
+Render istemcinin gönderdiği XFF'i silmez, sonuna ekler: `<sahte…>, <gerçek istemci (Cloudflare ekler)>,
+<Cloudflare kenar IP'si (Render ekler)>` → gerçek istemci sağdan 2. (T-058). 0 → ilk değer (sahtelenebilir; yalnızca
+başlığı ezen bir vekil arkasında kullanın). Değer sayısı N'den azsa en soldaki alınır.
 """
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ DEFAULTS: dict[str, tuple[int, int]] = {
     "signup": (5, 60),
     "password_reset": (5, 60),
     "ocr": (20, 60),
+    "login_email": (20, 600),  # T-058: IP'den bağımsız, e-posta başına (IP değiştirerek kaba kuvvete karşı)
 }
 MAX_KEYS = 20_000  # bellek koruması: aşılırsa süresi dolmuş anahtarlar temizlenir, yine aşılırsa en eskisi atılır
 DETAIL = "リクエストが多すぎます。しばらく時間をおいてから再度お試しください。"
@@ -58,9 +61,9 @@ def client_ip(request: Request) -> str:
     parts = [p.strip() for p in xff.split(",") if p.strip()]
     if parts:
         try:
-            hops = max(0, int(os.environ.get("RATE_LIMIT_PROXY_HOPS", "0")))
+            hops = max(0, int(os.environ.get("RATE_LIMIT_PROXY_HOPS", "2")))
         except ValueError:
-            hops = 0
+            hops = 2
         if hops == 0:
             return parts[0]
         return parts[-hops] if hops <= len(parts) else parts[0]
@@ -100,14 +103,19 @@ def hit(rule: str, key: str) -> float | None:
         return None
 
 
+def check(rule: str, key: str) -> None:
+    """Uç nokta içinden (ör. e-posta anahtarıyla) sınır kontrolü; aşıldıysa 429."""
+    retry = hit(rule, key)
+    if retry is not None:
+        raise HTTPException(429, DETAIL, headers={"Retry-After": str(math.ceil(retry))})
+
+
 def limiter(rule: str):
     """FastAPI bağımlılığı: `dependencies=[Depends(limiter("login"))]`."""
     if rule not in DEFAULTS:
         raise ValueError(rule)
 
     def dep(request: Request) -> None:
-        retry = hit(rule, client_ip(request))
-        if retry is not None:
-            raise HTTPException(429, DETAIL, headers={"Retry-After": str(math.ceil(retry))})
+        check(rule, client_ip(request))
 
     return dep

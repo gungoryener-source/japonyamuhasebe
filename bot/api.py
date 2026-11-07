@@ -518,6 +518,7 @@ def auth_signup(body: SignupIn):
 
 @router.post("/auth/login", dependencies=[Depends(ratelimit.limiter("login"))])
 def auth_login(body: SignupIn):
+    ratelimit.check("login_email", body.email.strip().lower())  # T-058
     return _auth_result(*_account_call(accounts.login, body.email, body.password))
 
 

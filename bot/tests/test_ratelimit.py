@@ -127,6 +127,10 @@ def test_client_ip_proxy_hops(monkeypatch):
             self.client = type("C", (), {"host": host})()
     assert ratelimit.client_ip(R("1.1.1.1, 2.2.2.2")) == "1.1.1.1"
     assert ratelimit.client_ip(R("")) == "127.0.0.9"
+    # T-058: varsayılan sağdan 2. (Render: <sahte>, <istemci>, <Cloudflare>)
+    assert ratelimit.client_ip(R("6.6.6.6, 1.1.1.1, 104.22.17.40")) == "1.1.1.1"
+    monkeypatch.setenv("RATE_LIMIT_PROXY_HOPS", "0")
+    assert ratelimit.client_ip(R("6.6.6.6, 1.1.1.1, 104.22.17.40")) == "6.6.6.6"
     monkeypatch.setenv("RATE_LIMIT_PROXY_HOPS", "1")
     assert ratelimit.client_ip(R("spoofed, 1.1.1.1")) == "1.1.1.1"
     monkeypatch.setenv("RATE_LIMIT_PROXY_HOPS", "5")
@@ -143,3 +147,28 @@ def test_memory_bound(clock, monkeypatch):
     for i in range(10):                                   # canlı anahtarlar sınırı aşarsa en eskisi atılır
         ratelimit.hit("login", f"live{i}")
     assert len(ratelimit._hits) <= 5
+
+
+def test_spoofed_xff_does_not_bypass_login_limit(client, clock):
+    """T-058: istemcinin her istekte değiştirdiği ilk XFF değeri yeni kova açmaz."""
+    for i in range(10):
+        r = client.post("/api/v1/auth/login", json={"email": f"u{i}@example.com", "password": "wrongpass1"},
+                        headers={"X-Forwarded-For": f"198.51.100.{i}, 203.0.113.7, 104.22.17.40"})
+        assert r.status_code == 401
+    r = client.post("/api/v1/auth/login", json={"email": "z@example.com", "password": "wrongpass1"},
+                    headers={"X-Forwarded-For": "198.51.100.99, 203.0.113.7, 104.22.17.40"})
+    assert r.status_code == 429
+
+
+def test_login_email_limit_across_ips(client, clock):
+    """T-058: IP değiştirerek aynı hesaba kaba kuvvet → e-posta başına 20/10dk."""
+    def try_ip(i, email="Victim@example.com"):
+        return client.post("/api/v1/auth/login", json={"email": email, "password": "wrongpass1"},
+                           headers=ip(f"192.0.2.{i}"))
+    for i in range(20):
+        assert try_ip(i).status_code == 401
+    r = try_ip(50, "victim@example.com ")          # büyük/küçük harf ve boşluk aynı kova
+    assert r.status_code == 429 and r.headers["Retry-After"] == "600"
+    assert try_ip(51, "other@example.com").status_code == 401
+    clock.t += 600
+    assert try_ip(52).status_code == 401
