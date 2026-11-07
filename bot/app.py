@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
 from parser import parse_text
+from security import SecurityHeadersMiddleware, cors_origins
 from tax.consumption import input_credit_ratio
 
 CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
@@ -39,12 +40,17 @@ LINE_API = "https://api.line.me/v2/bot"
 LINE_DATA_API = "https://api-data.line.me/v2/bot"
 
 app = FastAPI(title="Tegaru Kaikei API")
+# T-048b: CORS "*" yerine PANEL_URL (+ localhost) — security.cors_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()],
-    allow_methods=["GET", "POST", "PUT"],
+    allow_origins=cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["Content-Disposition", "Retry-After"],
+    max_age=600,
 )
+# En dışta: CORS ön kontrol yanıtları dahil tüm yanıtlara güvenlik başlıkları
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ---------------------------------------------------------------- DB (store.py)

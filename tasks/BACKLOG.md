@@ -56,7 +56,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-047b | P0 | done | Dil dilim 2: ホーム gövdesi, 請求書, 経費, 銀行, 税務, 料金プラン, メンバー kartı, login/signup/reset/join/connect metinleri `t()` ile; sözlüğe tr+en ekle |
 | T-047c | P0 | done | Bot dili (`user_prefs` tablosu, `profiles`'a dokunulmadı): `言語`/`dil`/`language` komutu + hızlı yanıt, `bot/i18n.py` ja/tr/en, testler |
 | T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
-| T-048b | P1 | doing (developer, 2026-11-07) | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
+| T-048b | P1 | done (bu commit) | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
 | T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
 | T-050 | P2 | todo | 消費税: 2割/3割特例 uygunluk şartları (基準期間・特定期間 ≤1,000万) uyarısı + 経過措置 tek satıcı 1億円 üst sınırı uyarısı |
@@ -303,6 +303,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-048b · CORS + güvenlik başlıkları (P1)
 - `app.py` CORS: `CORS_ORIGINS` boş veya `*` ise `PANEL_URL` (+ `http://localhost:3000`) kullan; render.yaml'daki `CORS_ORIGINS: "*"` değerini değiştirmeden kodda ele al (değişken adı aynı kalır). Middleware: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=31536000`, `X-Frame-Options: DENY`.
 - Kabul: izinli origin → `Access-Control-Allow-Origin` döner, yabancı origin dönmez; başlıklar `/` ve `/api/v1/*` yanıtlarında; `/callback` LINE imza testleri yeşil.
+- ✅ Yapıldı: `bot/security.py` — `cors_origins()` (`*`/boş → `PANEL_URL` origin + localhost:3000; açık liste aynen) ve saf ASGI `SecurityHeadersMiddleware` (en dışta; ön kontrol, 401/404 ve `/callback` dahil). Ek düzeltme: CORS `allow_methods` PATCH/DELETE içermiyordu → panelin kayıt düzenleme/silme ve token iptali çapraz kökende ön kontrolde reddediliyordu. CSP `frame-ancestors 'none'` eklendi. render.yaml değişmedi. Testler `tests/test_security_headers.py` (18).
 
 ## T-051 · Banka CSV çoklu 摘要 sütunu (review-fix, P2)
 - `bot/bank_csv.py` `parse()` (~satır 360–367): `desc` anahtarı ilk eşleşen sütuna atanıyor. MUFG/ゆうちょ biçiminde 「摘要」=振込/口座振替, karşı taraf 「摘要内容」'nde → `description` = 「口座振替」; `/bank/{id}/entry` ile oluşan 経費'in `store` alanı anlamsız, 消込 önerisinde müşteri ayırt edilemiyor.

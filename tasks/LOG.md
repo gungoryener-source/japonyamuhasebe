@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 16:43 JST · developer · T-048b CORS + güvenlik başlıkları
+- Yeni `bot/security.py`: `CORS_ORIGINS` boş/`*` → yalnızca `PANEL_URL` origin'i + `http://localhost:3000` (render.yaml'daki `"*"` değiştirilmedi, kodda daraltıldı); açık liste verilirse aynen kullanılır.
+- Tüm yanıtlara nosniff, Referrer-Policy, HSTS (1 yıl), X-Frame-Options DENY, CSP `frame-ancestors 'none'` (ASGI middleware, en dışta).
+- Bulunan hata: CORS `allow_methods` yalnızca GET/POST/PUT idi → panelin PATCH/DELETE istekleri (kayıt düzenle/sil, token iptali, ekip) ön kontrolde reddediliyordu; düzeltildi.
+- Kapı: pytest 425 geçti (yeni 18). dashboard-next değişmedi. Q-05'e not: `PANEL_URL` gerçek panel adresi olmalı.
+- Sonraki: T-046 (tüm veri dışa aktarma).
+
 ## 2026-11-07 · developer (oturum) · T-045 青色申告決算書 PDF
 - `bot/reports.py`: 損益計算書 転記用 PDF (2 sayfa: ①〜㊺ satırları + aylık satış/gider). Sabit kalemler form sırasıyla, diğer kalemler ㉕〜㉚ boş satırlara (büyükten küçüğe), taşan → 雑費. "参考資料" uyarısı basılı.
 - `GET /api/v1/reports/blue-return.pdf?year=&blue=` (blue ∈ 0/10万/55万/65万). Panel 税務 sayfasında 「決算書PDF」 düğmesi.

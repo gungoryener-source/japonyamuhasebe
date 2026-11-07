@@ -43,6 +43,8 @@ Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şem
 
 **Hız sınırı (T-048):** IP başına (`X-Forwarded-For` ilk değeri; `RATE_LIMIT_PROXY_HOPS=N` → sağdan N'inci) kayan pencere: `/auth/login` 10/dk, `/auth/signup` 5/dk, `/auth/password-reset/request` 5/dk, `/receipts/ocr` 20/dk. Aşılırsa **429** + `Retry-After` (sn) + Japonca `detail`. `RATE_LIMIT_LOGIN|SIGNUP|PASSWORD_RESET|OCR="adet/saniye"` ile değişir, `0` kapatır. Bellek içi (tek örnek); yeniden başlatmada sıfırlanır. `/callback` ve `/` etkilenmez.
 
+**CORS ve güvenlik başlıkları (T-048b):** `CORS_ORIGINS` boş veya `*` ise izin verilen origin'ler yalnızca `PANEL_URL` (origin kısmı) + `http://localhost:3000`; açık bir liste verilirse aynen kullanılır. Yöntemler GET/POST/PUT/PATCH/DELETE, başlıklar `Authorization`, `Content-Type`; `Content-Disposition` ve `Retry-After` okunabilir. Tüm yanıtlarda: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=31536000`, `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` (`bot/security.py`).
+
 Plan sınırları yalnızca ödeme açıkken (`STRIPE_SECRET_KEY` var ve `BILLING_ENFORCE_LIMITS≠0`) uygulanır: ücretsiz planda ay içinde 31. 経費 (`POST /entries`, kind=exp) veya 4. fatura → **402** (Japonca `detail`). LINE/WhatsApp: 31. 経費 kaydı (metin veya fiş görseli; görselde OCR'dan önce) kaydedilmez, Japonca uyarı + `{PANEL_URL}/billing/` bağlantısı döner (T-042b). Checkout dönüşü `/billing/?billing=success|cancel`.
 
 ## Ekip üyeleri (T-041)

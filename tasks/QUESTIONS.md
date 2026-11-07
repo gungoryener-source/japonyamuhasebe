@@ -21,6 +21,7 @@ NTA No.1199 tablosundan 2026 yılı için ≤2,350万 → 104万 okunuyor ama h�
 
 ## Q-05 · Panel adresi (açık)
 render.yaml'a `jsaas-panel` statik sitesi eklendi; Render blueprint senkronunda otomatik oluşur. Render alt alan adı farklı çıkarsa (ör. `jsaas-panel-xxxx.onrender.com`) tegaru-line-bot → Environment → `PANEL_URL` değerini düzelt. Blueprint senkronu "manual" ise Render → Blueprints → japonyamuhasebe → Sync.
+(2026-11-07 developer, T-048b: API artık yalnızca `PANEL_URL` origin'inden (+ localhost:3000) gelen tarayıcı isteklerine CORS izni veriyor. `PANEL_URL` panelin gerçek adresiyle aynı değilse panel API'ye bağlanamaz (「通信エラー」) — bu durumda `PANEL_URL`'yi düzelt ya da `CORS_ORIGINS`'e panel adresini virgülle yaz.)
 **Cevap:**
 
 ## Q-06 · WhatsApp Business (açık)
