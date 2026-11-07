@@ -19,6 +19,12 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # T-047c: kullanıcı tercihleri (bot yanıt dili)
+    """CREATE TABLE IF NOT EXISTS user_prefs(
+        user_id TEXT PRIMARY KEY,
+        lang TEXT NOT NULL DEFAULT 'ja',
+        updated_at TEXT NOT NULL
+    )""",
     """CREATE TABLE IF NOT EXISTS entries(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT NOT NULL,
@@ -407,6 +413,28 @@ def token_info(token: str) -> dict | None:
 
 
 # ---------------------------------------------------------------- profiles
+def get_lang(user_id: str) -> str:
+    """Bot yanıt dili (T-047c). Kayıt yoksa / hata olursa 'ja'."""
+    try:
+        with tx() as con:
+            row = con.execute("SELECT lang FROM user_prefs WHERE user_id=?", (user_id,)).fetchone()
+    except Exception:
+        return "ja"
+    return row["lang"] if row and row["lang"] in ("ja", "tr", "en") else "ja"
+
+
+def set_lang(user_id: str, lang: str) -> str:
+    if lang not in ("ja", "tr", "en"):
+        raise ValueError("lang")
+    with tx() as con:
+        con.execute(
+            """INSERT INTO user_prefs(user_id,lang,updated_at) VALUES(?,?,?)
+               ON CONFLICT(user_id) DO UPDATE SET lang=excluded.lang, updated_at=excluded.updated_at""",
+            (user_id, lang, datetime.now(JST).isoformat(timespec="seconds")),
+        )
+    return lang
+
+
 def get_profile(user_id: str) -> dict:
     with tx() as con:
         row = con.execute("SELECT * FROM profiles WHERE user_id=?", (user_id,)).fetchone()

@@ -48,7 +48,8 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------------- DB (store.py)
-from store import MAX_ENTRY_AMOUNT, add_entry, init_db, issue_token, last_entry, month_summary, undo_last, update_entry  # noqa: E402
+from store import MAX_ENTRY_AMOUNT, add_entry, get_lang, init_db, issue_token, last_entry, month_summary, set_lang, undo_last, update_entry  # noqa: E402
+import i18n  # noqa: E402
 from api import router as api_router  # noqa: E402
 
 init_db()
@@ -236,9 +237,7 @@ async def ocr_receipt(img: bytes) -> list[dict] | dict:
 QR_AFTER_SAVE = ("取消", "科目変更", "税率8%", "税率10%", "合計", "📷 レシート")
 EXP_CATEGORIES = ("旅費交通費", "消耗品費", "会議費", "接待交際費", "通信費", "地代家賃", "水道光熱費",
                   "外注工賃", "新聞図書費", "広告宣伝費", "支払手数料", "雑費")
-HELP = ("レシートの写真か「店名 金額」を送ってください。\n"
-        "例：ローソン 540円 軽減\n例：タクシー 2300 T1234567890123\n"
-        "例：入金 330000 合同会社ミナト\n\n「合計」今月の集計　「取消」直前の記録を削除\n「パネル」ウェブ管理画面の接続コード")
+HELP = i18n.HELP_JA  # tek kaynak: çeviri bu metni anahtar olarak kullanır
 
 
 Options = list[tuple[str, str]]  # (buton etiketi, gönderilecek metin)
@@ -250,8 +249,22 @@ def opts(*labels: str) -> Options:
 
 
 def respond(user_id: str, text: str, source: str = "LINE") -> tuple[str, Options]:
-    """Kanaldan bağımsız sohbet çekirdeği (LINE, WhatsApp). Yanıt metni + hızlı yanıt seçenekleri döner."""
-    t = text.strip()
+    """Kanaldan bağımsız sohbet çekirdeği (LINE, WhatsApp). Yanıt metni + hızlı yanıt seçenekleri döner.
+    T-047c: kullanıcının dili (ja/tr/en) — yerel komutlar Japoncaya çevrilir, yanıt kullanıcının diline çevrilir."""
+    is_lang, chosen = i18n.parse_lang_command(text)
+    if is_lang:
+        if chosen is None:
+            return i18n.lang_prompt(get_lang(user_id)), i18n.lang_options()
+        set_lang(user_id, chosen)
+        return localize(chosen, i18n.lang_set_text(chosen) + "\n\n" + HELP, opts(CAMERA, "合計"))
+    return localize(get_lang(user_id), *_respond_ja(user_id, i18n.normalize(text.strip()), source))
+
+
+def localize(lang: str, msg: str, options: Options) -> tuple[str, Options]:
+    return i18n.text(lang, msg), i18n.options(lang, options, CAMERA)
+
+
+def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
     if re.match(r"^(取消|取り消し|iptal)", t):
         row = undo_last(user_id)
         msg = f"「{row['store']} {yen(row['amount'])}」を取り消しました" if row else "取り消す記録がありません"
@@ -337,7 +350,11 @@ IMAGE_FAIL_TEXT = "画像を読み取れませんでした。もう一度送る�
 
 
 async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
-    """Fiş görseli → OCR → kayıt. Kanaldan bağımsız."""
+    """Fiş görseli → OCR → kayıt. Kanaldan bağımsız. Yanıt kullanıcının dilinde (T-047c)."""
+    return localize(get_lang(user_id), *await _process_image_ja(user_id, img, ref, source))
+
+
+async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
         return notice, opts("合計")
     try:
@@ -382,7 +399,7 @@ async def _image_result(user_id: str, message_id: str) -> dict:
         img = await get_image(message_id)
     except Exception as ex:
         print("LINE content error", type(ex).__name__)
-        return text_msg("画像を取得できませんでした。もう一度送ってください。")
+        return text_msg(i18n.text(get_lang(user_id), "画像を取得できませんでした。もう一度送ってください。"))
     return to_line(*await process_image(user_id, img, message_id, "LINE"))
 
 
@@ -396,14 +413,14 @@ async def handle_image(user_id: str, token: str, message_id: str):
         msg = await asyncio.wait_for(asyncio.shield(task), timeout=reply_wait_seconds())
     except asyncio.TimeoutError:
         try:  # 「読み取り中」 reply ağ hatası sonucu (push) engellemesin
-            await reply(token, [text_msg(READING_TEXT)])
+            await reply(token, [text_msg(i18n.text(get_lang(user_id), READING_TEXT))])
         except Exception as ex:
             print("LINE reply error", type(ex).__name__)
         try:
             msg = await task
         except Exception as ex:
             print("image task error", type(ex).__name__)
-            msg = text_msg(IMAGE_FAIL_TEXT)
+            msg = text_msg(i18n.text(get_lang(user_id), IMAGE_FAIL_TEXT))
         try:
             await push(user_id, [msg])
         except Exception as ex:
@@ -411,7 +428,7 @@ async def handle_image(user_id: str, token: str, message_id: str):
         return
     except Exception as ex:
         print("image task error", type(ex).__name__)
-        msg = text_msg(IMAGE_FAIL_TEXT)
+        msg = text_msg(i18n.text(get_lang(user_id), IMAGE_FAIL_TEXT))
     await reply(token, [msg])
 
 
@@ -428,7 +445,7 @@ async def handle_event(ev: dict):
     elif m["type"] == "image":
         await handle_image(user_id, token, m["id"])
     else:
-        await reply(token, [text_msg("テキストかレシート画像を送ってください。")])
+        await reply(token, [text_msg(i18n.text(get_lang(user_id), "テキストかレシート画像を送ってください。"))])
 
 
 @app.post("/callback")

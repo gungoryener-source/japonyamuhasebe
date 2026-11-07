@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-047c bot dili
+- `bot/i18n.py`: Japonca çekirdek yanıtı parça bazında tr/en'e çevirir; yerel komutlar (Toplam/Geri al/Total/Undo…) Japonca komuta normalize edilir. Veri ve 勘定科目 Japonca kalır.
+- Komut: 「言語」/「dil」/「language」 → seçenekler; 「Türkçe」/「English」/「日本語」/「言語:tr」 → ayarla. Yeni tablo `user_prefs(user_id, lang)`.
+- LINE kamera düğmesi ve WhatsApp filtreleri değişmedi (gönderilen metin `📷 レシート` kalır). 7 yeni test, toplam 402 yeşil.
+
 ## 2026-11-07 · developer (oturum) · T-047 dilim 1
 - `app/lib/i18n.ts` (Japonca metinle anahtarlı ja/tr/en sözlük, `{x}` yer tutucu) + `components/lang.tsx` (LangProvider, useT, LangSwitcher; localStorage `jsaas.lang`, `<html lang>`).
 - Üst çubukta dil seçici; 設定'de "表示言語" kartı. Kabuk (menü, üst çubuk, arama, mod rozeti, sayfa başlık/alt başlıkları) ve 設定 tamamen çevrildi; `Card` başlıkları tüm sayfalarda çevriliyor (tr/en'de Japonca başlık küçük etiket).
