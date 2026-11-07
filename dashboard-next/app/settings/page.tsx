@@ -7,6 +7,7 @@ import { API_BASE, api, saveBlob, setToken, type ApiChannels } from "../lib/api"
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Field, inputCls, ReadOnlyNote, registrationOk } from "../components/ui";
 import { MembersCard } from "./members";
+import { DeleteRequestCard } from "./delete-request";
 import { LangSwitcher, useT } from "../components/lang";
 
 export default function SettingsPage() {
@@ -159,6 +160,8 @@ function Settings() {
           <Btn kind="primary" onClick={exportAll} disabled={exporting} className="ml-auto"><Download size={13} />{t(exporting ? "作成中…" : "全データをダウンロード")}</Btn>
         </div>
       </Card>
+
+      <DeleteRequestCard />
 
       <Card title="接続" en="Connection" right={<KeyRound size={16} className="text-slate-400" />} className="lg:col-span-2">
         <div className="flex flex-wrap items-center gap-3 text-xs">

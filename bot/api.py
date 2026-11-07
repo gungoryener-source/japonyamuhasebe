@@ -16,6 +16,7 @@ import accounts
 import archive
 import bank_csv
 import billing
+import deletion
 import export
 import invoices as inv_mod
 import ratelimit
@@ -485,6 +486,23 @@ def export_all_zip(uid: str = Depends(current_user)):
                     headers={"Content-Disposition": f'attachment; filename="tegaru_all_{stamp}.zip"'})
 
 
+# ---------------------------------------------------------------- hesap silme talebi (T-046b)
+def _deletion_view(uid: str) -> dict:
+    return {"request": deletion.get(uid), "billing_active": deletion.billing_active(uid)}
+
+
+@router.get("/account/delete-request")
+def get_delete_request(uid: str = Depends(owner_user)):
+    return _deletion_view(uid)
+
+
+@router.post("/account/delete-request", status_code=202)
+def post_delete_request(p: dict = Depends(current_principal), uid: str = Depends(owner_user)):
+    """Talebi kaydeder (veri hemen silinmez). Tekrar çağrı idempotent: aynı talep, `created: false`."""
+    _, created = deletion.request(uid, p["account_id"])
+    return {**_deletion_view(uid), "created": created}
+
+
 @router.delete("/tokens/current", status_code=204)
 def revoke_current(authorization: str = Header(default=""), uid: str = Depends(current_user)):
     store.revoke_token(authorization.removeprefix("Bearer ").strip())
@@ -687,6 +705,14 @@ def admin_issue_token(body: TokenIn, x_admin_key: str = Header(default="")):
     if not _admin_ok(x_admin_key):
         raise HTTPException(401, "admin key required")
     return {"user_id": body.user_id, "token": store.issue_token(body.user_id, body.label)}
+
+
+@router.get("/admin/deletion-requests")
+def admin_deletion_requests(x_admin_key: str = Header(default="")):
+    """T-046b: bekleyen hesap silme talepleri (operatör; docs/OPERATIONS.md)."""
+    if not _admin_ok(x_admin_key):
+        raise HTTPException(401, "admin key required")
+    return {"requests": deletion.list_pending()}
 
 
 @router.post("/admin/demo-seed", status_code=201)

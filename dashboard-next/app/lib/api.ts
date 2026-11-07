@@ -141,6 +141,13 @@ export type ApiIncomeTax = {
 };
 export type ApiAuth = { account: { id: number; email: string }; user_id: string; token: string };
 /** `role` T-041 ile geldi; eski sunucuda yoksa owner sayılır (lib/team.ts `parseRole`). */
+/** T-046b: アカウント削除申請（即時削除なし） */
+export type ApiDeleteRequest = {
+  request: { id: number; status: "pending" | "done" | "cancelled"; requested_at: string } | null;
+  billing_active: boolean;
+  created?: boolean;
+};
+
 export type ApiMe = { user_id: string; role?: string; account: { id: number; email: string; email_verified: boolean } | null };
 
 /** Ekip (T-041, docs/API.md `/team/*`). */
@@ -212,6 +219,9 @@ export const api = {
   blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),
   /** T-046: 全データ ZIP（全期間の仕訳 CSV・請求書 CSV/PDF） */
   exportAll: () => fetchBlob("/export/all.zip"),
+  /** T-046b: アカウント削除申請（owner のみ・即時削除なし） */
+  deleteRequest: () => call<ApiDeleteRequest>("/account/delete-request"),
+  requestDelete: () => call<ApiDeleteRequest>("/account/delete-request", { method: "POST" }),
   channels: () => call<ApiChannels>("/channels"),
   revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
   me: () => call<ApiMe>("/auth/me"),

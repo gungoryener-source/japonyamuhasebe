@@ -140,6 +140,14 @@ SCHEMA = [
         used_at TEXT DEFAULT '',
         used_by BIGINT NOT NULL DEFAULT 0
     )""",
+    # T-046b hesap silme talebi (deletion.py) — yalnızca kayıt; veri silinmez (işlem insan adımı)
+    """CREATE TABLE IF NOT EXISTS deletion_requests(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL UNIQUE,
+        account_id BIGINT NOT NULL DEFAULT 0,
+        requested_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending'
+    )""",
 ]
 
 

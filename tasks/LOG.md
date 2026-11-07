@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 20:47 JST · developer · T-046b hesap silme talebi
+- Yeni `deletion_requests` tablosu (ekleyici, `UNIQUE(user_id)`) + `bot/deletion.py`. `GET/POST /api/v1/account/delete-request` yalnızca owner (accountant/viewer 403); POST 202, tekrar POST idempotent (`created:false`, eşzamanlıda `ON CONFLICT DO NOTHING`). **Veri silinmez**; `cancelled` talep yeniden `pending` olabilir.
+- `billing_active` bayrağı (ücretli plan yenilenecekse true). Yorum: talebi engellemiyor, panel önce 解約 uyarısı + 料金プラン bağlantısı gösteriyor. Operatör için `GET /admin/deletion-requests` (X-Admin-Key).
+- Panel 設定: 「アカウントの削除」 kartı — 2 adımlı onay (「削除」 yazınca etkin), 「申請済み」 + tarih, ja/tr/en; owner dışı rollerde gizli. docs/OPERATIONS.md (yeni, elle işlem adımları) + docs/API.md.
+- Kapı: pytest 466 geçti (yeni 8); `next build` + check:tax/legal/team yeşil; demo modda kart Playwright ile denendi.
+- Yeni soru Q-15 (silme süresi / saklama yükümlülüğü / geri alma). Sonraki: T-044 (/lp), T-044b (/welcome).
+
 ## 2026-11-07 19:46 JST · developer · T-046 tüm veri ZIP
 - Yeni `bot/archive.py` + `GET /api/v1/export/all.zip` (tüm roller, viewer dahil): `entries.csv` (tüm dönem, freee sütunları), `invoices.csv` (明細 JSON sütunu, 入金済/未入金, 入金日), `invoices/<番号>.pdf`, Japonca `README.txt` (JST oluşturma zamanı, sayılar). Bellekte `zipfile`, `entries_in_range` ile satır sınırı yok.
 - Yorum: ZIP içindeki CSV'ler **UTF-8 BOM** (yedek amaçlı, CP932'de olmayan karakterler kaybolmasın); muhasebe yazılımı içe aktarımı için mevcut Shift_JIS `/export.csv` duruyor (README'de not). PDF adı yol geçişine karşı temizleniyor. 電帳法 保存期間 TAX_RULES'ta ⚠️ olduğundan README'ye süre yazılmadı.

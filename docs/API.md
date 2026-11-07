@@ -4,6 +4,7 @@ Taban: `https://tegaru-line-bot.onrender.com/api/v1` · Kimlik: `Authorization: 
 Token alma: LINE'da 「パネル」 yaz **veya** admin: `POST /api/v1/admin/tokens {"user_id": "..."}` (`X-Admin-Key`).
 Hesap (T-040): `POST /auth/signup` / `POST /auth/login` `{email, password}` → `{account:{id,email}, user_id, token}` (token yukarıdaki Bearer ile aynı).
 Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri + token.
+Bekleyen silme talepleri: `GET /api/v1/admin/deletion-requests` (`X-Admin-Key`) → `{requests:[{id,user_id,account_id,email,requested_at,status}]}` (T-046b).
 
 | Yöntem | Yol | Açıklama |
 |---|---|---|
@@ -19,6 +20,7 @@ Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri
 | GET | `/invoices/{no}/pdf` | PDF (IPAゴシック gömülü) |
 | GET | `/export.csv?format=freee|mf|yayoi&year=` | Muhasebe yazılımı CSV (Shift_JIS) |
 | GET | `/export/all.zip` | T-046: tüm veri ZIP — `entries.csv` (tüm dönem, freee sütunları, UTF-8 BOM, satır sınırı yok), `invoices.csv`, `invoices/<番号>.pdf`, `README.txt`. Tüm roller (viewer dahil) |
+| GET / POST | `/account/delete-request` | T-046b: hesap silme **talebi** (veri silinmez; işlem insan adımı — docs/OPERATIONS.md). Yalnızca owner (accountant/viewer 403). POST → 202 `{request:{id,status:"pending",requested_at}, billing_active, created}`; tekrar POST idempotent (`created:false`). `billing_active`: ücretli plan yenilenecekse true (panel önce 解約 önerir) |
 
 Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şema).
 | GET | `/pl?year=` | 青色申告決算書 (損益計算書) özeti: 売上, kalem bazında 経費, 所得 |

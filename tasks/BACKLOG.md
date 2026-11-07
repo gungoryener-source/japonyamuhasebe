@@ -50,8 +50,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-045 | P1 | done | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
 | T-045b | P2 | todo | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
 | T-046 | P1 | done (bu commit) | Tüm veri dışa aktarma: `GET /api/v1/export/all.zip` (kayıtlar CSV + faturalar CSV/PDF) + 設定'te indirme düğmesi |
-| T-046b | P1 | doing (developer, 2026-11-07) | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
-| T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
+| T-046b | P1 | done (bu commit; silme işlemi Q-15) | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
+| T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` (dosya T-046b ile oluştu; bölüm ekle) |
 | T-047 | P0 | done (dilim 1: altyapı + seçici + kabuk + 設定 + tüm kart başlıkları) | **Dil seçeneği (ürün sahibi isteği 2026-11-07):** 日本語 / Türkçe / English |
 | T-047b | P0 | done | Dil dilim 2: ホーム gövdesi, 請求書, 経費, 銀行, 税務, 料金プラン, メンバー kartı, login/signup/reset/join/connect metinleri `t()` ile; sözlüğe tr+en ekle |
 | T-047c | P0 | done | Bot dili (`user_prefs` tablosu, `profiles`'a dokunulmadı): `言語`/`dil`/`language` komutu + hızlı yanıt, `bot/i18n.py` ja/tr/en, testler |
