@@ -17,7 +17,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
-| T-011 | P1 | todo | Fiş görselleri için depolama soyutlaması (yerel / S3 uyumlu); Render diski kalıcı değil → her deploy'da `receipts/` siliniyor (Q-14) |
+| T-011 | P0 | todo | Fiş görselleri için depolama soyutlaması: yerel / **S3 uyumlu (Cloudflare R2, Q-14 cevaplandı)**; `STORAGE_*` render.yaml'a `sync: false`; yoksa yerel disk |
 | T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
 | T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
@@ -69,6 +69,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-052 | P1 | done (bu commit) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
 | T-053 | P2 | done (c5108d7) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 | T-054 | P2 | done (bu commit) | Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor |
+| T-055 | P0 | todo | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
+| T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
+| T-057 | P1 | todo | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 
 ---
 
