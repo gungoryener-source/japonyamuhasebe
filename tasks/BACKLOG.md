@@ -23,7 +23,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P1 | done | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
 | T-016 | P1 | done (743716d) | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
-| T-012b | P1 | doing (developer-oturum, 2026-11-07) | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
+| T-012b | P1 | done (弥生 25項目 + freee 公式列; MF → T-012c) | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
 | T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
 | T-019 | P2 | todo | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-020 | P1 | done | dashboard-next: 確定申告 önizleme sayfası (`/api/v1/pl`, `/api/v1/tax/income`) |
@@ -71,13 +71,14 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-054 | P2 | done (bu commit) | Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor |
 | T-055 | P0 | done (bu commit) | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
 | T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
-| T-057 | P1 | doing (developer-oturum, 2026-11-07) | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
+| T-057 | P1 | done | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 | T-059 | P2 | done (bu commit) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
 | T-060 | P0 | done | **仕切書 (hurda satış fişi) akışı** — ürün sahibi isteği: LINE'dan el yazısı 仕切書 → onay kuyruğu → 売上; 一覧 PDF; AI yalnızca bu fişlerde (karar 2026-11-07). Ajanlar dokunmasın: `bot/slips*.py`, `dashboard-next/app/slips/` |
 | T-061 | P0 | done | 取引先マスタ + 摘要照合 + Excel 取込 + 国税庁 Web-API 検索 (NTA_APP_ID) |
 | T-062 | P0 | done | 通帳取込 (AI, PDF/写真, 残高チェック) + 確認画面 /passbook + 通帳整理表 Excel |
 | T-063 | P1 | doing (developer-oturum, 2026-11-07) | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
+| T-012c | P2 | todo | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
 
 ---
 

@@ -10,7 +10,7 @@ services:
     healthCheckPath: /
     envVars:
       - key: OCR_ENGINE
-        value: auto
+        value: tesseract   # レシートは AI なし（Q-02）。AI は 仕切書・通帳のみ（ANTHROPIC_API_KEY）
       - key: LINE_CHANNEL_SECRET
         sync: false
       - key: LINE_CHANNEL_ACCESS_TOKEN

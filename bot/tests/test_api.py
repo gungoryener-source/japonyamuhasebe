@@ -129,10 +129,16 @@ def test_export_csv(client, auth, fmt):
     r = client.get(f"/api/v1/export.csv?format={fmt}&year=2026", headers=auth)
     assert r.status_code == 200
     rows = list(csv.reader(io.StringIO(r.content.decode("cp932"))))
+    if fmt == "yayoi":   # T-012b: 弥生は 25項目・見出しなし
+        assert len(rows) == 2 and all(len(x) == 25 for x in rows)
+        assert rows[0][7] == "課対仕入込10%区分70%" and rows[1][13] == "課税売上込10%"
+        assert rows[1][16] == "A社" and rows[0][24] == "no"
+        return
     assert len(rows) == 3
     assert any("A社" in c for c in rows[2])
-    if fmt == "freee":
-        assert rows[1][4] == "課対仕入10%（控70）"
+    if fmt == "freee":   # T-012b: 公式「取引インポート」列順
+        assert rows[0][:3] == ["収支区分", "管理番号", "発生日"]
+        assert rows[1][2] == "2026/10/15" and rows[1][7] == "課対仕入10%（控70）"
 
 
 def test_export_bad_format(client, auth):
@@ -181,3 +187,19 @@ def test_pl_and_income_tax(client, auth):
     assert r26.status_code == 200 and r26.json()["basic_deduction"] == 1_040_000 and r26.json()["revenue"] == 0
     assert client.get("/api/v1/tax/income?year=2028", headers=auth).status_code == 409
     assert client.get("/api/v1/tax/income?year=2025&blue=1", headers=auth).status_code == 400
+
+
+def test_export_bank_and_interest_labels():
+    """T-012b: 銀行から記帳 → 相手科目 普通預金、受取利息 → 非課売上、軽減8%・適格。"""
+    import export
+    rows = [{"d": "2026-11-19", "kind": "inc", "store": "お利息", "amount": 2, "category": "受取利息", "rate": 0, "invoice_no": "", "source": "BANK"},
+            {"d": "2026-09-15", "kind": "exp", "store": "家主", "amount": 46200, "category": "地代家賃", "rate": 10, "invoice_no": "T9360001002793", "source": "BANK"},
+            {"d": "2026-11-01", "kind": "exp", "store": "コンビニ", "amount": 540, "category": "会議費", "rate": 8, "invoice_no": ""},
+            {"d": "2028-10-01", "kind": "exp", "store": "X", "amount": 100, "category": "雑費", "rate": 10, "invoice_no": ""}]
+    y = list(csv.reader(io.StringIO(export.to_csv(rows, "yayoi"))))
+    assert y[0][4] == "普通預金" and y[0][13] == "非課売上"
+    assert y[1][7] == "課対仕入込10%適格" and y[1][10] == "普通預金"
+    assert y[2][7] == "課対仕入込軽減8%区分70%" and y[2][10] == "事業主借"
+    assert y[3][7] == "課対仕入込10%区分50%"
+    f = list(csv.reader(io.StringIO(export.to_csv(rows, "freee"))))
+    assert f[1][7] == "非課売上" and f[1][2] == "2026/11/19"

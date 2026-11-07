@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-057 + T-012b
+- render.yaml `OCR_ENGINE=tesseract` (レシート AI なし). AI yalnızca 仕切書/通帳.
+- 弥生 CSV: resmi 25 項目 (識別フラグ…調整), başlıksız, 税区分 resmi yazım (課税売上込10% / 課対仕入込軽減8% / 非課売上), インボイス 「適格」/「区分70%」 (経過措置 oranı tarihten).
+- freee: resmi 取引インポート sütunları, tarih YYYY/MM/DD, 決済 boş. Banka kaynaklı kayıtlar karşı hesap 普通預金, 受取利息 → 非課売上.
+- MF doğrulanamadı → T-012c. 515 test.
 ## 2026-11-07 23:46 JST · developer · T-044b /welcome kurulum sihirbazı
 - Yeni `/welcome/` (3 adım, adım göstergesi, `?step=` ile yenilemede korunur, her adım 「あとで」 ile atlanır, sonunda ホーム): 1 事業者情報 (PUT /profile, 登録番号 チェックデジット), 2 LINE 連携 (tk_ kodu → POST /auth/link-line; `NEXT_PUBLIC_LINE_ADD_URL` varsa 友だち追加 bağlantısı), 3 最初の領収書 (経費精算'e bağlantı / LINE ile gönderme).
 - `/signup` artık `/connect/?welcome=1` yerine `/welcome/`'a yönlendiriyor; davet kodu bekleyen kayıt eskisi gibi `/join/` (sihirbaz yok). Canlı oturumda accountant/viewer gelirse ホーム'a yönlendirilir; demo (token yok) statik, API çağrısı yok.

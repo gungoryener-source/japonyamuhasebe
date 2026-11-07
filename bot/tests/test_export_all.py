@@ -60,10 +60,10 @@ def test_contents_all_years_and_invoices(client):
     assert sorted(z.namelist()) == sorted(["README.txt", "entries.csv", "invoices.csv",
                                            f"invoices/{no1}.pdf", f"invoices/{no2}.pdf"])
     ents = csv_rows(z, "entries.csv")
-    assert ents[0][:2] == ["収支区分", "発生日"]
+    assert ents[0][:3] == ["収支区分", "管理番号", "発生日"]
     # 3 件の経費 + 入金消込で記録された売上 1 件、全年度
-    assert sorted(r[1] for r in ents[1:]) == ["2024-03-01", "2025-07-15", "2026-10-05", "2026-10-20"]
-    assert any(r[2] == "文具店①" for r in ents[1:])  # CP932 外の文字も欠けない
+    assert sorted(r[2] for r in ents[1:]) == ["2024/03/01", "2025/07/15", "2026/10/05", "2026/10/20"]
+    assert any(r[5] == "文具店①" for r in ents[1:])  # CP932 外の文字も欠けない
     invs = csv_rows(z, "invoices.csv")
     assert len(invs) == 3
     by_no = {r[0]: r for r in invs[1:]}
@@ -153,14 +153,15 @@ def test_to_csv_escape_formulas(fmt):
          "rate": 10, "invoice_no": "@x"}
     ok = {**e, "store": "文具店", "amount": 1100, "invoice_no": "T7011001666666"}
     safe = list(csv.reader(io.StringIO(export.to_csv([e, ok], fmt, escape_formulas=True))))
-    cells = [c for r in safe[1:] for c in r]
+    body = safe if fmt == "yayoi" else safe[1:]   # 弥生は見出し行なし（T-012b）
+    cells = [c for r in body for c in r]
     assert "'=1+1" in cells and "=1+1" not in cells
     assert "-500" in cells and "1100" in cells and "文具店" in cells
     if fmt == "freee":
         assert "'@x" in cells and "T7011001666666" in cells
     # 既定（会計ソフト取込用 /export.csv）は従来どおり（Q-17）
     raw = list(csv.reader(io.StringIO(export.to_csv([e], fmt))))
-    assert "=1+1" in [c for r in raw[1:] for c in r]
+    assert "=1+1" in [c for r in (raw if fmt == "yayoi" else raw[1:]) for c in r]
     assert e["store"] == "=1+1"  # 入力の dict を書き換えない
 
 
