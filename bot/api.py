@@ -16,9 +16,11 @@ import accounts
 import archive
 import bank_csv
 import billing
+import counterparties as cpmod
 import deletion
 import export
 import invoices as inv_mod
+import passbook
 import ratelimit
 import reports
 import slips
@@ -409,6 +411,210 @@ def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(writer_user)):
     store.link_bank_tx(uid, tx_id, entry_id=eid)
     return {"id": eid, **e}
 
+
+
+# ---------------------------------------------------------------- 通帳取込・取引先照合 (T-061/T-062)
+@router.post("/bank/passbook", dependencies=[Depends(ratelimit.limiter("ocr"))])
+async def bank_passbook(request: Request, account: str = "", uid: str = Depends(writer_user)):
+    """通帳のスキャン（PDF / 写真）→ AI で明細を読み取り bank_tx に取込（重複は除外）。"""
+    raw = await request.body()
+    if not raw:
+        raise HTTPException(400, "empty body")
+    if len(raw) > 25 * 1024 * 1024:
+        raise HTTPException(413, "25MB以下のファイルにしてください")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not key:
+        raise HTTPException(503, "通帳の読み取りには AI の設定（ANTHROPIC_API_KEY）が必要です")
+    parsed = await passbook.ai_read(raw, key, os.environ.get("OCR_MODEL", "claude-sonnet-5-5"))
+    return passbook.import_rows(uid, parsed, account)
+
+
+def _review_rows(uid: str, date_from: str = "", date_to: str = "") -> list[dict]:
+    cps, aliases = cpmod.all_(uid), cpmod.alias_map(uid)
+    by_id = {c["id"]: c for c in cps}
+    out = []
+    for t in sorted(store.list_bank_tx(uid, 5000), key=lambda r: (r["d"], r["id"])):
+        if (date_from and t["d"] < date_from) or (date_to and t["d"] > date_to):
+            continue
+        m = cpmod.match(uid, t["description"], cps, aliases)
+        cp = by_id.get(t.get("counterparty_id")) if t.get("counterparty_id") else m["counterparty"]
+        done = t.get("status") in ("confirmed", "excluded") or bool(t["entry_id"]) or bool(t["invoice_no"])
+        out.append({
+            "id": t["id"], "d": t["d"], "description": t["description"], "amount": t["amount"], "balance": t["balance"],
+            "account": t.get("account") or "", "src": t.get("src") or "csv", "balance_ok": t.get("balance_ok"),
+            "status": t.get("status") or ("confirmed" if done else ""), "entry_id": t["entry_id"],
+            "category": t.get("category") or (cp or {}).get("category") or m["category"],
+            "counterparty": {k: cp[k] for k in ("id", "name", "registration_no", "corporate_number")} if cp else None,
+            "match": m["how"], "book": m["book"] if not cp else True,
+            "candidates": [{"id": c["id"], "name": c["name"]} for c in m.get("candidates", [])],
+        })
+    return out
+
+
+@router.get("/bank/review")
+def bank_review(date_from: str = "", date_to: str = "", uid: str = Depends(current_user)):
+    rows = _review_rows(uid, date_from and _valid_date(date_from, "date_from"), date_to and _valid_date(date_to, "date_to"))
+    return {"rows": rows, "counts": {
+        "total": len(rows), "open": sum(1 for r in rows if not r["status"]),
+        "unknown": sum(1 for r in rows if not r["status"] and not r["counterparty"] and r["match"] == ""),
+        "balance_errors": sum(1 for r in rows if r["balance_ok"] == 0)},
+        "nta_enabled": bool(os.environ.get("NTA_APP_ID")), "ai_enabled": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+
+
+class ConfirmIn(BaseModel):
+    book: bool = True
+    category: str = Field("", max_length=20)
+    counterparty_name: str = Field("", max_length=80)
+    registration_no: str = Field("", max_length=14)
+    rate: int | None = None
+
+
+@router.post("/bank/{tx_id}/confirm")
+def bank_confirm(tx_id: int, body: ConfirmIn, uid: str = Depends(writer_user)):
+    """確認: 記帳する（売上/経費として entries へ）か、記帳しない（現金引出・振替など）。取引先は覚える。"""
+    t = store.get_bank_tx(uid, tx_id)
+    if not t:
+        raise HTTPException(404, "transaction not found")
+    if t.get("status") in ("confirmed", "excluded") or t["entry_id"] or t["invoice_no"]:
+        raise HTTPException(409, "already recorded")
+    category = cpmod.normalize_category(body.category)
+    cp = None
+    if body.counterparty_name.strip():
+        try:
+            cp = cpmod.upsert(uid, name=body.counterparty_name, registration_no=body.registration_no, category=category)
+        except ValueError as ex:
+            raise HTTPException(400, str(ex))
+        cpmod.learn_alias(uid, cp["id"], cpmod.key_from_description(t["description"]))
+    entry_id = None
+    if body.book and category not in cpmod.TRANSFER_CATEGORIES:
+        if not category:
+            raise HTTPException(400, "勘定科目を選んでください")
+        rate = body.rate if body.rate is not None else (0 if category == "受取利息" else 10)
+        if rate not in (10, 8, 0):
+            raise HTTPException(400, "rate must be 10, 8 or 0")
+        amount = abs(int(t["amount"]))
+        if amount >= store.MAX_ENTRY_AMOUNT:
+            raise HTTPException(400, f"amount must be < {store.MAX_ENTRY_AMOUNT}")
+        entry_id = store.add_entry(uid, {
+            "date": t["d"], "kind": "inc" if t["amount"] > 0 else "exp",
+            "store": (cp["name"] if cp else t["description"])[:100], "amount": amount, "category": category,
+            "rate": rate, "invoice_no": (cp or {}).get("registration_no") or "",
+        }, source="BANK")
+    with store.tx() as con:
+        con.execute("UPDATE bank_tx SET status=?, category=?, counterparty_id=?, entry_id=COALESCE(?, entry_id) WHERE id=? AND user_id=?",
+                    ("confirmed" if entry_id else "excluded", category, cp["id"] if cp else None, entry_id, tx_id, uid))
+    return {"id": tx_id, "status": "confirmed" if entry_id else "excluded", "entry_id": entry_id}
+
+
+class BulkIn(BaseModel):
+    ids: list[int] = Field(..., max_length=2000)
+
+
+@router.post("/bank/confirm-matched")
+def bank_confirm_matched(body: BulkIn, uid: str = Depends(writer_user)):
+    """自動で取引先・科目が決まった行をまとめて確定（残高チェック NG の行は除く）。"""
+    rows = {r["id"]: r for r in _review_rows(uid)}
+    done, skipped = 0, 0
+    for i in body.ids:
+        r = rows.get(i)
+        if not r or r["status"] or r["balance_ok"] == 0 or not r["category"] or (r["match"] == "" and not r["counterparty"]):
+            skipped += 1
+            continue
+        cp = r["counterparty"] or {}
+        bank_confirm(i, ConfirmIn(book=r["book"], category=r["category"], counterparty_name=cp.get("name", ""),
+                                  registration_no=cp.get("registration_no", "")), uid)
+        done += 1
+    return {"confirmed": done, "skipped": skipped}
+
+
+@router.get("/counterparties")
+def cp_list(uid: str = Depends(current_user)):
+    return {"counterparties": cpmod.all_(uid), "nta_enabled": bool(os.environ.get("NTA_APP_ID"))}
+
+
+class CpIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+    furigana: str = Field("", max_length=120)
+    registration_no: str = Field("", max_length=14)
+    category: str = Field("", max_length=20)
+
+
+@router.post("/counterparties", status_code=201)
+def cp_upsert(body: CpIn, uid: str = Depends(writer_user)):
+    try:
+        return cpmod.upsert(uid, name=body.name, furigana=body.furigana, registration_no=body.registration_no,
+                            category=body.category)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+@router.post("/counterparties/import")
+async def cp_import(request: Request, uid: str = Depends(writer_user)):
+    """既存の通帳整理表（Excel）から取引先・登録番号・科目を取り込む。"""
+    raw = await _body(request)
+    try:
+        return cpmod.import_excel(uid, raw)
+    except Exception as ex:  # noqa: BLE001  壊れた / 別形式のファイル
+        raise HTTPException(400, f"Excel を読み込めませんでした（{type(ex).__name__}）")
+
+
+@router.get("/counterparties/lookup")
+async def cp_lookup(desc: str = Query(..., min_length=1, max_length=120), uid: str = Depends(current_user)):
+    """摘要のカナで国税庁 法人番号 Web-API を検索（NTA_APP_ID が設定されているとき）。"""
+    app_id = os.environ.get("NTA_APP_ID", "")
+    if not app_id:
+        raise HTTPException(503, "国税庁 Web-API のアプリケーションID（NTA_APP_ID）が未設定です")
+    try:
+        found = await cpmod.nta_search(app_id, desc)
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(502, f"国税庁 Web-API に接続できませんでした（{type(ex).__name__}）")
+    for f in found:
+        f["registration_no_guess"] = "T" + f["corporate_number"]   # 法人は 登録番号 = T + 法人番号（登録済みの場合）
+    return {"results": found}
+
+
+@router.get("/reports/bank.xlsx")
+def bank_xlsx(date_from: str = Query(...), date_to: str = Query(...), uid: str = Depends(current_user)):
+    """通帳整理表（Excel）: 日付・支出・入金・勘定科目・取引先・残高・登録番号・状態。"""
+    import io as _io
+
+    import openpyxl
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    _valid_date(date_from, "date_from")
+    _valid_date(date_to, "date_to")
+    rows = _review_rows(uid, date_from, date_to)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "通帳"
+    head = ["日付", "支出", "入金", "勘定科目", "取引先", "摘要（通帳）", "残高", "インボイス登録番号", "状態", "残高チェック", "口座"]
+    ws.append(head)
+    for c in ws[1]:
+        c.font = Font(name="Arial", bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor="1E293B")
+        c.alignment = Alignment(horizontal="center")
+    for r in rows:
+        cp = r["counterparty"] or {}
+        ws.append([date.fromisoformat(r["d"]), -r["amount"] if r["amount"] < 0 else None, r["amount"] if r["amount"] > 0 else None,
+                   r["category"], cp.get("name", ""), r["description"], r["balance"], cp.get("registration_no", ""),
+                   {"confirmed": "記帳済", "excluded": "記帳しない", "": "未確認"}[r["status"]],
+                   {1: "OK", 0: "NG"}.get(r["balance_ok"], ""), r["account"]])
+    n = ws.max_row
+    ws.append(["合計", f"=SUM(B2:B{n})", f"=SUM(C2:C{n})"])
+    for row in ws.iter_rows(min_row=2):
+        row[0].number_format = "yyyy-mm-dd"
+        for i in (1, 2, 6):
+            row[i].number_format = "#,##0"
+        for c in row:
+            if c.font.name != "Arial":
+                c.font = Font(name="Arial", bold=c.row == ws.max_row)
+    for col, w in zip("ABCDEFGHIJK", (12, 12, 12, 12, 28, 24, 13, 18, 10, 10, 18)):
+        ws.column_dimensions[col].width = w
+    ws.freeze_panes = "A2"
+    buf = _io.BytesIO()
+    wb.save(buf)
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="bank-{date_from}-{date_to}.xlsx"'})
 
 # ---------------------------------------------------------------- settings
 @router.get("/channels")

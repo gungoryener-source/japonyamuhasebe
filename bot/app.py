@@ -61,6 +61,7 @@ from api import router as api_router  # noqa: E402
 
 init_db()
 
+import passbook  # noqa: E402  (T-062: 通帳)
 import slips  # noqa: E402  (T-060: 仕切書)
 import storage  # noqa: E402  (T-011: fiş görselleri local | S3/R2)
 
@@ -281,6 +282,10 @@ def localize(lang: str, msg: str, options: Options) -> tuple[str, Options]:
 
 
 def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
+    if t.lower() in ("通帳", "通帳取込", "banka defteri", "banka", "passbook", "bankbook"):
+        passbook.start_mode(user_id)
+        return ("通帳のページを1枚ずつ撮影して送ってください（PDF ファイルでも可）。\n"
+                "これから30分間、送られた写真は通帳として読み取ります。"), opts(CAMERA)
     if t.lower() in ("仕切書", "仕切", "伝票", "hurda fişi", "hurda", "slip", "scrap slip"):
         slips.start_mode(user_id)
         return ("仕切書の写真を送ってください。\nこれから30分間、送られた写真は仕切書として確認待ちに入ります。"), opts(CAMERA)
@@ -388,9 +393,22 @@ async def receive_slip(user_id: str, img: bytes, ref: str, source: str, path: st
     return slips.create(user_id, data, image_path=path, source=source, reader=reader)
 
 
+async def receive_passbook(user_id: str, data: bytes) -> tuple[str, Options]:
+    if not ANTHROPIC_KEY:
+        return "通帳の読み取りには AI の設定が必要です。管理者に連絡するか、ネットバンキングの CSV をパネルから取り込んでください。", []
+    try:
+        res = passbook.import_rows(user_id, await passbook.ai_read(data, ANTHROPIC_KEY, OCR_MODEL))
+    except Exception as ex:  # noqa: BLE001
+        print("passbook error", type(ex).__name__)
+        return IMAGE_FAIL_TEXT, []
+    return passbook.line_reply(res), opts("パネル")
+
+
 async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
         return notice, opts("合計")
+    if (passbook.mode_active(user_id) and not slips.mode_active(user_id)) or img[:5] == b"%PDF-":
+        return await receive_passbook(user_id, img)   # 通帳: 個人情報を含むため画像は保存しない
     try:
         safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80] or "img"
         path = f"receipts/{safe}.jpg"
@@ -479,8 +497,8 @@ async def handle_event(ev: dict):
     m = ev["message"]
     if m["type"] == "text":
         await handle_text(user_id, token, m["text"])
-    elif m["type"] == "image":
-        await handle_image(user_id, token, m["id"])
+    elif m["type"] == "image" or (m["type"] == "file" and str(m.get("fileName", "")).lower().endswith(".pdf")):
+        await handle_image(user_id, token, m["id"])   # PDF（通帳スキャン）も同じ経路
     else:
         await reply(token, [text_msg(i18n.text(get_lang(user_id), "テキストかレシート画像を送ってください。"))])
 

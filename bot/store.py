@@ -19,6 +19,29 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # T-061: 取引先マスタ（通帳の摘要 → 正式名称・登録番号・科目）
+    """CREATE TABLE IF NOT EXISTS counterparties(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        match_key TEXT NOT NULL DEFAULT '',
+        furigana TEXT NOT NULL DEFAULT '',
+        corporate_number TEXT NOT NULL DEFAULT '',
+        registration_no TEXT NOT NULL DEFAULT '',
+        category TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL DEFAULT 'user',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(user_id, name)
+    )""",
+    """CREATE TABLE IF NOT EXISTS counterparty_aliases(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        alias TEXT NOT NULL,
+        counterparty_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(user_id, alias)
+    )""",
     # T-060: 仕切書（買取伝票）の確認キュー
     """CREATE TABLE IF NOT EXISTS slips(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -242,6 +265,12 @@ def _schema() -> list[str]:
 # Sonradan eklenen sütunlar (yalnızca ekleyici; mevcut veritabanlarında init_db sırasında eklenir).
 # (tablo, sütun, SQLite tanımı, PostgreSQL tanımı)
 ADDED_COLUMNS: list[tuple[str, str, str, str]] = [
+    # T-062: 通帳取込（取込元・残高チェック）と確認状態
+    ("bank_tx", "src", "TEXT NOT NULL DEFAULT 'csv'", "TEXT NOT NULL DEFAULT 'csv'"),
+    ("bank_tx", "balance_ok", "INTEGER", "INTEGER"),
+    ("bank_tx", "status", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
+    ("bank_tx", "category", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
+    ("bank_tx", "counterparty_id", "INTEGER", "BIGINT"),
     # T-052: işlenen son Stripe olayının `created` zamanı (unix sn) — eski olaylar durumu ezmesin
     ("subscriptions", "last_event_created", "INTEGER NOT NULL DEFAULT 0", "BIGINT NOT NULL DEFAULT 0"),
     # T-041: 0 = defter sahibi / eski token; >0 = o hesabın ekip üyesi oturumu (rol ledger_members'tan)
@@ -585,9 +614,10 @@ def insert_bank_rows(user_id: str, rows: list[dict], account: str = "") -> tuple
                 dup += 1
                 continue
             con.execute(
-                """INSERT INTO bank_tx(user_id,d,description,amount,balance,account,fingerprint,created_at)
-                   VALUES(?,?,?,?,?,?,?,?)""",
-                (user_id, r["d"], r["description"][:200], int(r["amount"]), r.get("balance"), account[:50], fp, now()),
+                """INSERT INTO bank_tx(user_id,d,description,amount,balance,account,fingerprint,created_at,src,balance_ok)
+                   VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                (user_id, r["d"], r["description"][:200], int(r["amount"]), r.get("balance"), account[:50], fp, now(),
+                 r.get("src", "csv"), None if r.get("balance_ok") is None else int(r["balance_ok"])),
             )
             added += 1
     return added, dup

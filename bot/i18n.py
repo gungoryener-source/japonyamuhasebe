@@ -27,10 +27,27 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "ヘルプ": ("Yardım", "Help"),
     "パネル": ("Panel", "Panel"),
     "仕切書": ("Hurda fişi", "Scrap slip"),
+    "通帳": ("Banka defteri", "Passbook"),
 }
 
 # Japonca parça → (tr, en). Uzun parçalar önce uygulanır.
 PHRASES: dict[str, tuple[str, str]] = {
+    # T-062 通帳
+    "通帳のページを1枚ずつ撮影して送ってください（PDF ファイルでも可）。\nこれから30分間、送られた写真は通帳として読み取ります。": (
+        "Banka defterinin sayfalarını tek tek çekip gönderin (PDF de olur).\n30 dakika boyunca gönderilen fotoğraflar banka defteri olarak okunur.",
+        "Photograph each passbook page and send it (PDF also works).\nFor 30 minutes, photos are read as passbook pages."),
+    "通帳を読み取りました": ("Banka defteri okundu", "Passbook read"),
+    "明細 ": ("Satır ", "Rows "), "件・新規 ": (" · yeni ", " · new "), "件・重複 ": (" · tekrar ", " · duplicates "),
+    "⚠️ 残高が合わない行が ": ("⚠️ Bakiyesi tutmayan satır: ", "⚠️ Rows with balance mismatch: "),
+    "件あります（パネルで確認）": (" (panelde kontrol edin)", " (check in the panel)"),
+    "「パネル」と送ると取引先・勘定科目の確認画面が開けます": (
+        "「Panel」 yazınca firma ve hesap kalemi onay ekranı açılır", "Send 「Panel」 to open the counterparty / category review"),
+    "通帳の読み取りには AI の設定が必要です。管理者に連絡するか、ネットバンキングの CSV をパネルから取り込んでください。": (
+        "Banka defterini okumak için yapay zekâ ayarı gerekiyor. Yöneticiye haber verin ya da internet bankacılığı CSV'sini panelden yükleyin.",
+        "Reading passbooks needs the AI setting. Contact the admin or import your online-banking CSV in the panel."),
+    "通帳の明細を読み取れませんでした。明るい場所で、1ページずつまっすぐ撮影してください。": (
+        "Defter satırları okunamadı. Aydınlık bir yerde, her sayfayı düz çekin.",
+        "Couldn't read the rows. Photograph each page straight, in good light."),
     # T-060 仕切書
     "仕切書の写真を送ってください。\nこれから30分間、送られた写真は仕切書として確認待ちに入ります。": (
         "Hurda fişinin (仕切書) fotoğrafını gönderin.\n30 dakika boyunca gönderilen fotoğraflar hurda fişi olarak onay kuyruğuna girer.",
