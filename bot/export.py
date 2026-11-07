@@ -10,6 +10,15 @@ import csv
 import io
 
 FORMATS = ("freee", "mf", "yayoi")
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_cell(v):
+    """CSV 数式インジェクション対策: 表計算ソフトで式と解釈される先頭文字の文字列に ' を付ける。
+
+    文字列以外（金額などの int）はそのまま返す。
+    """
+    return "'" + v if isinstance(v, str) and v.startswith(FORMULA_START) else v
 
 
 def _tax_label(e: dict, fmt: str) -> str:
@@ -26,9 +35,18 @@ def _tax_label(e: dict, fmt: str) -> str:
     return f"課対仕入込{r}%" + ("" if qualified else "適格外")
 
 
-def to_csv(entries: list[dict], fmt: str) -> str:
+def to_csv(entries: list[dict], fmt: str, *, escape_formulas: bool = False) -> str:
+    """仕訳を CSV にする。
+
+    escape_formulas=True: 取引先/摘要・勘定科目・備考（登録番号）の先頭が `=+-@`/TAB/CR なら ' を付ける
+    （Excel で直接開く全データ ZIP 用。T-059）。会計ソフト取込用 `/export.csv` は、取込時に ' が
+    取引先名の一部として取り込まれるかが未検証のため既定 False（QUESTIONS Q-17）。
+    """
     if fmt not in FORMATS:
         raise ValueError(f"format must be one of {FORMATS}")
+    if escape_formulas:
+        entries = [{**e, "store": csv_cell(e["store"]), "category": csv_cell(e["category"]),
+                    "invoice_no": csv_cell(e.get("invoice_no") or "")} for e in entries]
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\r\n")
     if fmt == "freee":

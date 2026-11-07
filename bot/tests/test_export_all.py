@@ -128,3 +128,43 @@ def test_invoices_csv_formula_injection_neutralized(client):
     clients = sorted(r[1] for r in rows)
     assert "'" + evil in clients and "普通商事" in clients  # 通常の名前は変更されない
     assert not any(c.startswith("=") for c in clients)
+
+
+@pytest.mark.parametrize("evil", ["=1+1", "+81-3", "-2+3", "@SUM(A1)", "\t=1", "\r=1",
+                                  '=HYPERLINK("http://example.invalid","x")'])
+def test_entries_csv_formula_injection_neutralized(client, evil):
+    """T-059: ZIP entries.csv の取引先/摘要が式で始まっても ' 付きの文字列になる。金額・通常の名前は不変。"""
+    a = tok(client, "UFE")
+    for name in (evil, "普通商店"):
+        body = {"date": "2026-10-05", "kind": "exp", "store": name, "amount": 1100, "category": "消耗品費", "rate": 10}
+        assert client.post("/api/v1/entries", json=body, headers=a).status_code == 201
+    rows = csv_rows(unzip(client.get(URL, headers=a)), "entries.csv")
+    head, body = rows[0], rows[1:]
+    stores = sorted(r[head.index("取引先")] for r in body)
+    assert sorted(["'" + evil, "普通商店"]) == stores
+    assert all(r[head.index("金額")] == "1100" for r in body)
+
+
+@pytest.mark.parametrize("fmt", ["freee", "mf", "yayoi"])
+def test_to_csv_escape_formulas(fmt):
+    """T-059: escape_formulas=True で全形式の取引先/摘要・備考が無害化、金額（負数含む）は数値のまま。"""
+    import export
+    e = {"d": "2026-10-05", "kind": "exp", "store": "=1+1", "amount": -500, "category": "消耗品費",
+         "rate": 10, "invoice_no": "@x"}
+    ok = {**e, "store": "文具店", "amount": 1100, "invoice_no": "T7011001666666"}
+    safe = list(csv.reader(io.StringIO(export.to_csv([e, ok], fmt, escape_formulas=True))))
+    cells = [c for r in safe[1:] for c in r]
+    assert "'=1+1" in cells and "=1+1" not in cells
+    assert "-500" in cells and "1100" in cells and "文具店" in cells
+    if fmt == "freee":
+        assert "'@x" in cells and "T7011001666666" in cells
+    # 既定（会計ソフト取込用 /export.csv）は従来どおり（Q-17）
+    raw = list(csv.reader(io.StringIO(export.to_csv([e], fmt))))
+    assert "=1+1" in [c for r in raw[1:] for c in r]
+    assert e["store"] == "=1+1"  # 入力の dict を書き換えない
+
+
+def test_csv_cell_non_string_untouched():
+    import export
+    assert export.csv_cell(-5) == -5 and export.csv_cell(None) is None
+    assert export.csv_cell("A-1") == "A-1" and export.csv_cell("") == ""

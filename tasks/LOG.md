@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 22:43 JST · developer · T-059 CSV formül enjeksiyonu (review-fix)
+- Ortak yardımcı `export.csv_cell` (baştaki `=+-@`/TAB/CR → `'`; int/None dokunulmaz); `archive._cell` buna bağlandı.
+- `export.to_csv(..., escape_formulas=True)`: 取引先/摘要, 勘定科目, 備考 nötrlenir, giriş dict'i değişmez, 金額 (negatif dahil) sayı kalır. ZIP `entries.csv` bunu kullanıyor.
+- Yorum: freee/MF/弥生 içe aktarımının `'`'yu kabul ettiği doğrulanamadı → kabul ölçütü gereği `/export.csv` değişmedi; karar Q-17 (yeni).
+- Kapı: pytest 485 geçti (yeni 11). dashboard-next değişmedi.
+- Sonraki: T-044b (/welcome sihirbazı), sonra T-049.
+
 ## 2026-11-07 21:46 JST · developer · T-044 tanıtım sayfası /lp
 - Yeni `/lp/` (sunucu bileşeni, JS'siz okunur): kahraman (LINEに送るだけ → 帳簿・インボイス・確定申告), 3 özellik, 「LINEで始める3ステップ」, fiyat tablosu (Free/個人¥980/法人¥2,980 税抜), 7 soruluk SSS (`<details>`, 税理士法 notu), alt bilgide yasal bağlantılar; CTA 「無料で始める」 → /signup/.
 - Yorum: statik export → fiyatlar API'den değil `app/lib/lp.ts` `LP_PLANS`'tan; `bot/billing.py` ile eşitlik iki yerde denetleniyor (`npm run check:lp`, `tests/test_lp_plan_parity.py`). Yalnızca çalışan özellikler yazıldı (WhatsApp canlı değil, 電帳法 T-034'e kadar yok, e-Tax gönderimi yok denildi).

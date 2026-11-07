@@ -73,7 +73,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
 | T-057 | P1 | todo | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
-| T-059 | P2 | doing (developer, 2026-11-07) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
+| T-059 | P2 | done (bu commit) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
 | T-060 | P0 | doing (developer-oturum, 2026-11-07) | **仕切書 (hurda satış fişi) akışı** — ürün sahibi isteği: LINE'dan el yazısı 仕切書 → onay kuyruğu → 売上; 一覧 PDF; AI yalnızca bu fişlerde (karar 2026-11-07). Ajanlar dokunmasın: `bot/slips*.py`, `dashboard-next/app/slips/` |
 
 ---
@@ -346,3 +346,4 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/export.py` `to_csv` (~satır 29–54): `e["store"]` (取引先/摘要) ve `invoice_no` olduğu gibi yazılıyor. LINE metni/OCR/banka CSV'sinden gelen `=HYPERLINK(...)` gibi bir değer, dosya Excel'de açılınca formül olarak yorumlanır (ekip üyesi/accountant'ın girdiği veriyi owner açtığında da). ZIP içindeki `entries.csv` UTF-8 BOM olduğu için Excel'de doğrudan açılır → risk daha yüksek.
 - Beklenen: metin hücreleri `=`, `+`, `-`, `@`, TAB, CR ile başlıyorsa başına `'` ekle (`archive._cell` ile aynı kural; ortak yardımcıya taşı). Sayı sütunları (金額) etkilenmemeli. freee/MF/弥生 içe aktarımının baştaki `'`'yu kabul ettiğini doğrula; kabul etmiyorsa yalnızca ZIP `entries.csv`'ye uygula ve kararı QUESTIONS'a yaz.
 - Test: `store="=1+1"` kayıt → her biçimde ilgili hücre `'=1+1`; normal ad ve negatif olmayan tutarlar değişmez.
+- ✅ Yapıldı (kısmi kapsam, Q-17): ortak `export.csv_cell` (archive `_cell` buna bağlandı). `to_csv(..., escape_formulas=True)` 取引先/摘要, 勘定科目, 備考 (登録番号) hücrelerini nötrler; ZIP `entries.csv` bunu kullanır. freee/MF/弥生'nin baştaki `'`'yu sileceği resmi belgelerden doğrulanamadı → Shift_JIS `/export.csv` (içe aktarma) şimdilik değişmedi, karar Q-17. Testler `tests/test_export_all.py` (+11).

@@ -24,12 +24,7 @@ ALL_FROM, ALL_TO = "0000-01-01", "9999-12-31"
 INVOICE_COLUMNS = ["請求書番号", "取引先", "発行日", "支払期限", "10%対象（税抜）", "消費税10%",
                    "8%対象（税抜）", "消費税8%", "合計（税込）", "状態", "入金日", "明細(JSON)"]
 _SAFE = re.compile(r"[^0-9A-Za-z._-]")
-_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
-
-
-def _cell(v: str) -> str:
-    """CSV 数式インジェクション対策: 表計算ソフトで式と解釈される先頭文字に ' を付ける（review）。"""
-    return "'" + v if isinstance(v, str) and v.startswith(_FORMULA_START) else v
+_cell = export.csv_cell  # CSV 数式インジェクション対策（review / T-059: export と共通）
 
 
 def _bom(text: str) -> bytes:
@@ -75,7 +70,7 @@ def build_zip(user_id: str) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("README.txt", _bom(readme(store.now(), len(rows), len(invs))))
-        z.writestr("entries.csv", _bom(export.to_csv(rows, "freee")))
+        z.writestr("entries.csv", _bom(export.to_csv(rows, "freee", escape_formulas=True)))
         z.writestr("invoices.csv", _bom(invoices_csv(invs)))
         used: set[str] = set()
         for inv in invs:
