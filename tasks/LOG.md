@@ -5,7 +5,7 @@ Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıl
 ## 2026-11-07 14:44 JST · developer · T-021 CI panel işi
 - `.github/workflows/ci.yml` `dashboard` işi: Node 20 → 22 (`--experimental-strip-types` için 22.6+ gerekli), `next build` sonrası adlandırılmış 3 adım: `npm run check:tax`, `check:legal` (build çıktısı `out/legal/*` HTML'ini de denetler), `check:team`. Diğer işler değişmedi.
 - Yerel kapı (Node 22.23): `npm ci && next build` geçti, 3 kontrol OK (check:tax honsoku=1419500 …). pytest 385 geçti (bot değişmedi). YAML ayrıştırıldı.
-- Actions run sonucu push sonrası GitHub MCP ile kontrol edilir; kırmızıysa aynı çalışmada düzeltilir.
+- CI #61 (ea86f92) yeşil: bot, bot-postgres, docker, dashboard; dashboard işinde check:tax / check:legal / check:team adımları görünüyor ve geçti.
 - Sonraki: P1 T-048 (hız sınırı) → T-048b.
 
 ## 2026-11-07 14:16 JST · planner · haftalık planlama
