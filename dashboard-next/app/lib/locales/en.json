@@ -488,7 +488,7 @@
  "第5種 サービス業等": "Class 5 services etc.",
  "第6種 不動産業": "Class 6 real estate",
  "簡易課税": "Simplified method (簡易課税)",
- "簡易課税のみなし仕入率は確認中です（基準期間の課税売上高5,000万円以下・事前の届出が必要）。": "Simplified-method deemed ratios are being verified (base-period sales ≤ ¥50M, prior notification required).",
+ "簡易課税のみなし仕入率は第1種90%〜第6種40%（基準期間の課税売上高5,000万円以下・事前の届出が必要）。": "Simplified-method deemed purchase ratios: Type 1 90% to Type 6 40% (base-period taxable sales ≤ ¥50M, prior notification required).",
  "約 {a} / 枚": "about {a} / receipt",
  "納める所得税": "Income tax payable",
  "納める所得税（概算）": "Income tax payable (est.)",

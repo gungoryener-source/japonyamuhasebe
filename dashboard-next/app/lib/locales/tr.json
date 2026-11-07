@@ -488,7 +488,7 @@
  "第5種 サービス業等": "5. sınıf hizmet vb.",
  "第6種 不動産業": "6. sınıf gayrimenkul",
  "簡易課税": "Basit usul (簡易課税)",
- "簡易課税のみなし仕入率は確認中です（基準期間の課税売上高5,000万円以下・事前の届出が必要）。": "Basit usul varsayılan alış oranları doğrulanıyor (baz dönem satışları ≤ 50 milyon yen, önceden bildirim gerekir).",
+ "簡易課税のみなし仕入率は第1種90%〜第6種40%（基準期間の課税売上高5,000万円以下・事前の届出が必要）。": "Basit usul varsayılan alış oranları: 1. tür %90 ile 6. tür %40 arası (baz dönem vergiye tabi satışları ≤ 50 milyon yen, önceden bildirim gerekir).",
  "約 {a} / 枚": "fiş başına yaklaşık {a}",
  "納める所得税": "Ödenecek gelir vergisi",
  "納める所得税（概算）": "Ödenecek gelir vergisi (tahmini)",

@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 03:50 JST · developer · T-017 簡易課税 みなし仕入率 testleri
+- `bot/tests/test_tax_kani.py` (30 test): tablo = TAX_RULES §1 (NTA No.6505, 90/80/70/60/50/40), her tür için みなし仕入税額/納付, 円未満・100円未満 切捨て sınırları, 8%+10% karışık satış, alışların yok sayılması, geçersiz tür (0/7/-1/None/"5"/5.5) → ValueError, `/tax/consumption?method=kani` (5/6/7/eksik), panel `tax.ts` KANI_RATIO paritesi.
+- `consumption.py` yorumu 「❓ 要確認」 → kaynak + kontrol tarihi. Panel vergi kartı notu 「みなし仕入率は確認中」 → 「第1種90%〜第6種40%」 (ja/tr/en).
+- Kapı: pytest SQLite 584 geçti, PostgreSQL 16 582 geçti/2 atlandı; `next build` + check:* yeşil.
+- Sonraki: P2 sırası — T-050 (2割/3割 uygunluk uyarısı), T-019, T-026 …
+
 ## 2026-11-08 02:52 JST · developer · T-065b 訂正・削除の履歴 (dilim 2)
 - Panel 経費精算: her satırda 「履歴」 (History simgesi) → yan panel: 登録/訂正/削除, zaman, kim, alan bazında önce → sonra. ja/tr/en sözlük eklendi (rol etiketleri dahil).
 - API: `with_actors` → actor_kind/role/email/is_me/former. E-posta yalnızca owner'a (üye listesi zaten owner'a özel) ve kişinin kendisine; çıkarılan üye 「退出したメンバー」. `/entries/{id}/history`, `/audit` ve yeni `GET /bank/{id}/history`.

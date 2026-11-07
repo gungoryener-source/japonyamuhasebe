@@ -57,7 +57,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-047c | P0 | done | Bot dili (`user_prefs` tablosu, `profiles`'a dokunulmadı): `言語`/`dil`/`language` komutu + hızlı yanıt, `bot/i18n.py` ja/tr/en, testler |
 | T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | done (bu commit) | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
-| T-017 | P2 | doing (developer, 2026-11-08) | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
+| T-017 | P2 | done (bu commit) | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
 | T-049 | P1 | done | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
 | T-050 | P2 | todo | 消費税: 2割/3割特例 uygunluk şartları (基準期間・特定期間 ≤1,000万) uyarısı + 経過措置 tek satıcı 1億円 üst sınırı uyarısı |
 | T-021 | P1 | done (bu commit) | CI: dashboard işi (Node 22, `npm ci`, `next build`, `check:tax`, `check:legal`, `check:team`) — panel kontrolleri şu an CI'da yok |
@@ -161,6 +161,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-017 · 簡易課税 みなし仕入率 doğrulaması
 - tax-watcher birincil kaynakla oranları ✅ yapınca `KANI_RATIO` için her tür adına test ekle.
 - ✅ 2026-11-06 tax-watcher: oranlar NTA No.6505 (令和8年4月1日現在法令等) ile doğrulandı, kodla aynı (90/80/70/60/50/40). `bot/tax/consumption.py` yorumundaki 「❓ のため要確認」 notu da kaldırılmalı.
+- ✅ 2026-11-08 developer: `tests/test_tax_kani.py` (her tür, 円/100円 切捨て, 8%+10% karışık, geçersiz tür, API, tax.ts parite); kod yorumu kaynaklı hale getirildi; panel 「確認中」 notu → 「第1種90%〜第6種40%」.
 
 ## T-004b · 令和8年分 基礎控除
 - Q-03 cevaplanınca (TAX_RULES ✅) `bot/tax/income.py` → `BASIC_DEDUCTION[2026]` ve her kademe sınırı için test. `test_basic_deduction_2026_not_verified` testi kaldırılıp yerine gerçek testler gelir.
