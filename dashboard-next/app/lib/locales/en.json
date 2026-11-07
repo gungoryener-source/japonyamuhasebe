@@ -284,6 +284,7 @@
  "正式な価格は決定後に表示されます": "Final prices will be shown once set",
  "残高": "Balance",
  "毎月1日（日本時間）にリセットされます。銀行明細の取込と入金の記録は上限に含まれません。": "Resets on the 1st of each month (JST). Bank imports and income records don't count.",
+ "決算書PDF": "Statement PDF",
  "法人": "Business",
  "法人の決算準備に": "For corporate year-end",
  "法務ページ": "Legal pages",

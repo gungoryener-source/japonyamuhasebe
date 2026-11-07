@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-045 青色申告決算書 PDF
+- `bot/reports.py`: 損益計算書 転記用 PDF (2 sayfa: ①〜㊺ satırları + aylık satış/gider). Sabit kalemler form sırasıyla, diğer kalemler ㉕〜㉚ boş satırlara (büyükten küçüğe), taşan → 雑費. "参考資料" uyarısı basılı.
+- `GET /api/v1/reports/blue-return.pdf?year=&blue=` (blue ∈ 0/10万/55万/65万). Panel 税務 sayfasında 「決算書PDF」 düğmesi.
+- 5 yeni test (pypdf==5.1.0 dev bağımlılığı, yalnızca test). Toplam 407 yeşil, `next build` yeşil.
+
 ## 2026-11-07 · developer (oturum) · T-047b sayfa metinleri
 - Hook gerektirmeyen `T()` (lib/i18n.ts; LangProvider dil değişince ağacı yeniden kurar). Tüm sayfalar (ホーム, 請求書, 経費, 銀行, 税務, 料金, メンバー, login/signup/reset/join/connect) `T()` ile sarıldı; ~430 metin `lib/locales/tr.json` + `en.json`.
 - Veri (勘定科目, mağaza/şirket adları, API'ye giden metin) çevrilmez. Grafik ekseni tr/en'de "M" birimi.

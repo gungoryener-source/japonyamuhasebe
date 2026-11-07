@@ -1,3 +1,4 @@
 -r requirements.txt
 pytest==8.3.4
 pytest-asyncio==0.24.0
+pypdf==5.1.0  # yalnızca testler: PDF metin doğrulama (T-045)

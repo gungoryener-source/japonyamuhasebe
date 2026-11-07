@@ -207,6 +207,8 @@ export const api = {
   incomeTax: (year: number, p: { blue?: number; social_insurance?: number; other_deductions?: number }) => call<ApiIncomeTax>(`/tax/income${qs({ year, ...p })}`),
   consumption: (year: number, method = "honsoku", kani_type?: number) => call<ApiTax>(`/tax/consumption${qs({ year, method, kani_type })}`),
   exportCsv: (format: "freee" | "mf" | "yayoi", year: number) => fetchBlob(`/export.csv${qs({ format, year })}`),
+  /** T-045: 青色申告決算書（損益計算書）転記用 PDF */
+  blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),
   channels: () => call<ApiChannels>("/channels"),
   revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
   me: () => call<ApiMe>("/auth/me"),

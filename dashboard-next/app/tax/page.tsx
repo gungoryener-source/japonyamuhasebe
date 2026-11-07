@@ -2,8 +2,8 @@
 
 /** 確定申告 / 税務 — 青色申告決算書（損益）・所得税の概算・消費税（課税方式別）・会計ソフト用CSV・税務カレンダー */
 import { useEffect, useState } from "react";
-import { CalendarClock, Download, TriangleAlert } from "lucide-react";
-import { api, ApiError, saveBlob, type ApiIncomeTax, type ApiPL, type ApiTax } from "../lib/api";
+import { CalendarClock, Download, FileText, TriangleAlert } from "lucide-react";
+import { api, ApiError, openBlob, saveBlob, type ApiIncomeTax, type ApiPL, type ApiTax } from "../lib/api";
 import { compute, KANI_LABEL, METHOD_LABEL, methodUnavailable, type Method, type Purchase, type Sale } from "../lib/tax";
 import TAX_EXAMPLE from "../lib/tax-example.json";
 import { estimateIncomeTax } from "../lib/income";
@@ -91,6 +91,15 @@ function Tax() {
       .catch((e) => { setCt(null); setCtMsg(e instanceof Error ? e.message : String(e)); });
   }, [live, year, method, kani]);
 
+  const blueReturnPdf = async () => {
+    if (!live) return toast(T("PDFは帳簿に接続すると表示できます"));
+    try {
+      openBlob(await api.blueReturnPdf(year, blue));
+    } catch (e) {
+      toast(T("PDFを取得できませんでした") + `: ${e instanceof Error ? e.message : e}`);
+    }
+  };
+
   const exportCsv = async (fmt: "freee" | "mf" | "yayoi") => {
     if (!live) return toast(T("CSV出力は帳簿に接続すると使えます"));
     try {
@@ -124,7 +133,7 @@ function Tax() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-12">
-        <Card title="青色申告決算書（損益計算書）" en="P/L" className="lg:col-span-5">
+        <Card title="青色申告決算書（損益計算書）" en="P/L" className="lg:col-span-5" right={<Btn onClick={blueReturnPdf}><FileText size={13} />{T("決算書PDF")}</Btn>}>
           <table className="w-full text-xs">
             <tbody className="divide-y divide-slate-100">
               <tr><td className="py-1.5 font-bold">{T("① 売上（収入）金額")}</td><td className="py-1.5 text-right font-mono tabular">{yen(pl.revenue)}</td></tr>
