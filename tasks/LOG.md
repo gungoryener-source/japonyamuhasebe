@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 14:44 JST · developer · T-021 CI panel işi
+- `.github/workflows/ci.yml` `dashboard` işi: Node 20 → 22 (`--experimental-strip-types` için 22.6+ gerekli), `next build` sonrası adlandırılmış 3 adım: `npm run check:tax`, `check:legal` (build çıktısı `out/legal/*` HTML'ini de denetler), `check:team`. Diğer işler değişmedi.
+- Yerel kapı (Node 22.23): `npm ci && next build` geçti, 3 kontrol OK (check:tax honsoku=1419500 …). pytest 385 geçti (bot değişmedi). YAML ayrıştırıldı.
+- Actions run sonucu push sonrası GitHub MCP ile kontrol edilir; kırmızıysa aynı çalışmada düzeltilir.
+- Sonraki: P1 T-048 (hız sınırı) → T-048b.
+
 ## 2026-11-07 14:16 JST · planner · haftalık planlama
 - ROADMAP: Faz 1 kod tarafı, Faz 2'nin biten maddeleri, Faz 4 WhatsApp/banka CSV ve Faz 5 P0 (T-040–T-043, T-025) ✅ işaretlendi. Blocked/terk edilmiş görev yok; CI #58 yeşil.
 - BACKLOG: T-044→T-044/T-044b, T-045→T-045/T-045b, T-046→T-046/b/c, T-048→T-048/T-048b bölündü; T-010/12b/19/24/26/33/34/35/47'ye kabul ölçütü eklendi; önerilen sıra tablonun üstünde. T-021 P2→P1 (panel kontrolleri CI'da yok), T-011 P2→P1.
