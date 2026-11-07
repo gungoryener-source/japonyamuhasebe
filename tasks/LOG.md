@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-064 birden çok şirket
+- Ürün sahibi isteği: hesap başına sınırsız şirket (fiyat kuralı Q-16'ya bırakıldı). `account_companies` + `line_targets`; companies.py sahiplik yardımcıları; team.resolve/switch/join/list_members, şifre sıfırlama (tüm şirket oturumları), link-line koruması.
+- POST /companies; panel üst menüde 「事業所を追加」 → yeni şirket + /welcome. LINE 「会社」/「şirket」: kayıt yeri seçimi (yalnızca sahip olunan şirketler), cevapta ［şirket adı］.
+- 6 test + yerel canlı uçtan uca (kayıt → şirket ekle → geçiş) ekran görüntüsüyle kontrol. Toplam 528.
+
 ## 2026-11-07 · developer (oturum) · AI okuma seçeneği + tahmini ücret
 - Ürün sahibi isteği: market fişlerinde yapay zekâ seçeneği ve tahmini ücret. Kullanıcı başına `user_prefs.receipt_reader` ('' / ocr / ai / auto).
 - `bot/ai_usage.py`: görsel token = ⌈w/28⌉×⌈h/28⌉ (resmi Vision dokümanı), fiyat env (AI_PRICE_INPUT/OUTPUT_USD_PER_MTOK, USD_JPY; varsayılan Sonnet 5.5 $2/$10, ¥155), gönderim öncesi küçültme (fiş 1600px, 仕切書 2000px), gerçek usage kaydı (`ai_usage` tablosu), 5 kayıttan sonra gerçek ortalama.

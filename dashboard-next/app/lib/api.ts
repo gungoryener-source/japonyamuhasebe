@@ -290,6 +290,7 @@ export const api = {
   teamRemove: (account_id: number) => call<void>(`/team/members/${account_id}`, { method: "DELETE" }),
   teamJoin: (code: string) => call<ApiSession>("/team/join", { method: "POST", body: JSON.stringify({ code }) }),
   teamLedgers: () => call<{ current: string; ledgers: { user_id: string; role: string; business_name: string }[] }>("/team/ledgers"),
+  companyCreate: (business_name: string) => call<ApiSession & { business_name: string }>("/companies", { method: "POST", body: JSON.stringify({ business_name }) }),
   teamSwitch: (user_id: string) => call<ApiSession>("/team/switch", { method: "POST", body: JSON.stringify({ user_id }) }),
 };
 
