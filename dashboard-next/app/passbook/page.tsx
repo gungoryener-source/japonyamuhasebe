@@ -2,7 +2,7 @@
 
 /** T-062: 通帳の確認。通帳スキャン（AI 読取）・ネットバンキング CSV の明細に取引先・登録番号・勘定科目を付け、確認して記帳する。 */
 import { useRef, useState } from "react";
-import { BookOpenCheck, CircleCheck, Download, FileSpreadsheet, FileUp, LoaderCircle, Search, TriangleAlert } from "lucide-react";
+import { BadgeCheck, BookOpenCheck, CircleCheck, Download, FileSpreadsheet, FileUp, LoaderCircle, Search, TriangleAlert } from "lucide-react";
 import { api, saveBlob, type ApiReview, type ApiReviewRow } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Empty, Field, inputCls, ReadOnlyNote, selectCls, Stat, yen } from "../components/ui";
@@ -91,6 +91,13 @@ export default function PassbookPage() {
     toast(T("修正しました。残高を再チェックしました"));
     await reload();
   });
+  const verify = () => run("vf", async () => {
+    const r = await api.counterpartyVerify();
+    toast(r.online
+      ? T("登録番号 {a}件を確認: 有効 {b}・失効 {c}・未登録 {d}・形式誤り {e}", { a: r.checked, b: r.valid, c: r.expired, d: r.notfound, e: r.format_ng })
+      : T("登録番号 {a}件の形式を確認: 形式誤り {b}件（国税庁での確認は NTA_APP_ID の設定後）", { a: r.checked, b: r.format_ng }));
+    await reload();
+  });
   const xlsx = () => run("dl", async () => saveBlob(await api.bankXlsx(from, to), `通帳整理表_${from}_${to}.xlsx`));
 
   return (
@@ -121,6 +128,7 @@ export default function PassbookPage() {
           <Field label={T("開始日")}><input type="date" className={inputCls} value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
           <Field label={T("終了日")}><input type="date" className={inputCls} value={to} onChange={(e) => setTo(e.target.value)} /></Field>
           <label className="flex items-center gap-1.5 pb-2"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />{T("未確認のみ")}</label>
+          {canEdit && <Btn onClick={verify} disabled={!!busy}>{busy === "vf" ? <LoaderCircle size={13} className="animate-spin" /> : <BadgeCheck size={13} />}{T("登録番号を確認")}</Btn>}
           <Btn onClick={xlsx} disabled={!!busy}><Download size={13} />{T("Excel 出力")}</Btn>
           {canEdit && <Btn kind="primary" onClick={confirmAll} disabled={!!busy || !autoIds.length}>
             {busy === "all" ? <LoaderCircle size={13} className="animate-spin" /> : <BookOpenCheck size={13} />}{T("自動照合した {a}件 をまとめて確定", { a: autoIds.length })}
@@ -159,7 +167,12 @@ export default function PassbookPage() {
                               {busy === `l${r.id}` ? <LoaderCircle size={13} className="animate-spin" /> : <Search size={13} />}</button>}
                         </div>
                       </td>
-                      <td className="pr-1"><input disabled={!ok} className={inputCls + " w-[132px] tabular-nums"} value={e.reg} placeholder="T…" onChange={(ev) => setEdit(r, { reg: ev.target.value.trim() })} /></td>
+                      <td className="pr-1">
+                        <div className="flex items-center gap-1">
+                          <input disabled={!ok} className={inputCls + " w-[132px] tabular-nums"} value={e.reg} placeholder="T…" onChange={(ev) => setEdit(r, { reg: ev.target.value.trim() })} />
+                          <InvoiceBadge s={r.counterparty?.invoice_status} name={r.counterparty?.invoice_name} />
+                        </div>
+                      </td>
                       <td className="pr-1">
                         <select disabled={!ok} className={selectCls + " w-[140px]"} value={e.category} onChange={(ev) => setEdit(r, { category: ev.target.value, book: !TRANSFER.includes(ev.target.value) })}>
                           <option value="">{T("選択")}</option>
@@ -206,4 +219,14 @@ function FixCells({ r, busy, onFix }: { r: ApiReviewRow; busy: boolean; onFix: (
       </td>
     </>
   );
+}
+
+/** T-063: 登録番号の確認結果 */
+function InvoiceBadge({ s, name }: { s?: string; name?: string }) {
+  if (!s) return null;
+  const m: Record<string, [string, string]> = {
+    valid: ["text-mint-700", "有効"], expired: ["text-red-600", "失効"], notfound: ["text-amber-600", "未登録"], format_ng: ["text-red-600", "形式誤り"],
+  };
+  const [cls, label] = m[s] ?? ["text-slate-400", s];
+  return <span className={"whitespace-nowrap text-[10px] font-bold " + cls} title={name || undefined}>{T(label)}</span>;
 }

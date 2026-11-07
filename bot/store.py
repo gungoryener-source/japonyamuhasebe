@@ -265,6 +265,10 @@ def _schema() -> list[str]:
 # Sonradan eklenen sütunlar (yalnızca ekleyici; mevcut veritabanlarında init_db sırasında eklenir).
 # (tablo, sütun, SQLite tanımı, PostgreSQL tanımı)
 ADDED_COLUMNS: list[tuple[str, str, str, str]] = [
+    # T-063: 登録番号の確認結果（形式 / 国税庁 インボイス公表サイト）
+    ("counterparties", "invoice_status", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
+    ("counterparties", "invoice_name", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
+    ("counterparties", "invoice_checked_at", "TEXT NOT NULL DEFAULT ''", "TEXT NOT NULL DEFAULT ''"),
     # T-062: 通帳取込（取込元・残高チェック）と確認状態
     ("bank_tx", "src", "TEXT NOT NULL DEFAULT 'csv'", "TEXT NOT NULL DEFAULT 'csv'"),
     ("bank_tx", "balance_ok", "INTEGER", "INTEGER"),

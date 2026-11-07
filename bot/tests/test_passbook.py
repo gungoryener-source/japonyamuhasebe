@@ -219,3 +219,31 @@ def test_fix_misread_amount(client, auth, bot, monkeypatch):
     rows = {r["description"]: r for r in client.get("/api/v1/bank/review", headers=auth).json()["rows"]}
     assert rows["EB基本手数料"]["balance_ok"] == 1
     assert rows["ｾﾞﾝﾎﾟﾚﾝ(ｶ"]["balance_ok"] == 1          # 次の行も正しい前残高で再チェック → OK
+
+
+def test_invoice_status_parse_and_verify(client, auth, bot, monkeypatch):
+    sample = {"lastUpdateDate": "2026-11-06", "count": "2", "announcement": [
+        {"registratedNumber": "T6180001147206", "latest": "1", "name": "株式会社ＭＲＦ", "registrationDate": "2023-10-01",
+         "disposalDate": "", "expireDate": ""},
+        {"registratedNumber": "T9360001002793", "latest": "1", "name": "全保連株式会社", "registrationDate": "2023-10-01",
+         "disposalDate": "2025-03-31", "expireDate": ""}]}
+    r = cp.parse_invoice_json(sample, ["T6180001147206", "T9360001002793", "T6180001077782"])
+    assert r["T6180001147206"]["status"] == "valid" and r["T9360001002793"]["status"] == "expired"
+    assert r["T6180001077782"]["status"] == "notfound"
+    assert cp.format_status("T6180001147206") == "" and cp.format_status("T6180001147207") == "format_ng"
+    client.post("/api/v1/counterparties/import", content=make_xlsx(), headers=auth)
+    client.post("/api/v1/counterparties", json={"name": "誤り商店", "registration_no": "T6180001147207"}, headers=auth)
+    monkeypatch.delenv("NTA_APP_ID", raising=False)
+    monkeypatch.delenv("NTA_INVOICE_APP_ID", raising=False)
+    v = client.post("/api/v1/counterparties/verify", headers=auth).json()
+    assert v["online"] is False and v["format_ng"] == 1 and v["unchecked"] == 3
+    monkeypatch.setenv("NTA_APP_ID", "1234567890123")
+
+    async def fake_lookup(app_id, numbers):
+        return cp.parse_invoice_json(sample, numbers)
+
+    monkeypatch.setattr(cp, "invoice_lookup", fake_lookup)
+    v = client.post("/api/v1/counterparties/verify", headers=auth).json()
+    assert (v["valid"], v["expired"], v["notfound"], v["format_ng"]) == (1, 1, 1, 1)
+    st = {c["name"]: c["invoice_status"] for c in client.get("/api/v1/counterparties", headers=auth).json()["counterparties"]}
+    assert st["全保連株式会社"] == "expired" and st["株式会社ＭＲＦ"] == "valid"

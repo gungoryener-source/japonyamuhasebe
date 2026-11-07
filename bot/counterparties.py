@@ -251,6 +251,49 @@ def corporate_check_digit_ok(num: str) -> bool:
     return bool(re.fullmatch(r"\d{13}", num)) and check_digit_ok(num)
 
 
+# ---------------------------------------------------------------- 登録番号の確認（T-063）
+# status: valid（登録中）/ expired（失効・取消）/ notfound（公表サイトにない）/ format_ng（形式・チェックデジット誤り）
+INVOICE_API = "https://web-api.invoice-kohyo.nta.go.jp/1/num"
+
+
+def format_status(reg: str) -> str:
+    if not reg:
+        return ""
+    return "" if re.fullmatch(r"T\d{13}", reg) and corporate_check_digit_ok(reg[1:]) else "format_ng"
+
+
+def parse_invoice_json(data: dict, asked: list[str]) -> dict[str, dict]:
+    """公表サイト Web-API（type=21）の応答 → {登録番号: {status, name, registration_date, end_date}}"""
+    out = {n: {"status": "notfound", "name": "", "registration_date": "", "end_date": ""} for n in asked}
+    for a in data.get("announcement") or []:
+        n = a.get("registratedNumber") or ""
+        if n not in out or str(a.get("latest", "1")) != "1":
+            continue
+        end = a.get("disposalDate") or a.get("expireDate") or ""
+        out[n] = {"status": "expired" if end else "valid", "name": a.get("name") or a.get("tradeName") or "",
+                  "registration_date": a.get("registrationDate") or "", "end_date": end}
+    return out
+
+
+async def invoice_lookup(app_id: str, numbers: list[str]) -> dict[str, dict]:
+    import httpx
+
+    result: dict[str, dict] = {}
+    async with httpx.AsyncClient(timeout=20) as c:
+        for i in range(0, len(numbers), 10):   # 1回10件まで（公式仕様）
+            chunk = numbers[i:i + 10]
+            r = await c.get(INVOICE_API, params={"id": app_id, "number": ",".join(chunk), "type": "21", "history": "0"})
+            r.raise_for_status()
+            result.update(parse_invoice_json(r.json(), chunk))
+    return result
+
+
+def save_invoice_status(user_id: str, cp_id: int, status: str, name: str = "") -> None:
+    with store.tx() as con:
+        con.execute("UPDATE counterparties SET invoice_status=?, invoice_name=?, invoice_checked_at=? WHERE id=? AND user_id=?",
+                    (status, name[:120], _now(), cp_id, user_id))
+
+
 def today_iso() -> str:
     return date.today().isoformat()
 

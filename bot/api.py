@@ -444,7 +444,7 @@ def _review_rows(uid: str, date_from: str = "", date_to: str = "") -> list[dict]
             "account": t.get("account") or "", "src": t.get("src") or "csv", "balance_ok": t.get("balance_ok"),
             "status": t.get("status") or ("confirmed" if done else ""), "entry_id": t["entry_id"],
             "category": t.get("category") or (cp or {}).get("category") or m["category"],
-            "counterparty": {k: cp[k] for k in ("id", "name", "registration_no", "corporate_number")} if cp else None,
+            "counterparty": {k: cp.get(k, "") for k in ("id", "name", "registration_no", "corporate_number", "invoice_status", "invoice_name")} if cp else None,
             "match": m["how"], "book": m["book"] if not cp else True,
             "candidates": [{"id": c["id"], "name": c["name"]} for c in m.get("candidates", [])],
         })
@@ -588,6 +588,29 @@ async def cp_import(request: Request, uid: str = Depends(writer_user)):
         return cpmod.import_excel(uid, raw)
     except Exception as ex:  # noqa: BLE001  壊れた / 別形式のファイル
         raise HTTPException(400, f"Excel を読み込めませんでした（{type(ex).__name__}）")
+
+
+@router.post("/counterparties/verify")
+async def cp_verify(uid: str = Depends(writer_user)):
+    """登録番号の確認: 形式（チェックデジット）は常に、国税庁 公表サイトは NTA_INVOICE_APP_ID（なければ NTA_APP_ID）があるとき。"""
+    cps = [c for c in cpmod.all_(uid) if c["registration_no"]]
+    app_id = os.environ.get("NTA_INVOICE_APP_ID") or os.environ.get("NTA_APP_ID", "")
+    online: dict[str, dict] = {}
+    good = [c["registration_no"] for c in cps if not cpmod.format_status(c["registration_no"])]
+    if app_id and good:
+        try:
+            online = await cpmod.invoice_lookup(app_id, sorted(set(good)))
+        except Exception as ex:  # noqa: BLE001
+            raise HTTPException(502, f"インボイス公表サイトに接続できませんでした（{type(ex).__name__}）")
+    counts = {"valid": 0, "expired": 0, "notfound": 0, "format_ng": 0, "unchecked": 0}
+    for c in cps:
+        st = cpmod.format_status(c["registration_no"])
+        name = ""
+        if not st and c["registration_no"] in online:
+            st, name = online[c["registration_no"]]["status"], online[c["registration_no"]]["name"]
+        cpmod.save_invoice_status(uid, c["id"], st, name)
+        counts[st or "unchecked"] += 1
+    return {"checked": len(cps), "online": bool(app_id), **counts}
 
 
 @router.get("/counterparties/lookup")

@@ -35,7 +35,7 @@ export type ApiSlip = {
 export type ApiSlipList = { slips: ApiSlip[]; counts: Record<"pending" | "approved" | "rejected", number>; ai_enabled: boolean };
 
 /** T-061/T-062: 通帳取込・取引先照合 */
-export type ApiCounterparty = { id: number; name: string; registration_no: string; corporate_number: string; category?: string; furigana?: string };
+export type ApiCounterparty = { id: number; name: string; registration_no: string; corporate_number: string; category?: string; furigana?: string; invoice_status?: "" | "valid" | "expired" | "notfound" | "format_ng"; invoice_name?: string };
 export type ApiReviewRow = {
   id: number; d: string; description: string; amount: number; balance: number | null; account: string; src: string;
   balance_ok: 0 | 1 | null; status: "" | "confirmed" | "excluded"; entry_id: number | null; category: string;
@@ -249,6 +249,7 @@ export const api = {
     call<unknown>(`/bank/${id}`, { method: "PATCH", body: JSON.stringify({ amount, balance }) }),
   bankConfirmMatched: (ids: number[]) => call<{ confirmed: number; skipped: number }>("/bank/confirm-matched", { method: "POST", body: JSON.stringify({ ids }) }),
   counterparties: () => call<{ counterparties: ApiCounterparty[]; nta_enabled: boolean }>("/counterparties"),
+  counterpartyVerify: () => call<{ checked: number; online: boolean; valid: number; expired: number; notfound: number; format_ng: number; unchecked: number }>("/counterparties/verify", { method: "POST" }),
   counterpartyImport: (file: Blob) => call<{ imported: number }>("/counterparties/import", { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
   counterpartyLookup: (desc: string) =>
     call<{ results: { name: string; furigana: string; corporate_number: string; address: string; registration_no_guess: string }[] }>(`/counterparties/lookup${qs({ desc })}`),

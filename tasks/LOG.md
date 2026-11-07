@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-063 登録番号の確認
+- Resmi şartname (k-web-api-kinou.pdf): GET web-api.invoice-kohyo.nta.go.jp/1/num?id&number(≤10, virgüllü)&type=21&history=0.
+- Kimlik yokken biçim + kontrol hanesi; NTA_INVOICE_APP_ID (yoksa NTA_APP_ID) ile valid/expired/notfound. counterparties'e 3 sütun.
+- POST /counterparties/verify; panel /passbook'ta rozet + 「登録番号を確認」. 1 test (mock).
+
 ## 2026-11-07 · developer (oturum) · T-057 + T-012b
 - render.yaml `OCR_ENGINE=tesseract` (レシート AI なし). AI yalnızca 仕切書/通帳.
 - 弥生 CSV: resmi 25 項目 (識別フラグ…調整), başlıksız, 税区分 resmi yazım (課税売上込10% / 課対仕入込軽減8% / 非課売上), インボイス 「適格」/「区分70%」 (経過措置 oranı tarihten).
