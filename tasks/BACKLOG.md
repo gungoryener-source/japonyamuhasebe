@@ -74,6 +74,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-057 | P1 | todo | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 | T-059 | P2 | review-fix | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
+| T-060 | P0 | doing (developer-oturum, 2026-11-07) | **仕切書 (hurda satış fişi) akışı** — ürün sahibi isteği: LINE'dan el yazısı 仕切書 → onay kuyruğu → 売上; 一覧 PDF; AI yalnızca bu fişlerde (karar 2026-11-07). Ajanlar dokunmasın: `bot/slips*.py`, `dashboard-next/app/slips/` |
 
 ---
 
