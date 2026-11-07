@@ -14,7 +14,16 @@ BRACKETS = (
     (None, 45, 4_796_000),
 )
 
-# 基礎控除（合計所得金額の上限, 控除額）。年ごと。
+# 基礎控除（合計所得金額の上限, 控除額）。年ごと。TAX_RULES §2 ✅ の年のみ。
+_BASIC_R8_R9 = (  # 令和8年度改正: 本則62万 + 措法41の16の2 特例（≤489万 +42万, ≤655万 +5万）
+    (4_890_000, 1_040_000),
+    (6_550_000, 670_000),
+    (23_500_000, 620_000),
+    (24_000_000, 480_000),
+    (24_500_000, 320_000),
+    (25_000_000, 160_000),
+    (None, 0),
+)
 BASIC_DEDUCTION = {
     2025: (
         (1_320_000, 950_000),
@@ -27,7 +36,9 @@ BASIC_DEDUCTION = {
         (25_000_000, 160_000),
         (None, 0),
     ),
-    # 2026 (令和8年分): 令和8年度改正の表は TAX_RULES で ⚠️（Q-03）。確定するまで未実装。
+    2026: _BASIC_R8_R9,  # 令和8年分
+    2027: _BASIC_R8_R9,  # 令和9年分
+    # 2028〜 (令和10年分以後): 132万超の段階が TAX_RULES で ⚠️。確定するまで未実装。
 }
 
 BLUE_RETURN = (650_000, 550_000, 100_000, 0)
@@ -36,7 +47,7 @@ BLUE_RETURN = (650_000, 550_000, 100_000, 0)
 def basic_deduction(total_income: int, year: int) -> int:
     table = BASIC_DEDUCTION.get(year)
     if table is None:
-        raise NotImplementedError(f"基礎控除 table for {year} is not verified yet (see tasks/QUESTIONS.md Q-03)")
+        raise NotImplementedError(f"基礎控除 table for {year} is not verified yet (see docs/TAX_RULES.md §2)")
     for limit, amount in table:
         if limit is None or total_income <= limit:
             return amount

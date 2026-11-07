@@ -157,6 +157,17 @@ def test_token_revoke_and_limit(client, auth):
     assert all(store.user_for_token(t) == "LIM" for t in toks[2:])
 
 
+def test_income_tax_2026_example(client, auth):
+    # T-004b 受入例: 2026年分 事業所得 3,000,000 → 基礎控除 1,040,000（パネルの lib/income.ts と同じ）
+    entry(client, auth, date="2026-03-01", kind="inc", store="B社", amount=3_000_000, category="売上高", invoice_no="")
+    r = client.get("/api/v1/tax/income?year=2026&blue=0", headers=auth)
+    assert r.status_code == 200
+    j = r.json()
+    assert j["business_income"] == 3_000_000 and j["basic_deduction"] == 1_040_000
+    assert j["taxable"] == 1_960_000 and j["total"] == 100_500
+    assert client.get("/api/v1/tax/income?year=2027&blue=0", headers=auth).json()["basic_deduction"] == 1_040_000
+
+
 def test_pl_and_income_tax(client, auth):
     entry(client, auth, date="2025-03-01", kind="inc", store="A社", amount=8_000_000, category="売上高", invoice_no="")
     entry(client, auth, date="2025-04-01", amount=2_000_000, category="外注工賃")
@@ -166,5 +177,7 @@ def test_pl_and_income_tax(client, auth):
     assert pl["expenses"][0] == {"category": "外注工賃", "amount": 2_000_000}
     r = client.get("/api/v1/tax/income?year=2025&social_insurance=600000", headers=auth).json()
     assert r["taxable"] == 3_070_000 and r["total"] == 213_800
-    assert client.get("/api/v1/tax/income?year=2026", headers=auth).status_code == 409
+    r26 = client.get("/api/v1/tax/income?year=2026&blue=0", headers=auth)
+    assert r26.status_code == 200 and r26.json()["basic_deduction"] == 1_040_000 and r26.json()["revenue"] == 0
+    assert client.get("/api/v1/tax/income?year=2028", headers=auth).status_code == 409
     assert client.get("/api/v1/tax/income?year=2025&blue=1", headers=auth).status_code == 400

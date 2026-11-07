@@ -8,7 +8,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-002 | P0 | done (bu commit) | Vergi motoru `bot/tax/` (消費税) + testler |
 | T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
 | T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
-| T-004b | P1 | doing (developer, 2026-11-07) | `BASIC_DEDUCTION[2026]` ve `[2027]` (令和8・9年分) tablosunu ekle + sınır testleri (Q-03 cevaplandı) |
+| T-004b | P1 | done (bu commit) | `BASIC_DEDUCTION[2026]` ve `[2027]` (令和8・9年分) tablosunu ekle + sınır testleri (Q-03 cevaplandı) |
 | T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | done | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
@@ -139,6 +139,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Dosyalar: `bot/tax/income.py` (`BASIC_DEDUCTION` 2026/2027), `bot/tests/` (her sınırda ±1 yen testi: 4,890,000/4,890,001, 6,550,000/6,550,001, 23,500,000/23,500,001 …), `bot/api.py` `/tax/income` (2026 artık 200), `dashboard-next/app/lib/income.ts` (`BASIC_2026`, `year !== 2025` korumasını 2025–2027'ye genişlet), `dashboard-next/app/tax/page.tsx` (yıl seçici). `web/index.html` `basicDed` prototip — dokunma (referans).
 - Kabul: pytest yeşil; 2026年分 örnek (事業所得 3,000,000 → 基礎控除 1,040,000) API ve panelde aynı; `next build` geçer.
 - Kaynak: TAX_RULES §2 (NTA 令和8年分 年末調整のしかた 102.pdf, 財務省 大綱, NTA No.1199).
+- ✅ 2026-11-07 developer: `BASIC_DEDUCTION[2026/2027]`, API 2026/2027 → 200 (2028 → 409), panel `BASIC_DEDUCTION` haritası, parity testi `test_income_card_parity.py` + `check:tax` 所得税 örnekleri.
 
 ## T-049 · 青色申告特別控除 令和9年分以後 (P1)
 - Kural (令和8年度改正, 令和9年分以後): 75万 (正規の簿記 + 期限内 e-Tax + 優良な電子帳簿 veya デジタルシームレス保存 + 届出書) / 65万 (正規の簿記 + 期限内 e-Tax) / 書面申告 → 10万 (55万 kalkar) / 簡易簿記 10万, ancak 前々年分 事業・不動産 収入金額 > 1,000万 ise 0 / 現金主義の特例 → yalnızca 10万. 令和8年分 (2026) için mevcut 65/55/10 aynen kalır.

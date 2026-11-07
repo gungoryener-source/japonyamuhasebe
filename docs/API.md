@@ -21,7 +21,7 @@ Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri
 
 Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şema).
 | GET | `/pl?year=` | 青色申告決算書 (損益計算書) özeti: 売上, kalem bazında 経費, 所得 |
-| GET | `/tax/income?year=&blue=650000&social_insurance=&other_deductions=` | 所得税 tahmini (2026 için 基礎控除 doğrulanana kadar 409) |
+| GET | `/tax/income?year=&blue=650000&social_insurance=&other_deductions=` | 所得税 tahmini. 基礎控除 2025–2027年分 (TAX_RULES §2 ✅); diğer yıllar 409 |
 | PATCH / DELETE | `/entries/{id}` | Kaydı düzelt (tarih, karşı taraf, tutar, kalem, oran, 登録番号) / sil |
 | POST | `/receipts/ocr` | Ham görsel gövdesi (image/*, ≤10MB) → okunan kayıt önerileri (kaydetmez) |
 | POST | `/bank/import?account=` | Banka CSV (Shift_JIS/UTF-8) içe aktar; tekrar eden satırlar atlanır |

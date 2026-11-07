@@ -68,12 +68,12 @@ function Tax() {
     if (!live) {
       const r = estimateIncomeTax(pl.revenue, pl.expenses_total, year, blue, s, o);
       setIt(r);
-      setItMsg(r ? null : `${year}年分の基礎控除（令和8年度改正）は確認中のため、計算できません。`);
+      setItMsg(r ? null : `${year}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。`);
       return;
     }
     api.incomeTax(year, { blue, social_insurance: s, other_deductions: o })
       .then((r) => { setIt(r); setItMsg(null); })
-      .catch((e) => { setIt(null); setItMsg(e instanceof ApiError && e.status === 409 ? `${year}年分の基礎控除（令和8年度改正）は確認中のため、計算できません。` : `計算できませんでした: ${e instanceof Error ? e.message : e}`); });
+      .catch((e) => { setIt(null); setItMsg(e instanceof ApiError && e.status === 409 ? `${year}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。` : `計算できませんでした: ${e instanceof Error ? e.message : e}`); });
   }, [live, year, blue, social, other, pl.revenue, pl.expenses_total]);
 
   // 消費税

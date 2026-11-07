@@ -28,9 +28,42 @@ def test_basic_deduction_2025(income, ded):
     assert basic_deduction(income, 2025) == ded
 
 
-def test_basic_deduction_2026_not_verified():
+@pytest.mark.parametrize("year", [2026, 2027])
+@pytest.mark.parametrize("income,ded", [
+    (0, 1_040_000), (1_320_000, 1_040_000), (1_320_001, 1_040_000), (3_360_001, 1_040_000),
+    (4_890_000, 1_040_000), (4_890_001, 670_000),
+    (6_550_000, 670_000), (6_550_001, 620_000),
+    (23_500_000, 620_000), (23_500_001, 480_000),
+    (24_000_000, 480_000), (24_000_001, 320_000),
+    (24_500_000, 320_000), (24_500_001, 160_000),
+    (25_000_000, 160_000), (25_000_001, 0),
+])
+def test_basic_deduction_2026_2027(year, income, ded):
+    # TAX_RULES §2 令和8年分・令和9年分（NTA 年末調整のしかた 102.pdf, No.1199）
+    assert basic_deduction(income, year) == ded
+
+
+@pytest.mark.parametrize("year", [2024, 2028])
+def test_basic_deduction_unverified_years(year):
     with pytest.raises(NotImplementedError):
-        basic_deduction(5_000_000, 2026)
+        basic_deduction(5_000_000, year)
+
+
+def test_example_2026():
+    # 事業所得 3,000,000（青色控除なし）→ 基礎控除 104万 → 課税 196万
+    r = compute(3_000_000, 0, year=2026, blue=0)
+    assert r.business_income == 3_000_000 and r.basic_deduction == 1_040_000
+    assert r.taxable == 1_960_000
+    assert r.base_tax == 98_500             # 196万×10% − 97,500
+    assert r.reconstruction == 2_068        # 98,500 × 2.1% 切捨て
+    assert r.total == 100_500               # 100,568 → 100円未満切捨て
+
+
+def test_full_example_2026_same_input_as_2025():
+    # 2025 例と同じ入力: 435万 ≤489万 → 基礎104万, 社保60万 → 課税 271万
+    r = compute(8_000_000, 3_000_000, year=2026, social_insurance=600_000)
+    assert r.basic_deduction == 1_040_000 and r.taxable == 2_710_000
+    assert r.base_tax == 173_500 and r.total == 177_100
 
 
 def test_full_example_2025():

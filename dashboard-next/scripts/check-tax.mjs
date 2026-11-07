@@ -2,6 +2,7 @@
 // 実行: npm run check:tax（Node 22.6+ の --experimental-strip-types が必要）
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
+import { estimateIncomeTax } from "../app/lib/income.ts";
 import { compute, methodUnavailable, settle, taxIncluded, inputCreditRatio, transitionalBreakdown } from "../app/lib/tax.ts";
 
 const ex = JSON.parse(readFileSync(new URL("../app/lib/tax-example.json", import.meta.url), "utf8"));
@@ -33,5 +34,12 @@ assert.equal(methodUnavailable("niwari", { taxYear: 2027 }) !== null, true);
 assert.equal(methodUnavailable("sanwari", { individual: false, taxYear: 2027 }) !== null, true);
 assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2028 }), null);
 assert.deepEqual(settle(-1_250, 0, "honsoku"), { input: 0, payable: -1_200 }); // 還付も0方向へ切捨て
+
+// 所得税（test_tax_income.py と同じ例）: 2026年分 事業所得 300万 → 基礎控除 104万
+const it26 = estimateIncomeTax(3_000_000, 0, 2026, 0, 0, 0);
+assert.deepEqual([it26.basic_deduction, it26.taxable, it26.total], [1_040_000, 1_960_000, 100_500], "income 2026");
+assert.equal(estimateIncomeTax(8_000_000, 3_000_000, 2025, 650_000, 600_000, 0).total, 213_800, "income 2025");
+assert.equal(estimateIncomeTax(8_000_000, 3_000_000, 2027, 650_000, 600_000, 0).total, 177_100, "income 2027");
+assert.equal(estimateIncomeTax(3_000_000, 0, 2028, 0, 0, 0), null, "2028 unverified");
 
 console.log("check:tax OK —", Object.entries(ex.expected).map(([k, v]) => `${k}=${v ? v.payable : "n/a"}`).join(" "));

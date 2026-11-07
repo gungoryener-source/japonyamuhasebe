@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 10:00 JST · developer · T-004b 基礎控除 令和8・9年分
+- `bot/tax/income.py`: `BASIC_DEDUCTION[2026]`=`[2027]` (TAX_RULES §2 ✅, Q-03): ≤489万 104万 · ≤655万 67万 · ≤2,350万 62万 · ≤2,400万 48万 · ≤2,450万 32万 · ≤2,500万 16万 · 超 0. 2024 ve 2028+ hâlâ `NotImplementedError` (2028 ⚠️).
+- `/api/v1/tax/income?year=2026|2027` artık 200; 2028 → 409. Kabul örneği: 2026年分 事業所得 3,000,000 → 基礎控除 1,040,000, 課税 1,960,000, 申告納税額 100,500 (API + panel `estimateIncomeTax` aynı).
+- Panel: `app/lib/income.ts` yıl→tablo haritası (`BASIC_DEDUCTION`), `year !== 2025` koruması kalktı; hesaplanamayan yıl mesajı 「対応: 2025〜2027年分」. Yıl seçici zaten vardı.
+- Testler: her kademe sınırında ±1 yen (2026 ve 2027), 2024/2028 reddi, 2026 tam örnek, API 2026/2027/2028; yeni `test_income_card_parity.py` (income.ts tablosu = Python tablosu); `check:tax`'a 所得税 örnekleri. Kapı: pytest 337 geçti; `check:tax`, `check:legal`, `next build` geçti.
+- Sonraki: P1 T-025 (LINE OCR uzun sürerse önce 「読み取り中…」 + push).
+
 ## 2026-11-07 09:00 JST · developer · T-043 yasal sayfalar
 - Panelde `/legal/terms/` (利用規約: 税理士法 — vergi danışmanlığı değil, OCR/hesap sonuçları referans, veri sahipliği, 民法548条の4 değişiklik), `/legal/privacy/` (APPI: 取得情報, 利用目的, 27条 第三者提供, 委託先 + 外国 (Render/Singapur, Stripe, LINEヤフー, Meta, Anthropic), 開示等 32〜35条), `/legal/tokushoho/` (zorunlu 11 madde tablosu). Her sayfada 「本ページは確認中のドラフトです」 bandı.
 - İçerik `app/lib/legal.ts`'de; satıcı bilgileri derleme zamanı `NEXT_PUBLIC_LEGAL_*` (render.yaml jsaas-panel, `sync: false`), boşsa 「要確認」. Hukuki onay gereken maddeler 「要確認」 rozetli; saklama süresi TAX_RULES'ta ⚠️ olduğundan sayı yazılmadı. Q-12'ye değer listesi + avukat kontrol maddeleri eklendi.

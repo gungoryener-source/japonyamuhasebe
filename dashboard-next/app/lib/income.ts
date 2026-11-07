@@ -7,6 +7,13 @@ const BASIC_2025: [number, number][] = [
   [1_320_000, 950_000], [3_360_000, 880_000], [4_890_000, 680_000], [6_550_000, 630_000],
   [23_500_000, 580_000], [24_000_000, 480_000], [24_500_000, 320_000], [25_000_000, 160_000], [Infinity, 0],
 ];
+/** 令和8年分・令和9年分（令和8年度改正: 本則62万 + 特例 ≤489万 +42万 / ≤655万 +5万） */
+const BASIC_2026: [number, number][] = [
+  [4_890_000, 1_040_000], [6_550_000, 670_000], [23_500_000, 620_000], [24_000_000, 480_000],
+  [24_500_000, 320_000], [25_000_000, 160_000], [Infinity, 0],
+];
+/** 年 → 基礎控除表。TAX_RULES §2 ✅ の年のみ（2028年分以後は未確定）。 */
+export const BASIC_DEDUCTION: Record<number, [number, number][]> = { 2025: BASIC_2025, 2026: BASIC_2026, 2027: BASIC_2026 };
 
 export function incomeTaxOn(taxable: number): number {
   const t = Math.floor(Math.max(0, taxable) / 1000) * 1000;
@@ -15,12 +22,13 @@ export function incomeTaxOn(taxable: number): number {
 }
 
 export function estimateIncomeTax(revenue: number, expenses: number, year: number, blue: number, social: number, other: number) {
-  if (year !== 2025) return null; // 令和8年分の基礎控除は未確定（tasks/QUESTIONS.md Q-03）
+  const table = BASIC_DEDUCTION[year];
+  if (!table) return null; // 2025〜2027年分以外の基礎控除は未確定（docs/TAX_RULES.md §2）
   const profit = revenue - expenses;
   const blueUsed = Math.min(blue, Math.max(0, profit));
   const business = profit - blueUsed;
   const total = Math.max(0, business);
-  const basic = BASIC_2025.find(([lim]) => total <= lim)![1];
+  const basic = table.find(([lim]) => total <= lim)![1];
   const taxable = Math.floor(Math.max(0, total - basic - social - other) / 1000) * 1000;
   const base = incomeTaxOn(taxable);
   const recon = Math.floor((base * 21) / 1000);
