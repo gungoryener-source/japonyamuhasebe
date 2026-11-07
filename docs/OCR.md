@@ -1,6 +1,6 @@
 # Fiş okuma (OCR) — yapay zekâsız
 
-Akış: görsel → `receipt_ocr.preprocess` (EXIF, 1200px genişlik, median filtre, kontrast) → Tesseract `jpn` (tessdata_best)
+Akış: görsel → `receipt_ocr.preprocess` (EXIF, kırmızı damga bastırma, 1200px genişlik, median filtre, kontrast) → Tesseract `jpn` (tessdata_best)
 → `receipt_parser.parse_receipt` (kurallar) → gerekirse Tesseract `eng` ikinci geçiş (yalnızca T番号 doğrulanamazsa).
 
 ## Ölçüm (2026-11-06, 67 gerçek fiş: FamilyMart, 7-Eleven, Lawson, Daily, クスリのアオキ, タチヤ, ハイウェイショップ, Vietnam marketleri)
@@ -21,6 +21,20 @@ Görseller ve doğru değer listesi kişisel alışveriş verisi olduğu için d
 - **Gün adıyla tarih onarımı:** `2026年1月05日(木)` → 1月5日 pazartesi → `11月05日`.
 - **Güvenlik:** ¥50 altı veya bir oran satırı okunamamış ve güvenilir toplam yoksa kaydetmez; okunan alanlarla birlikte kullanıcıdan tutarı ister.
 
+## Kırmızı damga bastırma (T-026, 2026-11-08)
+- Gri tona geçmeden önce HSV (Pillow, yeni paket yok): ton H ≤ 14 veya ≥ 232 (0–255 ölçeği; 朱色・kırmızı・koyu pembe), doygunluk ≥ 70, parlaklık ≥ 90 → beyaz. Maskenin 1 px komşuluğundaki açık renkli (gri ≥ 150) JPEG halesi de silinir.
+- Damga üstüne basılmış siyah yazı (koyu, V < 90) korunur; mavi/yeşil kalem ve gri korunur.
+- **Görselde kırmızı piksel yoksa çıktı birebir aynıdır** → yukarıdaki 67 fişlik ölçüm geçerliliğini korur (testle sabitlendi: `test_no_red_pixels_output_identical`).
+- Kapatma: `OCR_RED_SUPPRESS=0`. Bilinen risk: kırmızı **basılmış** metin (iki renkli termal yazıcıda kırmızı 合計 vb.) de silinir; bu durumda toplam 10%/8% 対象 satırlarından okunur (yukarıdaki kural).
+- Ölçüm betiği: `python scripts/ocr_eval.py --images <klasör> --truth truth.csv` (gerçek fişler, açık/kapalı karşılaştırma) veya `--synthetic`.
+
+| Sentetik ölçüm (3 fikstür × damgalı/temiz = 6 görsel, tesseract 5.3.4 jpn) | Tarih | Mağaza | Toplam | %8/%10 | T番号 | Tüm alanlar | Yanlış kayıt |
+|---|---|---|---|---|---|---|---|
+| Bastırma kapalı | %83 | %67 | %100 | %100 | %83 | %67 | %0 |
+| **Bastırma açık (varsayılan)** | **%100** | **%100** | **%100** | **%100** | **%100** | **%100** | %0 |
+
+Gerçek damgalı fişlerle ölçüm henüz yapılmadı (görseller depoda yok) — ürün sahibi kendi fişleriyle betiği çalıştırabilir.
+
 ## Bilinen sınırlar
-- Kırmızı damga (印) üstüne denk gelen tarih/rakamlar, buruşuk termal kâğıt, Vietnamca ürün adları.
+- Kırmızı basılmış metin (damga bastırma bunu da siler; `OCR_RED_SUPPRESS=0`), buruşuk termal kâğıt, Vietnamca ürün adları.
 - Ücretsiz Render (0.1 CPU) üzerinde fiş başına ~20–50 sn sürebilir; canlıda en az Starter plan önerilir (Q-09).

@@ -19,6 +19,14 @@ TESSERACT = shutil.which("tesseract")
 TESSDATA = os.environ.get("OCR_TESSDATA", "")
 TARGET_WIDTH = int(os.environ.get("OCR_WIDTH", "1200"))
 BINARIZE = os.environ.get("OCR_BINARIZE", "0") == "1"
+# T-026: kırmızı / 朱色 damga (角印・丸印・認印) bastırma. Varsayılan açık; `OCR_RED_SUPPRESS=0` kapatır.
+# Görselde kırmızı piksel yoksa ön işleme çıktısı birebir aynıdır (67 fişlik ölçüm etkilenmez).
+RED_SUPPRESS = os.environ.get("OCR_RED_SUPPRESS", "1") != "0"
+# Pillow HSV kanalları 0–255. Kırmızı tonu 0 çevresinde: H ≤ 14 (≈20°, 朱色 dahil) veya H ≥ 232 (≈327°, koyu pembe).
+RED_HUE_LOW, RED_HUE_HIGH = 14, 232
+RED_SAT_MIN = 70   # soluk damga mürekkebi de yakalansın; gri/siyah (S düşük) korunur
+RED_VAL_MIN = 90   # damga üstündeki siyah yazının koyu kırmızımsı kenarları (V düşük) korunur
+RED_HALO_LUMA = 150  # damga kenarı halesi yalnızca bu parlaklığın üstündeyse silinir (siyah yazı < ~100)
 
 
 def available() -> bool:
@@ -33,11 +41,14 @@ def available() -> bool:
 
 
 def preprocess(img_bytes: bytes) -> bytes:
-    """Gri ton, EXIF döndürme, küçük görselleri büyütme, kontrast ve hafif keskinleştirme → PNG."""
+    """EXIF döndürme, kırmızı damga bastırma (T-026), gri ton, küçük görselleri büyütme, kontrast ve hafif keskinleştirme → PNG."""
     from PIL import Image, ImageFilter, ImageOps
 
     im = Image.open(io.BytesIO(img_bytes))
-    im = ImageOps.exif_transpose(im).convert("L")
+    im = ImageOps.exif_transpose(im)
+    if RED_SUPPRESS and im.mode not in ("L", "1", "I", "I;16", "F"):
+        im = suppress_red(im.convert("RGB"))
+    im = im.convert("L")
     w, h = im.size
     if abs(w - TARGET_WIDTH) > TARGET_WIDTH * 0.15:  # termal fişler küçük yazılı; hedef genişliğe ölçekle
         scale = TARGET_WIDTH / w
@@ -49,6 +60,36 @@ def preprocess(img_bytes: bytes) -> bytes:
     out = io.BytesIO()
     im.save(out, "PNG")
     return out.getvalue()
+
+
+def red_mask(rgb):
+    """RGB görsel → "L" maske: damga kırmızısı pikseller 255, diğerleri 0 (yalnızca Pillow LUT işlemleri)."""
+    from PIL import ImageChops
+
+    h, s, v = rgb.convert("HSV").split()
+    hue = h.point(lambda x: 255 if (x <= RED_HUE_LOW or x >= RED_HUE_HIGH) else 0)
+    sat = s.point(lambda x: 255 if x >= RED_SAT_MIN else 0)
+    val = v.point(lambda x: 255 if x >= RED_VAL_MIN else 0)
+    return ImageChops.multiply(ImageChops.multiply(hue, sat), val)
+
+
+def suppress_red(rgb):
+    """Kırmızı damga piksellerini beyaza çevirir (gri tona geçmeden önce).
+
+    朱色 damga gri tonda ~100 parlaklığa düşer ve altındaki tarih/rakamlarla birleşir; beyaza çekilince
+    yalnızca siyah baskı kalır. Kırmızı piksel yoksa aynı nesne döner.
+    """
+    from PIL import ImageChops, ImageFilter
+
+    mask = red_mask(rgb)
+    if mask.getbbox() is None:
+        return rgb
+    # Damga kenarındaki açık pembe JPEG halesi: maskenin 1 px komşuluğunda ve açık renkli (siyah baskı değil)
+    light = rgb.convert("L").point(lambda x: 255 if x >= RED_HALO_LUMA else 0)
+    mask = ImageChops.lighter(mask, ImageChops.multiply(mask.filter(ImageFilter.MaxFilter(3)), light))
+    out = rgb.copy()
+    out.paste((255, 255, 255), mask=mask)
+    return out
 
 
 def _otsu(im) -> int:

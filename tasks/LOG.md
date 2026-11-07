@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 07:55 JST · developer · T-026 OCR kırmızı damga bastırma
+- `receipt_ocr.preprocess`: gri tondan önce `suppress_red` — Pillow HSV maskesi (H ≤14 / ≥232, S ≥70, V ≥90) + 1 px açık renkli JPEG halesi → beyaz. Damga üstündeki siyah yazı, mavi/yeşil kalem, gri korunur. Yeni paket yok. `OCR_RED_SUPPRESS=0` ile kapanır (varsayılan açık).
+- Kırmızı piksel yoksa çıktı birebir aynı (5 fikstürde testli) → docs/OCR.md 67 fişlik ölçüm geçerli kalır.
+- Ölçüm: `scripts/ocr_eval.py` (gerçek fiş klasörü + truth.csv, açık/kapalı karşılaştırma; `--synthetic`). Sentetik 角印/丸印 (`tests/stamp_fixture.py`, depoya ikili dosya yok): tüm alanlar %67 → %100, toplam %100 → %100 (düşmedi), yanlış kayıt %0. Gerçek damgalı fişlerle ölçüm ürün sahibinde (görseller depoda yok).
+- Kapı: pytest SQLite 669 geçti/6 atlandı, PostgreSQL 16 673 geçti/2 atlandı. 19 yeni test (`tests/test_ocr_red_stamp.py`). dashboard-next değişmedi. Bilinen risk: kırmızı basılmış metin de silinir (OCR.md'de).
+- Sonraki: P2 — T-024 (düşük güvenli OCR onayı), T-033, T-035, T-045b, T-046c, T-012c. Yeni soru yok.
+
 ## 2026-11-08 06:45 JST · developer · T-066 2割特例 特定期間 şartı (review-fix)
 - Birincil kaynak doğrulandı: NTA インボイスQ&A 問115 (消法9の2① 特定期間 → 2割特例 不可) + NTA 適用可否フローチャート (特定期間は売上高に代えて給与等で判定可). TAX_RULES §1 2割 satırı kaynak + 2026-11-08 kontrol tarihiyle güncellendi.
 - `consumption.compute` niwari: `_check_small_business("2割特例", base, specific, salaries)` (3割 ile aynı kural). Panel `tax.ts methodUnavailable` niwari'de 特定期間 mesajı (parite), `check-tax.mjs` sınır testleri.
