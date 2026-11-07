@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 05:46 JST · reviewer · son 26 saat incelemesi (0c07a31..fd1410d)
+- İncelenen: T-065/T-065b audit_log (entries/invoices/bank_tx; tüm sorgular user_id ile sınırlı, e-posta yalnızca owner/kendisi ✅), T-017 みなし仕入率 (TAX_RULES §1 ✅), T-050 2割/3割 1,000万 + 経過措置 1億/10億 üst sınırı (TAX_RULES §1 ✅). Kapı yeşildi (612). Hata bulunmadı.
+- Eklenen testler (`tests/test_review_20261108.py`, 13): değişmeyen PATCH audit yazmaz + `changed` yalnızca fark, `/audit` limit 0/1001 → 422 ve sıralama, fatura iki kez 消込 → tek audit/tek 売上, `/bank/match` invoice+bank_tx+entry audit (actor owner) ve 409'da yeni satır yok, başka kullanıcının kaydı store'da güncellenmez/silinmez/audit yazılmaz, 経過措置 üst sınırı 2023-10-01 öncesi alımları saymaz, `/tax/consumption?method=sanwari` 特定期間 sınırları (7 durum). Toplam 625.
+- Açılan: T-066 (review-fix, P2) — 2割特例 yalnızca 基準期間'e bakıyor; 特定期間 şartı birincil kaynakla doğrulanmalı (bu çalışmada NTA sayfası açılamadı, kod değiştirilmedi).
+
 ## 2026-11-08 04:49 JST · developer · T-050 2割/3割特例 uygunluk + 経過措置 1億 üst sınırı
 - `consumption.compute`: isteğe bağlı `base_period_sales` / `specific_period_sales` / `specific_period_salaries`. 2割: 基準期間 >1,000万 → ValueError; 3割: 基準期間 veya 特定期間 >1,000万 → ValueError (特定期間 給与等 ≤1,000万 ise uygun — TAX_RULES §1). Parametre yoksa davranış aynı. `method_ineligible` yardımcı.
 - 経過措置 üst sınırı: `transitional_cap(period_start)` (2024-10-01〜 10億, 2026-10-01〜 1億) + `transitional_cap_warnings` (取引先 bazında, kırpılmış ad,適格/非課税/isimsiz/0% hariç). Yorum: aşan kısım `compute`'ta düşülmez, yalnızca uyarı (backlog kabulüne göre). `Purchase.seller` isteğe bağlı alan.
