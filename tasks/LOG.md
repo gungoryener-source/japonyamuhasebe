@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 10:05 JST · reviewer · 6012a33..8c1a4f6 incelemesi (T-042b, T-052, T-053, T-043)
+- Kapı başta yeşil (297, SQLite). T-052 koşullu UPDATE + ekleyici sütun (yıkıcı migration yok), T-053 409 yalnızca e-posta gerçekten kayıtlıysa, T-042b sınır OCR öncesi — doğru. Vergi kuralı değişikliği yok; render.yaml yalnızca `sync: false` değişken ekledi.
+- **Düzeltme:** T-043 プライバシーポリシー 「レシート画像…画像そのものは保存しません」 yanlıştı — `process_image` görseli `receipts/` altına yazıp kayda `image_path` bağlıyor. Metin 「…取引データと紐づけてサーバーに保存します」 olarak düzeltildi (`dashboard-next/app/lib/legal.ts`).
+- **Yeni testler** `tests/test_review_limits_privacy.py` (4): PANEL_URL sonda `/` → tek eğik çizgi, geçen ayın kayıtları sınırı tetiklemez, sınır defter bazında, fiş görseli diske yazılır + `image_path` güvenli (politikadaki ifadeyi sabitler).
+- **Açılan:** T-054 (P2) çok oranlı fiş 29/30 kullanımda 31 kayda çıkıyor ve tek fiş 2 kota sayılıyor.
+
 ## 2026-11-07 10:00 JST · developer · T-004b 基礎控除 令和8・9年分
 - `bot/tax/income.py`: `BASIC_DEDUCTION[2026]`=`[2027]` (TAX_RULES §2 ✅, Q-03): ≤489万 104万 · ≤655万 67万 · ≤2,350万 62万 · ≤2,400万 48万 · ≤2,450万 32万 · ≤2,500万 16万 · 超 0. 2024 ve 2028+ hâlâ `NotImplementedError` (2028 ⚠️).
 - `/api/v1/tax/income?year=2026|2027` artık 200; 2028 → 409. Kabul örneği: 2026年分 事業所得 3,000,000 → 基礎控除 1,040,000, 課税 1,960,000, 申告納税額 100,500 (API + panel `estimateIncomeTax` aynı).

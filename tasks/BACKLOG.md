@@ -244,3 +244,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-053 · Kayıt yarışında 500 (review-fix, P2)
 - `bot/accounts.py` `signup()` (~satır 95): SELECT ile INSERT arasında aynı e-postayla ikinci istek gelirse `accounts.email UNIQUE` ihlali yakalanmıyor → 500. Beklenen: IntegrityError (sqlite3 + psycopg) → `AccountError(..., 409)`. Test: INSERT'i önceden yapıp kontrolü atlayan monkeypatch ile 409.
 - ✅ Yapıldı: `store.is_integrity_error` (sqlite3 + psycopg); `signup` bütünlük hatasında e-posta gerçekten kayıtlıysa 409, değilse hatayı olduğu gibi yükseltir (gizlemez). İşlem geri alınır, yarım hesap/defter kalmaz. Testler `tests/test_signup_race.py`.
+
+## T-054 · Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor (review-fix, P2)
+- `bot/app.py` `process_image` (~satır 324): `limit_notice` OCR'dan önce bir kez kontrol eder; OCR 8%/10% karışık fişi N kayda böler (`for e in result: add_entry`). Ücretsiz planda 29/30 kullanımda iki oranlı fiş → 31 kayıt; ayrıca `billing.usage` (`entries` satırı sayar) tek fişi 2 sayar, oysa plan metni 「経費 30件」.
+- Beklenen (ürün sahibi kararı gerekebilir → gerekirse QUESTIONS): ya kota "fiş" başına sayılır (aynı `image_path` = 1) ya da kalan kota < N ise kayıt yapılmaz/uyarı verilir. Panel kullanım çubuğu ile aynı tanımı kullanmalı.
+- Test: 29 kullanımda 2 oranlı sahte OCR → beklenen sayım; `usage()` sonucu.
