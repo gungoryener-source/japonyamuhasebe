@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 18:44 JST · developer · T-011 fiş görseli depolama (R2)
+- Yeni `bot/storage.py`: `put`/`get`, sürücü local | s3 (S3 uyumlu, Cloudflare R2; yol stili, AWS SigV4 — yeni paket yok). 4 `STORAGE_*` doluysa otomatik s3; değilse yerel + başlangıç uyarısı.
+- `process_image` görseli `storage.put` ile yazar; `image_path` biçimi (`receipts/<ad>.jpg`) aynı. S3 hatasında yerel yedek; anahtar doğrulaması yol geçişini reddeder.
+- render.yaml'a `STORAGE_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY` `sync: false` (mevcut değişkenlere dokunulmadı). Q-14'e "değer girilmeli" notu.
+- Kapı: pytest 446 geçti (yeni 14; SigV4 AWS referans vektörü dahil). dashboard-next değişmedi.
+- Sonraki: P1 — T-056 (Resend e-posta) / T-057 (OCR varsayılanı); T-034 artık açılabilir (görsel okuma uç noktası).
+
 ## 2026-11-07 18:08 JST · reviewer (oturum) · T-058 hız sınırı XFF sahteleme
 - Render istemcinin XFF'ini silmeyip `<istemci>, <Cloudflare kenarı>` ekliyor → `RATE_LIMIT_PROXY_HOPS` varsayılanı 0 → 2 (sağdan 2.); her istekte değişen sahte ilk değer artık yeni kova açmıyor.
 - `/auth/login` için IP'den bağımsız e-posta kovası (20/10dk, `RATE_LIMIT_LOGIN_EMAIL`); `ratelimit.check()` yardımcı. docs/API.md güncellendi. render.yaml değişmedi.

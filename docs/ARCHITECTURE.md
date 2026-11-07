@@ -18,6 +18,7 @@
 - `dashboard-next/`: API'ye bağlı panel (token yoksa demo veri), Render statik site `jsaas-panel`.
 - Render: `tegaru-line-bot` web servisi, bölge singapore, free plan, `main` push'unda otomatik deploy.
 - LINE kanalı: **henüz açılmadı** (insan işi, Q-01).
+- Fiş görselleri (T-011): `bot/storage.py` → `put(key)` / `get(key)`. Dört `STORAGE_*` değişkeni (endpoint, bucket, access/secret key) doluysa S3 uyumlu sürücü (Cloudflare R2, yol stili `{endpoint}/{bucket}/{key}`, AWS SigV4, bölge `STORAGE_REGION` varsayılan `auto`); değilse yerel `receipts/` (deploy'da silinir, başlangıçta uyarı log'u). S3 yazımı başarısızsa görsel yerele yazılır, `get` önce S3 sonra yerele bakar. Anahtar = `entries.image_path` (`receipts/<ad>.jpg`).
 
 ## Hedef veri modeli (özet)
 - `tenants` (事業所: ad, 登録番号, mali yıl başlangıcı, 課税方式: 本則/簡易/2割/3割, 個人|法人)

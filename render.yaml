@@ -49,6 +49,15 @@ services:
         sync: false
       - key: STRIPE_PRICE_BUSINESS
         sync: false
+      # Fiş görselleri (T-011, Q-14): Cloudflare R2. Dört değer de girilince S3 sürücüsü açılır; yoksa yerel disk.
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
   - type: web
     name: jsaas-panel
     runtime: static

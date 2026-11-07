@@ -59,6 +59,12 @@ import i18n  # noqa: E402
 from api import router as api_router  # noqa: E402
 
 init_db()
+
+import storage  # noqa: E402  (T-011: fiş görselleri local | S3/R2)
+
+if _storage_warning := storage.startup_warning():
+    print(_storage_warning)
+
 app.include_router(api_router)
 
 
@@ -364,11 +370,9 @@ async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> 
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
         return notice, opts("合計")
     try:
-        os.makedirs("receipts", exist_ok=True)
-        safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80]
+        safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80] or "img"
         path = f"receipts/{safe}.jpg"
-        with open(path, "wb") as f:
-            f.write(img)
+        await storage.put(path, img, "image/jpeg")
         result = await ocr_receipt(img)
     except Exception as ex:  # ağ / API hatası
         print("image error", type(ex).__name__)

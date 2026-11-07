@@ -17,7 +17,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
-| T-011 | P0 | doing (developer, 2026-11-07) | Fiş görselleri için depolama soyutlaması: yerel / **S3 uyumlu (Cloudflare R2, Q-14 cevaplandı)**; `STORAGE_*` render.yaml'a `sync: false`; yoksa yerel disk |
+| T-011 | P0 | done (bu commit; değerler Q-14) | Fiş görselleri için depolama soyutlaması: yerel / **S3 uyumlu (Cloudflare R2, Q-14 cevaplandı)**; `STORAGE_*` render.yaml'a `sync: false`; yoksa yerel disk |
 | T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
 | T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
@@ -126,6 +126,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Sorun: `app.process_image` görseli konteyner diskine (`receipts/`) yazıyor; render.yaml'da disk yok ve `main` saatte bir yayınlanıyor → her deploy'da görseller kayboluyor (gizlilik politikası ve 電帳法 saklama iddiasıyla çelişir). Arama uç noktası (`/api/v1/entries`) zaten ✅.
 - Yap: `bot/storage.py` (`put(key, bytes)`, `get(key)`), sürücü `STORAGE_BACKEND=local|s3`; s3 için S3 uyumlu (R2/S3) imzalı istek — yeni paket gerekiyorsa sürümü sabitle. Değişkenler render.yaml'a `sync: false` (`STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`); değer Q-14. Anahtar yoksa yerel (bugünkü davranış) + başlangıçta uyarı log'u.
 - Kabul: `process_image` ve `image_path` storage üzerinden; yerel sürücü testleri + s3 sürücüsü httpx MockTransport ile (imza başlığı var, PUT/GET yolu doğru); mevcut testler yeşil.
+- ✅ Yapıldı: `bot/storage.py` (yeni paket yok; SigV4 hashlib/hmac ile, AWS referans vektörüyle doğrulandı). `STORAGE_BACKEND` boşsa 4 değişken doluysa s3, değilse local; eksik değişkenle s3 istenirse local + uyarı. Anahtar doğrulaması (yol geçişi yok). S3 PUT hatası → yerel yedek (görsel kaybolmaz). `process_image` `storage.put` kullanır; `image_path` biçimi değişmedi. render.yaml'a 4 `STORAGE_*` `sync: false`. Testler `tests/test_storage.py` (14). Okuma uç noktası → T-034.
 
 ## T-012 · CSV dışa aktarma
 - freee, マネーフォワード, 弥生 içe aktarma formatları; her biri için örnek dosya testi.
