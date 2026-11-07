@@ -17,3 +17,10 @@ def test_secret_with_trailing_whitespace_still_verifies(monkeypatch):
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "test-secret")
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "test-token")
     importlib.reload(app)
+
+
+def test_health_reports_secret_format_only(bot):
+    from fastapi.testclient import TestClient
+    r = TestClient(bot.app).get("/").json()
+    assert r["line_secret_len"] == len("test-secret") and r["line_secret_format_ok"] is False
+    assert "test-secret" not in str(r)

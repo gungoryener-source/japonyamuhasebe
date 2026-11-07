@@ -486,6 +486,10 @@ def entries(user_id: str, year: str = "2026", x_admin_key: str = Header(default=
 @app.get("/")
 def health():
     return {"ok": True, "line_configured": bool(CHANNEL_SECRET and CHANNEL_TOKEN),
+            # Kurulum teşhisi: değerin kendisi değil, yalnızca biçimi (secret = 32 hex, token ≈ 170 karakter)
+            "line_secret_format_ok": bool(re.fullmatch(r"[0-9a-f]{32}", CHANNEL_SECRET)),
+            "line_secret_len": len(CHANNEL_SECRET), "line_token_len": len(CHANNEL_TOKEN),
+            "version": os.environ.get("RENDER_GIT_COMMIT", "")[:7],
             "ocr_configured": bool(ANTHROPIC_KEY), "ocr_engine": OCR_ENGINE,
             "tesseract": __import__("receipt_ocr").available()}
 
