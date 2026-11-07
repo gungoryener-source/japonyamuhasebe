@@ -82,3 +82,7 @@ Banka defterindeki firma adlarını resmi kayıttan bulmak için. Başvuru ücre
 ## Q-16 · Birden çok şirket — fiyatlandırma (açık — ürün sahibi, sonraya bırakıldı 2026-11-07)
 Bir hesaba sınırsız şirket (事業所) eklenebiliyor; her şirket ayrı defter ve şimdilik kendi planı (Free). Seçenekler: (a) her şirket ayrı abonelik, (b) 法人 planında N şirkete kadar dahil + ek şirket başına ücret, (c) şirket sayısına göre kademeli plan. Koruma sınırı: `MAX_COMPANIES_PER_ACCOUNT` (varsayılan 100).
 **Cevap:**
+
+## Q-18 · 仕切書 (slips) değişiklik geçmişi — T-060 dosyalarına dokunma izni (açık — developer, 2026-11-08, T-065b)
+entries / invoices / bank_tx değişiklikleri artık `audit_log`'a yazılıyor ve panel 経費精算'te 「履歴」 ile görünüyor. 仕切書'nin onay/red/düzeltmeleri `bot/slips*.py` içinde; bu dosyalara ajanların dokunmaması istendiği için eklenmedi (onaylanan 仕切書'nin oluşturduğu 売上 kaydı zaten entries geçmişinde var). Karar: (a) ajan `slips.py`'de update/approve/reject çağrılarına `store._audit(..., "slip", ...)` eklesin (öneri; küçük, davranış değişmez), (b) ürün sahibi kendisi ekler, (c) gerek yok. Görev: T-065c (blocked).
+**Cevap:**

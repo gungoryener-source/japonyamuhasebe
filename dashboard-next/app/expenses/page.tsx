@@ -1,14 +1,15 @@
 "use client";
 
 /** 経費精算 — 領収書アップロード（OCR）・手入力・電子帳簿保存法の検索・修正/削除 */
-import { useRef, useState } from "react";
-import { Camera, Image as ImageIcon, LoaderCircle, Plus, Search, Trash2, Upload } from "lucide-react";
-import { api, CATEGORIES, EXPENSE_CATEGORIES, openBlob, todayJST, type ApiEntry, type EntryDraft } from "../lib/api";
+import { useEffect, useRef, useState } from "react";
+import { Camera, History, Image as ImageIcon, LoaderCircle, Plus, Search, Trash2, Upload } from "lucide-react";
+import { api, CATEGORIES, EXPENSE_CATEGORIES, openBlob, todayJST, type ApiAuditRow, type ApiEntry, type EntryDraft } from "../lib/api";
 import { DEMO_ENTRIES } from "../lib/demo";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, creditRatio, cx, Empty, Field, inputCls, ReadOnlyNote, registrationOk, selectCls, Stat, yen } from "../components/ui";
 import { useLoad } from "../components/useLoad";
 import { T } from "../lib/i18n";
+import { ROLE_LABEL, type Role } from "../lib/team";
 
 type Filters = { date_from: string; date_to: string; q: string; amount_min: string; amount_max: string; kind: string };
 const EMPTY_F: Filters = { date_from: "", date_to: "", q: "", amount_min: "", amount_max: "", kind: "" };
@@ -33,6 +34,7 @@ function Expenses() {
     kind: applied.kind || undefined, limit: 1000,
   }).then((r) => [...r].sort((a, b) => (b.d + b.id).localeCompare(a.d + a.id)));
   const { data: rows, setData: setRows, loading, reload } = useLoad<ApiEntry[]>(mode, load, DEMO_ENTRIES as unknown as ApiEntry[], [applied]);
+  const [historyOf, setHistoryOf] = useState<ApiEntry | null>(null);
 
   const exp = rows.filter((r) => r.kind === "exp");
   const noReg = exp.filter((r) => r.rate && !r.invoice_no);
@@ -172,8 +174,11 @@ function Expenses() {
                           className="text-slate-400 hover:text-navy"><ImageIcon size={13} /></button>}
                       </span>
                     </td>
-                    <td className="px-4 py-1.5 text-right">
-                      {canEdit && <button onClick={() => remove(r)} className="text-slate-300 hover:text-rose-500" aria-label={T("削除")} title={T("削除")}><Trash2 size={14} /></button>}
+                    <td className="whitespace-nowrap px-4 py-1.5 text-right">
+                      <span className="inline-flex items-center gap-2">
+                        <button onClick={() => setHistoryOf(r)} className="text-slate-300 hover:text-navy" aria-label={T("履歴")} title={T("訂正・削除の履歴")}><History size={14} /></button>
+                        {canEdit && <button onClick={() => remove(r)} className="text-slate-300 hover:text-rose-500" aria-label={T("削除")} title={T("削除")}><Trash2 size={14} /></button>}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -182,6 +187,90 @@ function Expenses() {
           </div>
         )}
       </Card>
+      {historyOf && <HistoryPanel entry={historyOf} onClose={() => setHistoryOf(null)} />}
+    </div>
+  );
+}
+
+/** T-065b: 訂正・削除の履歴（電子帳簿保存法）。誰が・いつ・何を変えたか。 */
+const FIELD_LABEL: Record<string, string> = {
+  d: "日付", store: "取引先", amount: "金額（税込）", category: "勘定科目", rate: "税率", invoice_no: "登録番号", kind: "区分",
+};
+const ACTION_LABEL: Record<ApiAuditRow["action"], string> = { create: "登録", update: "訂正", delete: "削除" };
+const KIND_LABEL: Record<string, string> = { line: "LINE", whatsapp: "WhatsApp", bank: "銀行明細", web: "Web" };
+
+function fmtValue(k: string, v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (k === "amount" && typeof v === "number") return yen(v);
+  if (k === "rate") return v === 0 ? T("対象外") : `${v}%`;
+  if (k === "kind") return v === "inc" ? T("売上") : T("経費");
+  return String(v);
+}
+
+function actorText(r: ApiAuditRow): string {
+  if (r.actor_kind !== "web") return KIND_LABEL[r.actor_kind] ?? r.actor ?? "—";
+  const role = r.actor_role in ROLE_LABEL ? T(ROLE_LABEL[r.actor_role as Role]) : r.actor_role;
+  if (r.actor_former) return T("{a}（退出したメンバー）", { a: role });
+  const who = r.actor_is_me ? T("あなた") : r.actor_email;
+  return who ? `${who}（${role}）` : role;
+}
+
+function HistoryPanel({ entry, onClose }: { entry: ApiEntry; onClose: () => void }) {
+  const { live } = useShell();
+  const [rows, setRows] = useState<ApiAuditRow[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!live) {
+      setRows([{ id: 1, entity: "entry", entity_id: String(entry.id), action: "create", actor: entry.source, created_at: `${entry.d}T09:00:00+09:00`,
+        before: null, after: null, changed: [], actor_kind: entry.source.toLowerCase(), actor_role: "", actor_email: null, actor_is_me: false, actor_former: false }]);
+      return;
+    }
+    api.entryHistory(entry.id).then(setRows).catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+  }, [entry, live]);
+
+  return (
+    <div className="fixed inset-0 z-[65] flex justify-end bg-slate-900/40" onMouseDown={onClose}>
+      <div onMouseDown={(e) => e.stopPropagation()} className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl" role="dialog" aria-label={T("訂正・削除の履歴")}>
+        <div className="flex h-14 items-center border-b border-slate-200 px-5">
+          <h3 className="text-sm font-bold text-navy">{T("訂正・削除の履歴")} <span className="text-[10px] font-normal text-slate-400">History</span></h3>
+          <button type="button" onClick={onClose} className="ml-auto text-xs text-slate-400 hover:text-navy">{T("閉じる")}</button>
+        </div>
+        <div className="flex-1 space-y-3 overflow-y-auto p-5 text-xs">
+          <p className="text-slate-500">
+            <span className="font-mono tabular">{entry.d.replaceAll("-", "/")}</span>　{entry.store}　<span className="font-mono font-semibold tabular text-navy">{yen(entry.amount)}</span>
+          </p>
+          {!live && <p className="text-[11px] text-slate-400">{T("デモでは登録の記録のみ表示されます。")}</p>}
+          {err && <p className="rounded-lg bg-rose-50 px-3 py-2 text-rose-700">{T("履歴を読み込めませんでした: {a}", { a: err })}</p>}
+          {!rows && !err && <p className="text-slate-400">{T("読み込み中…")}</p>}
+          {rows && rows.length === 0 && <Empty>{T("この取引には記録された履歴がありません（履歴機能の導入前に登録された取引です）。")}</Empty>}
+          <ol className="space-y-2">
+            {rows?.map((h) => (
+              <li key={h.id} className="rounded-lg border border-slate-100 p-3">
+                <div className="flex items-center gap-2">
+                  <Badge tone={h.action === "delete" ? "bad" : h.action === "update" ? "warn" : "ok"} icon={false}>{T(ACTION_LABEL[h.action])}</Badge>
+                  <span className="font-mono text-[11px] text-slate-500 tabular">{h.created_at.slice(0, 16).replace("T", " ")}</span>
+                  <span className="ml-auto truncate text-[11px] text-slate-500">{actorText(h)}</span>
+                </div>
+                {h.action === "update" && h.changed.filter((k) => FIELD_LABEL[k]).length > 0 && (
+                  <table className="mt-2 w-full text-[11px]">
+                    <tbody>
+                      {h.changed.filter((k) => FIELD_LABEL[k]).map((k) => (
+                        <tr key={k}>
+                          <td className="w-24 py-0.5 text-slate-400">{T(FIELD_LABEL[k])}</td>
+                          <td className="py-0.5 text-slate-500 line-through">{fmtValue(k, h.before?.[k])}</td>
+                          <td className="px-1 text-slate-300">→</td>
+                          <td className="py-0.5 font-semibold text-navy">{fmtValue(k, h.after?.[k])}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </li>
+            ))}
+          </ol>
+          <p className="text-[10px] text-slate-400">{T("訂正・削除の記録は消去できません（電子帳簿保存法）。")}</p>
+        </div>
+      </div>
     </div>
   );
 }

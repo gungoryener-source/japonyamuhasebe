@@ -1,12 +1,19 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## 2026-11-08 01:44 JST · reviewer · son 26 saat incelemesi (91e4fa2..9fa1789)
+Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+
+## 2026-11-08 02:52 JST · developer · T-065b 訂正・削除の履歴 (dilim 2)
+- Panel 経費精算: her satırda 「履歴」 (History simgesi) → yan panel: 登録/訂正/削除, zaman, kim, alan bazında önce → sonra. ja/tr/en sözlük eklendi (rol etiketleri dahil).
+- API: `with_actors` → actor_kind/role/email/is_me/former. E-posta yalnızca owner'a (üye listesi zaten owner'a özel) ve kişinin kendisine; çıkarılan üye 「退出したメンバー」. `/entries/{id}/history`, `/audit` ve yeni `GET /bank/{id}/history`.
+- bank_tx: `store.update_bank_tx` (önce/sonra audit) — PATCH /bank/{id} tutar/bakiye, confirm/excluded, 消込 ve 経費化 bağlantıları, kayıt silinince bağ çözülmesi. Banka kaynaklı kayıtların actor'ı artık onaylayan kişi (`WEB:<rol>:<hesap>`). `balance_ok` türetilmiş → yazılmaz.
+- Kapı: pytest SQLite 554 geçti, PostgreSQL 16 552 geçti/2 atlandı; `next build` + check:* yeşil; demo modunda panel ekran görüntüsüyle kontrol edildi. 6 yeni test (`tests/test_audit_bank_actor.py`).
+- Yeni soru Q-18 (仕切書 geçmişi için T-060 dosyalarına izin) → T-065c blocked. Sonraki: P2 (T-017, T-050, T-019 …).
+
+## 2026-11-08 01:44 JST · reviewer · son 26 saat incelemesi (91e4fa2..9fa1789)
 - İncelenen: T-034 fiş görseli, T-049 青色 75万 (TAX_RULES §2 kaynaklı ✅), T-056 Resend (log maskeli ✅), T-060/T-061/T-062 仕切書・通帳・取引先, T-063 登録番号, T-064 çok şirket, AI okuma ayarı. Kapı yeşildi (536).
 - Güvenlik: slips/counterparties/bank sorguları user_id ile sınırlı; çok şirkette sahiplik kontrolleri (switch/join/link-line/line_target) doğru. Büyük sorun yok, review-fix açılmadı.
 - Eklenen testler (`tests/test_review_20261107b.py`, 6): /tax/income 2026↔2027 青色 seçenekleri (API), LINE line_target yabancı/eski seçimde kendi defterine döner, şirket adı 100 karakter + hesapsız 403, işlenmiş 仕切書 update/reject/approve engeli + başka defterden görünmez, kind doğrulaması, receipt_reader dil ayarını korur. Toplam 542.
 - Not: send_mail DEBUG seviyesinde gövdeyi (sıfırlama bağlantısı) loglar; üretimde DEBUG kapalı olmalı.
-
-## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-08 01:52 JST · developer · T-065 訂正・削除の履歴 (dilim 1)
 - `audit_log` tablosu (yalnızca ekleme; additive şema): entries create/update/delete (LINE 取消・科目/税率 düzeltme dahil) ve invoices create/消込, aynı transaction'da önce/sonra JSON + actor (`WEB:<rol>:<hesap>` / `LINE` / kaynak). Değişmeyen düzeltme yazılmaz.

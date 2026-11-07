@@ -231,25 +231,62 @@ def remove_entry(entry_id: int, p: dict = Depends(writer_principal)):
     return Response(status_code=204)
 
 
+def with_actors(p: dict, rows: list[dict]) -> list[dict]:
+    """audit satırlarına kim yaptı bilgisi (T-065b).
+
+    actor_kind: web / line / bank / whatsapp …; actor_role: owner / accountant / viewer (web);
+    actor_email: yalnızca sahip (üye listesini zaten görür) veya kişinin kendisi için, ve hesap hâlâ
+    bu defterdeyse; actor_former: hesap artık defterde değil. Üye e-postaları owner dışına açılmaz
+    (`/team/members` owner'a özel olduğu için)."""
+    emails = {m["account_id"]: m["email"] for m in team.list_members(p["user_id"])}
+    me = int(p.get("account_id") or 0)
+    out = []
+    for r in rows:
+        actor = r.get("actor") or ""
+        parts = actor.split(":")
+        info = {"actor_kind": (parts[0] or "unknown").lower(), "actor_role": "", "actor_email": None,
+                "actor_is_me": False, "actor_former": False}
+        if parts[0] == "WEB" and len(parts) == 3:
+            acc = int(parts[2]) if parts[2].isdigit() else 0
+            info["actor_role"] = parts[1]
+            info["actor_is_me"] = bool(acc) and acc == me
+            if acc and acc not in emails:
+                info["actor_former"] = True
+            elif acc and (p["role"] == "owner" or info["actor_is_me"]):
+                info["actor_email"] = emails[acc]
+        out.append({**r, **info})
+    return out
+
+
 @router.get("/entries/{entry_id}/history")
-def entry_history(entry_id: int, uid: str = Depends(current_user)):
+def entry_history(entry_id: int, p: dict = Depends(current_principal)):
     """訂正・削除の履歴 (T-065): oluşturma/düzeltme/silme, önce/sonra görüntüsüyle (eskiden yeniye).
-    Silinmiş kayıtlar için de döner; geçmişi olmayan kayıt 404."""
+    Silinmiş kayıtlar için de döner; geçmişi olmayan kayıt 404. Kim yaptı: `with_actors` (T-065b)."""
+    uid = p["user_id"]
     h = store.audit_history(uid, "entry", entry_id)
     if not h and not store.get_entry(uid, entry_id):
         raise HTTPException(404, "entry not found")
-    return h
+    return with_actors(p, h)
+
+
+@router.get("/bank/{tx_id}/history")
+def bank_tx_history(tx_id: int, p: dict = Depends(current_principal)):
+    """銀行明細の修正・確認の履歴 (T-065b). Hareket yoksa 404; düzeltilmemiş hareket → []."""
+    if not store.get_bank_tx(p["user_id"], tx_id):
+        raise HTTPException(404, "transaction not found")
+    return with_actors(p, store.audit_history(p["user_id"], "bank_tx", tx_id))
 
 
 @router.get("/audit")
 def audit_list(entity: str | None = None, action: str | None = None,
-               limit: int = Query(100, ge=1, le=1000), uid: str = Depends(current_user)):
-    """Defterin son değişiklikleri (yeniden eskiye). entity ∈ entry / invoice, action ∈ create / update / delete."""
+               limit: int = Query(100, ge=1, le=1000), p: dict = Depends(current_principal)):
+    """Defterin son değişiklikleri (yeniden eskiye). entity ∈ entry / invoice / bank_tx, action ∈ create / update / delete."""
+    uid = p["user_id"]
     if entity and entity not in store.AUDIT_ENTITIES:
         raise HTTPException(400, f"entity must be one of {store.AUDIT_ENTITIES}")
     if action and action not in ("create", "update", "delete"):
         raise HTTPException(400, "action must be create, update or delete")
-    return store.audit_recent(uid, entity=entity, action=action, limit=limit)
+    return with_actors(p, store.audit_recent(uid, entity=entity, action=action, limit=limit))
 
 
 MAX_UPLOAD = 10 * 1024 * 1024
@@ -459,7 +496,7 @@ def bank_match(body: MatchIn, p: dict = Depends(writer_principal)):
     if t["amount"] != inv["total"]:
         raise HTTPException(400, "amount does not match invoice total")
     paid = store.mark_invoice_paid(uid, inv["no"], t["d"], actor=actor_of(p))
-    store.link_bank_tx(uid, t["id"], invoice_no=inv["no"])
+    store.link_bank_tx(uid, t["id"], invoice_no=inv["no"], actor=actor_of(p))
     return paid
 
 
@@ -470,8 +507,9 @@ class ToEntryIn(BaseModel):
 
 
 @router.post("/bank/{tx_id}/entry", status_code=201)
-def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(writer_user)):
+def bank_to_entry(tx_id: int, body: ToEntryIn, p: dict = Depends(writer_principal)):
     """出金 hareketini 経費 olarak kaydet (口座振替: 家賃, 通信費 vb.)."""
+    uid = p["user_id"]
     t = store.get_bank_tx(uid, tx_id)
     if not t:
         raise HTTPException(404, "transaction not found")
@@ -489,8 +527,8 @@ def bank_to_entry(tx_id: int, body: ToEntryIn, uid: str = Depends(writer_user)):
          "category": body.category, "rate": body.rate, "invoice_no": body.invoice_no}
     if -t["amount"] >= store.MAX_ENTRY_AMOUNT:
         raise HTTPException(400, f"amount must be < {store.MAX_ENTRY_AMOUNT}")
-    eid = store.add_entry(uid, e, source="BANK")
-    store.link_bank_tx(uid, tx_id, entry_id=eid)
+    eid = store.add_entry(uid, e, source="BANK", actor=actor_of(p))
+    store.link_bank_tx(uid, tx_id, entry_id=eid, actor=actor_of(p))
     return {"id": eid, **e}
 
 
@@ -553,8 +591,9 @@ class ConfirmIn(BaseModel):
 
 
 @router.post("/bank/{tx_id}/confirm")
-def bank_confirm(tx_id: int, body: ConfirmIn, uid: str = Depends(writer_user)):
+def bank_confirm(tx_id: int, body: ConfirmIn, p: dict = Depends(writer_principal)):
     """確認: 記帳する（売上/経費として entries へ）か、記帳しない（現金引出・振替など）。取引先は覚える。"""
+    uid = p["user_id"]
     t = store.get_bank_tx(uid, tx_id)
     if not t:
         raise HTTPException(404, "transaction not found")
@@ -582,10 +621,12 @@ def bank_confirm(tx_id: int, body: ConfirmIn, uid: str = Depends(writer_user)):
             "date": t["d"], "kind": "inc" if t["amount"] > 0 else "exp",
             "store": (cp["name"] if cp else t["description"])[:100], "amount": amount, "category": category,
             "rate": rate, "invoice_no": (cp or {}).get("registration_no") or "",
-        }, source="BANK")
-    with store.tx() as con:
-        con.execute("UPDATE bank_tx SET status=?, category=?, counterparty_id=?, entry_id=COALESCE(?, entry_id) WHERE id=? AND user_id=?",
-                    ("confirmed" if entry_id else "excluded", category, cp["id"] if cp else None, entry_id, tx_id, uid))
+        }, source="BANK", actor=actor_of(p))
+    fix = {"status": "confirmed" if entry_id else "excluded", "category": category,
+           "counterparty_id": cp["id"] if cp else None}
+    if entry_id:
+        fix["entry_id"] = entry_id
+    store.update_bank_tx(uid, tx_id, actor=actor_of(p), **fix)
     return {"id": tx_id, "status": "confirmed" if entry_id else "excluded", "entry_id": entry_id}
 
 
@@ -595,16 +636,16 @@ class TxFix(BaseModel):
 
 
 @router.patch("/bank/{tx_id}")
-def bank_fix(tx_id: int, body: TxFix, uid: str = Depends(writer_user)):
-    """通帳の読み取り誤りを修正（未確認の行のみ）。修正後に同じ口座の残高チェックをやり直す。"""
+def bank_fix(tx_id: int, body: TxFix, p: dict = Depends(writer_principal)):
+    """通帳の読み取り誤りを修正（未確認の行のみ）。修正後に同じ口座の残高チェックをやり直す。修正は履歴に残る (T-065b)。"""
+    uid = p["user_id"]
     t = store.get_bank_tx(uid, tx_id)
     if not t:
         raise HTTPException(404, "transaction not found")
     if t.get("status") or t["entry_id"] or t["invoice_no"]:
         raise HTTPException(409, "already recorded")
-    with store.tx() as con:
-        con.execute("UPDATE bank_tx SET amount=?, balance=COALESCE(?, balance) WHERE id=? AND user_id=?",
-                    (body.amount, body.balance, tx_id, uid))
+    fix = {"amount": body.amount} | ({"balance": body.balance} if body.balance is not None else {})
+    store.update_bank_tx(uid, tx_id, actor=actor_of(p), **fix)
     _recheck_balances(uid, t.get("account") or "")
     return store.get_bank_tx(uid, tx_id)
 
@@ -626,8 +667,9 @@ class BulkIn(BaseModel):
 
 
 @router.post("/bank/confirm-matched")
-def bank_confirm_matched(body: BulkIn, uid: str = Depends(writer_user)):
+def bank_confirm_matched(body: BulkIn, p: dict = Depends(writer_principal)):
     """自動で取引先・科目が決まった行をまとめて確定（残高チェック NG の行は除く）。"""
+    uid = p["user_id"]
     rows = {r["id"]: r for r in _review_rows(uid)}
     done, skipped = 0, 0
     for i in body.ids:
@@ -637,7 +679,7 @@ def bank_confirm_matched(body: BulkIn, uid: str = Depends(writer_user)):
             continue
         cp = r["counterparty"] or {}
         bank_confirm(i, ConfirmIn(book=r["book"], category=r["category"], counterparty_name=cp.get("name", ""),
-                                  registration_no=cp.get("registration_no", "")), uid)
+                                  registration_no=cp.get("registration_no", "")), p)
         done += 1
     return {"confirmed": done, "skipped": skipped}
 

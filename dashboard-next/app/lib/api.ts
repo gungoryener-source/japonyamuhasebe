@@ -154,6 +154,12 @@ export type ApiEntry = {
   id: number; user_id?: string; d: string; kind: "inc" | "exp"; store: string; amount: number; category: string;
   rate: number; invoice_no: string; source: string; image_path?: string; created_at?: string;
 };
+/** T-065/T-065b: 訂正・削除の履歴 (GET /entries/{id}/history) */
+export type ApiAuditRow = {
+  id: number; entity: string; entity_id: string; action: "create" | "update" | "delete"; actor: string; created_at: string;
+  before: Record<string, unknown> | null; after: Record<string, unknown> | null; changed: string[];
+  actor_kind: string; actor_role: string; actor_email: string | null; actor_is_me: boolean; actor_former: boolean;
+};
 export type EntryDraft = { date: string; kind: "inc" | "exp"; store: string; amount: number; category: string; rate: number; invoice_no: string; image_path?: string };
 export type ApiOcr = { ok: boolean; error?: string; partial?: { date?: string; store?: string; invoice_no?: string }; entries: EntryDraft[]; image_path?: string };
 export type ApiBankTx = {
@@ -230,6 +236,7 @@ export const api = {
   createEntry: (e: EntryDraft) => call<ApiEntry & { id: number }>("/entries", { method: "POST", body: JSON.stringify(e) }),
   patchEntry: (id: number, e: Partial<EntryDraft>) => call<ApiEntry>(`/entries/${id}`, { method: "PATCH", body: JSON.stringify(e) }),
   deleteEntry: (id: number) => call<void>(`/entries/${id}`, { method: "DELETE" }),
+  entryHistory: (id: number) => call<ApiAuditRow[]>(`/entries/${id}/history`),
   ocr: (file: Blob) => call<ApiOcr>("/receipts/ocr", { method: "POST", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } }),
   bankImport: (file: Blob, account = "") =>
     call<{ parsed: number; imported: number; duplicates: number; suggestions: ApiSuggestion[] }>(`/bank/import${qs({ account })}`, {

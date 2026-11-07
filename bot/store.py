@@ -363,7 +363,7 @@ def check_amount(amount) -> int:
 
 
 # ---------------------------------------------------------------- audit (T-065)
-AUDIT_ENTITIES = ("entry", "invoice")
+AUDIT_ENTITIES = ("entry", "invoice", "bank_tx")
 
 
 def _audit(con: "_Conn", user_id: str, entity: str, entity_id, action: str,
@@ -712,8 +712,13 @@ def delete_entry(user_id: str, entry_id: int, actor: str = "") -> bool:
         before = _entry_snapshot(con, user_id, entry_id)
         cur = con.execute("DELETE FROM entries WHERE id=? AND user_id=?", (entry_id, user_id))
         if cur.rowcount > 0:
-            _audit(con, user_id, "entry", entry_id, "delete", before, None, actor)  # 銀行明細からの経費なら紐付けを外し、再登録できるようにする
-            con.execute("UPDATE bank_tx SET entry_id=NULL WHERE entry_id=? AND user_id=?", (entry_id, user_id))
+            _audit(con, user_id, "entry", entry_id, "delete", before, None, actor)
+            # 銀行明細からの経費なら紐付けを外し、再登録できるようにする (T-065b: bank_tx 側にも履歴)
+            linked = con.execute("SELECT id FROM bank_tx WHERE entry_id=? AND user_id=?", (entry_id, user_id)).fetchall()
+            for r in linked:
+                b = _bank_snapshot(con, user_id, r["id"])
+                con.execute("UPDATE bank_tx SET entry_id=NULL WHERE id=? AND user_id=?", (r["id"], user_id))
+                _audit(con, user_id, "bank_tx", r["id"], "update", b, _bank_snapshot(con, user_id, r["id"]), actor)
             return True
     return False
 
@@ -769,9 +774,32 @@ def get_bank_tx(user_id: str, tx_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-def link_bank_tx(user_id: str, tx_id: int, *, invoice_no: str | None = None, entry_id: int | None = None) -> None:
+def link_bank_tx(user_id: str, tx_id: int, *, invoice_no: str | None = None, entry_id: int | None = None,
+                 actor: str = "") -> None:
+    fields = {k: v for k, v in (("invoice_no", invoice_no), ("entry_id", entry_id)) if v is not None}
+    if fields:
+        update_bank_tx(user_id, tx_id, actor=actor, **fields)
+
+
+def _bank_snapshot(con: "_Conn", user_id: str, tx_id: int) -> dict | None:
+    row = con.execute("SELECT * FROM bank_tx WHERE id=? AND user_id=?", (tx_id, user_id)).fetchone()
+    return dict(row) if row else None
+
+
+BANK_TX_EDITABLE = ("amount", "balance", "status", "category", "counterparty_id", "entry_id", "invoice_no")
+
+
+def update_bank_tx(user_id: str, tx_id: int, actor: str = "", **fields) -> dict | None:
+    """bank_tx düzeltmesi/durum değişikliği (T-065b): aynı transaction'da önce/sonra audit_log'a yazılır.
+
+    `balance_ok` türetilmiş bir alandır (残高チェック) ve burada değiştirilmez/kaydedilmez."""
+    sets = {k: v for k, v in fields.items() if k in BANK_TX_EDITABLE}
     with tx() as con:
-        if invoice_no is not None:
-            con.execute("UPDATE bank_tx SET invoice_no=? WHERE id=? AND user_id=?", (invoice_no, tx_id, user_id))
-        if entry_id is not None:
-            con.execute("UPDATE bank_tx SET entry_id=? WHERE id=? AND user_id=?", (entry_id, tx_id, user_id))
+        before = _bank_snapshot(con, user_id, tx_id)
+        if before is None or not sets:
+            return before
+        cols = ", ".join(f"{k}=?" for k in sets)
+        con.execute(f"UPDATE bank_tx SET {cols} WHERE id=? AND user_id=?", (*sets.values(), tx_id, user_id))
+        after = _bank_snapshot(con, user_id, tx_id)
+        _audit(con, user_id, "bank_tx", tx_id, "update", before, after, actor)
+    return after
