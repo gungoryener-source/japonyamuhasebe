@@ -6,9 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell, Building2, Calculator, CreditCard, Check, ChevronDown, ChevronRight, CircleCheck, FileText, Home, Landmark,
-  LoaderCircle, LogOut, Menu, Receipt, RefreshCw, Search, Settings, TriangleAlert, X,
+  Eye, LoaderCircle, LogOut, Menu, Receipt, RefreshCw, Search, Settings, TriangleAlert, UserPlus, X,
 } from "lucide-react";
-import { api, ApiError, getToken, setToken } from "../lib/api";
+import { api, ApiError, getToken, replaceSession, setToken } from "../lib/api";
+import { canWrite, ledgerOptions, parseRole, ROLE_LABEL, type Ledger, type Role } from "../lib/team";
 import { MOCK, type Company } from "../lib/demo";
 import { Badge, cx, useClickOutside, useToast } from "./ui";
 import { LegalLinks } from "./legal";
@@ -149,8 +150,9 @@ function CommandPalette({ open, onClose, onPick }: { open: boolean; onClose: () 
   );
 }
 
-export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = false }: {
+export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = false, role = "owner", account = false }: {
   onMenu: () => void; onSearch: () => void; company: Company; setCompany: (c: Company) => void; toast: (m: string) => void; live?: boolean;
+  role?: Role; account?: boolean;
 }) {
   const notifications = live ? [] : MOCK.notifications;
   const [syncing, setSyncing] = useState(false);
@@ -162,6 +164,28 @@ export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = fa
   const coRef = useRef<HTMLDivElement>(null);
   useClickOutside(bellRef, () => setBellOpen(false));
   useClickOutside(coRef, () => setCoOpen(false));
+
+  // Canlı: hesabın erişebildiği defterler (T-041 GET /team/ledgers). Menü ilk açıldığında yüklenir.
+  const [ledgers, setLedgers] = useState<Ledger[] | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const openCo = () => {
+    setCoOpen((o) => !o);
+    if (live && account && ledgers === null) {
+      api.teamLedgers().then((r) => setLedgers(ledgerOptions(r.ledgers))).catch(() => setLedgers([]));
+    }
+  };
+  const switchTo = async (l: Ledger) => {
+    if (l.user_id === company.id || switching) { setCoOpen(false); return; }
+    setSwitching(l.user_id);
+    try {
+      const r = await api.teamSwitch(l.user_id);
+      await replaceSession(r.token);
+      location.href = "/";
+    } catch (e) {
+      setSwitching(null);
+      toast(`切り替えに失敗しました: ${e instanceof Error ? e.message : e}`);
+    }
+  };
 
   const router = useRouter();
   const sync = () => {
@@ -243,18 +267,49 @@ export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = fa
 
         {/* Company / profile switcher */}
         <div ref={coRef} className="relative">
-          <button onClick={() => setCoOpen((o) => !o)} className="flex items-center gap-2 rounded-lg p-1 pr-2 hover:bg-slate-100">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-navy text-xs font-bold text-white">佐</span>
+          <button onClick={openCo} className="flex items-center gap-2 rounded-lg p-1 pr-2 hover:bg-slate-100" aria-haspopup="menu" aria-expanded={coOpen}>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-navy text-xs font-bold text-white">{live ? (company.name.trim()[0] ?? "帳") : "佐"}</span>
             <span className="hidden text-left leading-tight sm:block">
               <span className="block max-w-[140px] truncate text-xs font-bold text-navy">{company.name}</span>
-              <span className="block text-[10px] text-slate-400">経理担当 佐藤</span>
+              <span className="block text-[10px] text-slate-400">{live ? ROLE_LABEL[role] : "経理担当 佐藤"}</span>
             </span>
             <ChevronDown size={14} className="text-slate-400" />
           </button>
           {coOpen && (
             <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
               <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">事業所を切り替え</p>
-              {(live ? [company] : MOCK.companies).map((c) => (
+              {live ? (
+                <>
+                  {!account && (
+                    <p className="px-3 pb-2 text-[11px] text-slate-500">
+                      複数の帳簿を切り替えるには<a href="/login/" className="font-bold text-navy hover:underline">メールアドレスでログイン</a>してください。
+                    </p>
+                  )}
+                  {(account ? ledgers : [{ user_id: company.id, role, business_name: company.name }])?.map((l) => (
+                    <button
+                      key={l.user_id}
+                      onClick={() => switchTo(l)}
+                      disabled={!!switching}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      {switching === l.user_id ? <LoaderCircle size={15} className="animate-spin text-slate-400" /> : <Building2 size={15} className="text-slate-400" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-bold text-navy">{l.business_name}</span>
+                        <span className="block text-[10px] text-slate-400">{ROLE_LABEL[l.role]}</span>
+                      </span>
+                      {l.user_id === company.id && <Check size={14} className="text-mint" />}
+                    </button>
+                  ))}
+                  {account && ledgers === null && (
+                    <p className="flex items-center gap-2 px-3 py-2 text-[11px] text-slate-400"><LoaderCircle size={12} className="animate-spin" />読み込み中…</p>
+                  )}
+                  {account && (
+                    <a href="/join/" className="mt-1 flex items-center gap-2 border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500 hover:text-navy">
+                      <UserPlus size={13} />招待コードで帳簿に参加
+                    </a>
+                  )}
+                </>
+              ) : MOCK.companies.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => { setCompany(c); setCoOpen(false); toast(`${c.name} に切り替えました`); }}
@@ -289,12 +344,16 @@ export function useConnection() {
   const [company, setCompany] = useState<Company>(MOCK.companies[0]);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<Role>("owner");
   useEffect(() => {
     if (!getToken()) { setMode("demo"); return; }
-    // Hesap e-postası (T-040b). Eski sunucuda /auth/me yoksa yalnızca kod oturumu sayılır.
-    api.me().then((m) => setEmail(m.account?.email ?? null)).catch(() => setEmail(null));
-    api.profile()
-      .then((p) => {
+    // Hesap e-postası (T-040b) + rol (T-041). Eski sunucuda /auth/me yoksa kod oturumu ve owner sayılır.
+    // Rol, düzenleme düğmeleri bir an bile yanlış görünmesin diye "live"dan önce çözülür.
+    const me = api.me().catch(() => null);
+    Promise.all([api.profile(), me])
+      .then(([p, m]) => {
+        setEmail(m?.account?.email ?? null);
+        setRole(parseRole(m?.role));
         const y = new Date().getFullYear();
         setCompany({ id: p.user_id, name: p.business_name || "事業者名未設定", reg: p.registration_no || "登録番号未設定", fiscal: `${y}年分` });
         setMode("live");
@@ -305,11 +364,15 @@ export function useConnection() {
         setMode("demo");
       });
   }, []);
-  return { mode, company, setCompany, error, email };
+  return { mode, company, setCompany, error, email, role };
 }
 
-type ShellCtx = { toast: (m: string) => void; mode: Mode; live: boolean; company: Company };
-const Ctx = createContext<ShellCtx>({ toast: () => {}, mode: "demo", live: false, company: MOCK.companies[0] });
+/**
+ * `role`: canlı oturumun rolü (demo/yükleniyor → owner). `canEdit`: muhasebe verisi yazılabilir mi (viewer → false).
+ * Sayfalar düzenleme düğmelerini `canEdit` ile gizler; sunucu yine 403 ile korur.
+ */
+type ShellCtx = { toast: (m: string) => void; mode: Mode; live: boolean; company: Company; role: Role; canEdit: boolean };
+const Ctx = createContext<ShellCtx>({ toast: () => {}, mode: "demo", live: false, company: MOCK.companies[0], role: "owner", canEdit: true });
 export const useShell = () => useContext(Ctx);
 
 /**
@@ -325,7 +388,7 @@ async function logout(account: boolean) {
   else location.reload();
 }
 
-export function ModeBadge({ mode, email }: { mode: Mode; email?: string | null }) {
+export function ModeBadge({ mode, email, role = "owner" }: { mode: Mode; email?: string | null; role?: Role }) {
   if (mode === "loading") return <Badge tone="info" icon={false}><LoaderCircle size={11} className="animate-spin" />読み込み中</Badge>;
   if (mode === "demo")
     return (
@@ -339,6 +402,7 @@ export function ModeBadge({ mode, email }: { mode: Mode; email?: string | null }
   return (
     <span className="flex items-center gap-2">
       <Badge tone="ok">ライブ</Badge>
+      {role === "viewer" && <Badge tone="muted" icon={false}><Eye size={11} />閲覧専用</Badge>}
       {email ? (
         <>
           <span className="max-w-[180px] truncate text-[11px] text-slate-500" title={email}>{email}</span>
@@ -382,18 +446,18 @@ export function AppShell({ title, en, sub, actions, conn, children }: {
   }, []);
 
   return (
-    <Ctx.Provider value={{ toast, mode: c.mode, live: c.mode === "live", company: c.company }}>
+    <Ctx.Provider value={{ toast, mode: c.mode, live: c.mode === "live", company: c.company, role: c.role, canEdit: canWrite(c.role) }}>
       <div className="flex min-h-screen">
         <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} company={c.company} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar key={c.mode} live={c.mode === "live"} onMenu={() => setMenuOpen(true)} onSearch={() => setSearchOpen(true)} company={c.company} setCompany={c.setCompany} toast={toast} />
+          <Topbar key={c.mode} live={c.mode === "live"} onMenu={() => setMenuOpen(true)} onSearch={() => setSearchOpen(true)} company={c.company} setCompany={c.setCompany} toast={toast} role={c.role} account={!!c.email} />
           <main className="mx-auto w-full max-w-[1400px] flex-1 p-3 sm:p-5">
             <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
               <h1 className="text-lg font-bold text-navy">{title}{en && <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-slate-400">{en}</span>}</h1>
               {sub && <p className="text-xs text-slate-400">{sub}</p>}
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 {actions}
-                <ModeBadge mode={c.mode} email={c.email} />
+                <ModeBadge mode={c.mode} email={c.email} role={c.role} />
               </div>
             </div>
             {c.error && c.mode === "demo" && (

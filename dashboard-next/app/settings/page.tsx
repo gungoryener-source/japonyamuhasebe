@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import { Copy, CreditCard, KeyRound, LogOut, MessageCircle, ScanText, ShieldCheck } from "lucide-react";
 import { API_BASE, api, setToken, type ApiChannels } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
-import { Badge, Btn, Card, Field, inputCls, registrationOk } from "../components/ui";
+import { Badge, Btn, Card, Field, inputCls, ReadOnlyNote, registrationOk } from "../components/ui";
+import { MembersCard } from "./members";
 
 export default function SettingsPage() {
   return (
-    <AppShell title="設定" en="Settings" sub="事業者情報・LINE / WhatsApp 連携・接続">
+    <AppShell title="設定" en="Settings" sub="事業者情報・LINE / WhatsApp 連携・メンバー・接続">
       <Settings />
     </AppShell>
   );
@@ -23,7 +24,7 @@ const DEMO_CH: ApiChannels = {
 };
 
 function Settings() {
-  const { live, mode, company, toast } = useShell();
+  const { live, mode, company, toast, canEdit } = useShell();
   const [name, setName] = useState("");
   const [reg, setReg] = useState("");
   const [individual, setIndividual] = useState(true);
@@ -42,6 +43,7 @@ function Settings() {
     e.preventDefault();
     if (reg && !/^T\d{13}$/.test(reg)) return toast("登録番号は T + 13桁 で入力してください");
     if (!live) return toast("保存しました（デモ）");
+    if (!canEdit) return;
     setBusy(true);
     try {
       await api.putProfile({ business_name: name.trim(), registration_no: reg, individual });
@@ -67,6 +69,8 @@ function Settings() {
     <div className="grid gap-3 lg:grid-cols-2">
       <Card title="事業者情報" en="Business Profile" right={<ShieldCheck size={16} className="text-mint" />}>
         <form onSubmit={save} className="space-y-3">
+          {!canEdit && <ReadOnlyNote />}
+          <fieldset disabled={!canEdit} className="space-y-3 disabled:opacity-70">
           <Field label="事業者名（屋号・会社名）">
             <input id="st-name" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="合同会社〇〇 / 〇〇デザイン事務所" />
           </Field>
@@ -87,7 +91,8 @@ function Settings() {
             </div>
             <p className="text-[10px] text-slate-400">3割特例（2027・2028年分）は個人事業主のみ利用できます。</p>
           </fieldset>
-          <Btn type="submit" kind="primary" disabled={busy}>{busy ? "保存中…" : "保存する"}</Btn>
+          {canEdit && <Btn type="submit" kind="primary" disabled={busy}>{busy ? "保存中…" : "保存する"}</Btn>}
+          </fieldset>
         </form>
       </Card>
 
@@ -115,6 +120,8 @@ function Settings() {
           </li>
         </ul>
       </Card>
+
+      <MembersCard />
 
       <Card title="料金プラン" en="Billing" right={<CreditCard size={16} className="text-mint" />} className="lg:col-span-2">
         <div className="flex flex-wrap items-center gap-3 text-xs">

@@ -140,7 +140,14 @@ export type ApiIncomeTax = {
   taxable: number; base_tax: number; reconstruction: number; total: number; disclaimer: string;
 };
 export type ApiAuth = { account: { id: number; email: string }; user_id: string; token: string };
-export type ApiMe = { user_id: string; account: { id: number; email: string; email_verified: boolean } | null };
+/** `role` T-041 ile geldi; eski sunucuda yoksa owner sayılır (lib/team.ts `parseRole`). */
+export type ApiMe = { user_id: string; role?: string; account: { id: number; email: string; email_verified: boolean } | null };
+
+/** Ekip (T-041, docs/API.md `/team/*`). */
+export type ApiMember = { account_id: number; email: string; role: "owner" | "accountant" | "viewer"; joined_at?: string };
+export type ApiInvite = { id: string; role: "accountant" | "viewer"; created_at: string; expires_at: string };
+export type ApiNewInvite = { code: string; role: "accountant" | "viewer"; expires_at: string };
+export type ApiSession = { user_id: string; role: string; token: string };
 
 /** Abonelik (T-042, docs/API.md). Fiyatlar Q-11 cevaplanana kadar yer tutucu. */
 export type ApiPlan = {
@@ -208,7 +215,25 @@ export const api = {
   checkout: (plan: "personal" | "business") => call<{ url: string }>("/billing/checkout", { method: "POST", body: JSON.stringify({ plan }) }),
   cancelPlan: () => call<ApiBillingStatus>("/billing/cancel", { method: "POST" }),
   linkLine: (code: string) => call<ApiAuth>("/auth/link-line", { method: "POST", body: JSON.stringify({ code }) }),
+  teamMembers: () => call<{ members: ApiMember[]; invites: ApiInvite[] }>("/team/members"),
+  teamInvite: (role: "accountant" | "viewer") => call<ApiNewInvite>("/team/invites", { method: "POST", body: JSON.stringify({ role }) }),
+  teamRevokeInvite: (id: string) => call<void>(`/team/invites/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  teamSetRole: (account_id: number, role: "accountant" | "viewer") =>
+    call<{ account_id: number; role: string }>(`/team/members/${account_id}`, { method: "PATCH", body: JSON.stringify({ role }) }),
+  teamRemove: (account_id: number) => call<void>(`/team/members/${account_id}`, { method: "DELETE" }),
+  teamJoin: (code: string) => call<ApiSession>("/team/join", { method: "POST", body: JSON.stringify({ code }) }),
+  teamLedgers: () => call<{ current: string; ledgers: { user_id: string; role: string; business_name: string }[] }>("/team/ledgers"),
+  teamSwitch: (user_id: string) => call<ApiSession>("/team/switch", { method: "POST", body: JSON.stringify({ user_id }) }),
 };
+
+/**
+ * Oturumu yeni token'a geçirir (davet katılımı / defter değiştirme): eski token sunucuda iptal edilir
+ * (en iyi çaba; böylece hesap başına token sınırı dolmaz), yenisi kaydedilir.
+ */
+export async function replaceSession(newToken: string) {
+  try { await api.revoke(); } catch { /* eski token zaten geçersiz olabilir */ }
+  setToken(newToken);
+}
 
 /** Hesap uçları (T-040, docs/API.md). Başarılı giriş/kayıtta token kaydedilir. */
 export const auth = {

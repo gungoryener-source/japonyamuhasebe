@@ -6,7 +6,7 @@ import { Camera, LoaderCircle, Plus, Search, Trash2, Upload } from "lucide-react
 import { api, CATEGORIES, EXPENSE_CATEGORIES, todayJST, type ApiEntry, type EntryDraft } from "../lib/api";
 import { DEMO_ENTRIES } from "../lib/demo";
 import { AppShell, useShell } from "../components/shell";
-import { Badge, Btn, Card, creditRatio, cx, Empty, Field, inputCls, registrationOk, selectCls, Stat, yen } from "../components/ui";
+import { Badge, Btn, Card, creditRatio, cx, Empty, Field, inputCls, ReadOnlyNote, registrationOk, selectCls, Stat, yen } from "../components/ui";
 import { useLoad } from "../components/useLoad";
 
 type Filters = { date_from: string; date_to: string; q: string; amount_min: string; amount_max: string; kind: string };
@@ -22,7 +22,7 @@ export default function ExpensesPage() {
 }
 
 function Expenses() {
-  const { mode, live, toast } = useShell();
+  const { mode, live, toast, canEdit } = useShell();
   const [f, setF] = useState<Filters>(EMPTY_F);
   const [applied, setApplied] = useState<Filters>(EMPTY_F);
   const load = () => api.entries({
@@ -86,10 +86,14 @@ function Expenses() {
         <Stat label="売上（表示中）" value={yen(rows.filter((r) => r.kind === "inc").reduce((s, r) => s + r.amount, 0))} tone="ok" />
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <ReceiptUpload onSave={save} />
-        <ManualEntry onSave={save} />
-      </div>
+      {canEdit ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <ReceiptUpload onSave={save} />
+          <ManualEntry onSave={save} />
+        </div>
+      ) : (
+        <ReadOnlyNote />
+      )}
 
       <Card title="取引一覧・検索" en="Search (電帳法: 日付・金額・取引先)">
         <form
@@ -133,13 +137,13 @@ function Expenses() {
                     <td className="whitespace-nowrap px-4 py-1.5 font-mono text-slate-500 tabular">{r.d.replaceAll("-", "/")}</td>
                     <td className="max-w-[200px] truncate px-2 py-1.5 text-slate-700">{r.store}</td>
                     <td className="px-2 py-1.5">
-                      <select value={r.category} onChange={(e) => patch(r, { category: e.target.value })} aria-label="勘定科目"
+                      <select value={r.category} onChange={(e) => patch(r, { category: e.target.value })} aria-label="勘定科目" disabled={!canEdit}
                         className="rounded border border-transparent bg-transparent py-0.5 text-xs hover:border-slate-200">
                         {(r.kind === "inc" ? ["売上高"] : EXPENSE_CATEGORIES).map((c) => <option key={c}>{c}</option>)}
                       </select>
                     </td>
                     <td className="px-2 py-1.5">
-                      <select value={r.rate} onChange={(e) => patch(r, { rate: Number(e.target.value) })} aria-label="税率"
+                      <select value={r.rate} onChange={(e) => patch(r, { rate: Number(e.target.value) })} aria-label="税率" disabled={!canEdit}
                         className={cx("rounded border border-transparent bg-transparent py-0.5 font-mono text-xs hover:border-slate-200", r.rate === 8 && "text-mint-700")}>
                         <option value={10}>10%</option><option value={8}>8%</option><option value={0}>対象外</option>
                       </select>
@@ -154,7 +158,7 @@ function Expenses() {
                     </td>
                     <td className="px-2 py-1.5 text-[11px] text-slate-400">{r.source}</td>
                     <td className="px-4 py-1.5 text-right">
-                      <button onClick={() => remove(r)} className="text-slate-300 hover:text-rose-500" aria-label="削除" title="削除"><Trash2 size={14} /></button>
+                      {canEdit && <button onClick={() => remove(r)} className="text-slate-300 hover:text-rose-500" aria-label="削除" title="削除"><Trash2 size={14} /></button>}
                     </td>
                   </tr>
                 ))}

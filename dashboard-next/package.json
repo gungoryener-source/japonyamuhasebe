@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "check:tax": "node --experimental-strip-types --no-warnings scripts/check-tax.mjs",
-    "check:legal": "node --experimental-strip-types --no-warnings scripts/check-legal.mjs"
+    "check:legal": "node --experimental-strip-types --no-warnings scripts/check-legal.mjs",
+    "check:team": "node --experimental-strip-types --no-warnings scripts/check-team.mjs"
   },
   "dependencies": {
     "lucide-react": "0.468.0",

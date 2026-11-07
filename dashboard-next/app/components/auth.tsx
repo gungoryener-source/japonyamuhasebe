@@ -83,3 +83,15 @@ export function nextPath(): string {
     return "/";
   }
 }
+
+/**
+ * Bekleyen davet kodu (T-041b): /join'e giriş yapmadan gelen kullanıcı giriş/kayıt sonrası kodu yeniden yazmasın diye
+ * yalnızca bu sekmede (sessionStorage) tutulur. Başarılı katılımda silinir.
+ */
+const INVITE_KEY = "jsaas.invite";
+export function pendingInvite(): string {
+  try { return sessionStorage.getItem(INVITE_KEY) ?? ""; } catch { return ""; }
+}
+export function setPendingInvite(code: string | null) {
+  try { if (code) sessionStorage.setItem(INVITE_KEY, code); else sessionStorage.removeItem(INVITE_KEY); } catch { /* storage yok */ }
+}

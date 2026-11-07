@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { auth, PASSWORD_MAX, PASSWORD_MIN, setToken } from "../lib/api";
-import { AuthCard, AuthInput, EMAIL_RE, errorText, Notice, SubmitBtn } from "../components/auth";
+import { AuthCard, AuthInput, EMAIL_RE, errorText, Notice, SubmitBtn, pendingInvite } from "../components/auth";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -23,7 +23,7 @@ export default function SignupPage() {
     try {
       const r = await auth.signup(email.trim(), password);
       setToken(r.token);
-      location.href = "/connect/?welcome=1";
+      location.href = pendingInvite() ? "/join/" : "/connect/?welcome=1"; // davetle gelen: katılıma dön (T-041b)
     } catch (e) {
       setError(errorText(e));
       setBusy(false);

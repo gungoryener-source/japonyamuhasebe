@@ -39,7 +39,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
 | T-041 | P1 | done (bu commit; panel → T-041b) | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
-| T-041b | P1 | doing (developer, 2026-11-07) | Panel: /settings 「メンバー」 bölümü (davet kodu üret/iptal, rol değiştir, çıkar) + /join sayfası + üst menüde defter değiştirici; viewer'da düzenleme düğmeleri gizli (T-041 API'si) |
+| T-041b | P1 | done (bu commit) | Panel: /settings 「メンバー」 bölümü (davet kodu üret/iptal, rol değiştir, çıkar) + /join sayfası + üst menüde defter değiştirici; viewer'da düzenleme düğmeleri gizli (T-041 API'si) |
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
@@ -206,6 +206,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `dashboard-next/app/settings`: 「メンバー」 kartı — `GET /team/members`, 「招待コードを発行」 (役割: 編集者=accountant / 閲覧者=viewer) → kodu bir kez göster + kopyala, 招待取消, 役割変更, 削除 (onaylı). Yalnızca `auth/me.role === "owner"` görür.
 - `/join` sayfası: kod gir → `POST /team/join` → token'ı kaydet, panele yönlendir. Üst menü: `GET /team/ledgers` ile defter seçici → `POST /team/switch`.
 - Viewer: kayıt ekle/düzenle/sil, fatura oluştur, banka içe aktar düğmeleri gizli/pasif + 「閲覧専用」 rozeti. Demo modunda statik. `next build` geçer.
+- ✅ Yapıldı: `app/lib/team.ts` (saf: rol etiketleri, `parseRole`/`canWrite`/`isOwner`, davet kodu çıkarma, `/join/#iv_…` bağlantısı, JST tarih, defter listesi) + `npm run check:team`. `settings/members.tsx` (owner: davet üret → kod+bağlantı bir kez, 取消, 役割変更, 2 adımlı 削除; diğer roller: rol açıklaması; demo statik). `/join` (hash'ten kod, giriş yoksa sessionStorage'da tutup /login veya /signup → geri dön). Üst menü: `/team/ledgers` defter seçici → `/team/switch` (eski token iptal edilir). `useShell()` → `role`, `canEdit`; rol "live"dan önce çözülür. Viewer: ホーム クイックアクション/消込, 経費 formları/satır içi düzenleme/silme, 請求書作成/入金消込, 銀行 取込/消込/経費登録, 事業者情報 kaydı gizli + 「閲覧専用」 rozeti; 料金プラン düğmeleri yalnızca owner.
 
 ## T-042 · Abonelik (P0)
 - `plans` sabitleri `bot/billing.py`: free (aylık 30 fiş, 3 fatura), personal, business — fiyatlar Q-11 cevaplanana kadar yer tutucu ve yapılandırmadan.

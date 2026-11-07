@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 13:48 JST · developer · T-041b ekip paneli
+- `dashboard-next`: 設定 「メンバー」 kartı (owner: 招待コード発行 → kod + `/join/#iv_…` bağlantısı yalnızca bir kez, 未使用の招待 取消, 役割変更 select, 2 adımlı 削除; accountant/viewer: rolü + açıklama). Demo modunda statik veri.
+- Yeni `/join` sayfası: hash'teki kod adres çubuğundan silinir; hesapsız/LINE-only oturumda kod sekmede (sessionStorage) tutulur → giriş/kayıt sonrası otomatik dolu. Katılım/defter değişiminde eski token sunucuda iptal edilir (token sınırı dolmasın).
+- Üst menü: `/team/ledgers` defter seçici + 「招待コードで帳簿に参加」; profil satırında rol etiketi. `useShell()` artık `role` + `canEdit` verir; rol `/auth/me` ile "live"dan önce çözülür (viewer'a düğme bir an bile görünmez). Viewer'da tüm yazma düğmeleri gizli + 「閲覧専用」; 料金プラン değişikliği yalnızca owner (sunucu 403 ile zaten koruyor).
+- Kapı: `npm ci && next build` geçti (yeni `/join` rotası), `npm run check:team` OK, Playwright duman testi (sahte API: viewer/owner/ seçici/join) hatasız. pytest 385 geçti (bot değişmedi). `check:team` CI'a T-021 ile (Node 22).
+- Sonraki: P1 T-044 (LP + kurulum sihirbazı) veya T-048 (güvenlik).
+
 ## 2026-11-07 13:43 JST · reviewer · f424677..0b4b6e9 incelemesi (T-054, T-025, T-041)
 - Kapı başta yeşil (380, SQLite). T-054 `COUNT(DISTINCT image_path|id)` doğru, sınır OCR öncesi. T-041 yazma uçlarının hepsi `writer_user`/`owner_user` arkasında; vergi kuralı değişikliği yok, render.yaml değişmedi.
 - **Güvenlik düzeltmesi (T-041):** `accounts.link_ledger` her token'ı 「パネル」 kodu sayıyordu → LINE-only defterin viewer'ı kendi üye token'ını `/auth/link-line`'a verip defterin **sahibi** olabiliyordu. Artık yalnızca `account_id=0` token kabul edilir (üye token'ı → 400).

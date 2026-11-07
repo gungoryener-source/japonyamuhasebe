@@ -35,7 +35,7 @@ export default function InvoicesPage() {
 }
 
 function Invoices() {
-  const { mode, live, toast } = useShell();
+  const { mode, live, toast, canEdit } = useShell();
   const { data: rows, setData: setRows, loading, reload } = useLoad<Row[]>(mode, api.invoices, DEMO);
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
@@ -89,7 +89,7 @@ function Invoices() {
       <Card
         title="請求書一覧"
         en="All Invoices"
-        right={<Btn kind="primary" onClick={() => setCreating(true)}><Plus size={14} />請求書作成</Btn>}
+        right={canEdit ? <Btn kind="primary" onClick={() => setCreating(true)}><Plus size={14} />請求書作成</Btn> : <Badge tone="muted" icon={false}>閲覧専用</Badge>}
       >
         <div className="flex flex-wrap items-center gap-2">
           {(["all", "unpaid", "overdue", "paid"] as const).map((f) => (
@@ -140,7 +140,7 @@ function Invoices() {
                       <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-navy tabular">{yen(r.total)}</td>
                       <td className="px-2 py-2"><Badge tone={STATUS[st].tone}>{STATUS[st].ja}</Badge></td>
                       <td className="whitespace-nowrap px-4 py-2 text-right">
-                        {r.status !== "paid" ? <Btn onClick={() => pay(r.no)}>入金消込</Btn> : <span className="text-[11px] text-slate-300">—</span>}
+                        {r.status !== "paid" && canEdit ? <Btn onClick={() => pay(r.no)}>入金消込</Btn> : <span className="text-[11px] text-slate-300">—</span>}
                       </td>
                     </tr>
                   );

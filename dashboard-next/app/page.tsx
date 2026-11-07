@@ -15,8 +15,9 @@ import {
   ArrowDownRight, ArrowUpRight, Calculator, Camera, ChevronRight, CircleCheck, Clock, FileText,
   LoaderCircle, Plus, Receipt, ShieldCheck, Upload, Wallet, X,
 } from "lucide-react";
+import { parseRole, type Role } from "./lib/team";
 import { MOCK, type Company, type Invoice, type InvoiceStatus } from "./lib/demo";
-import { Badge, Card, cx, daysUntil, pct, taxIn, yen } from "./components/ui";
+import { Badge, Card, cx, daysUntil, pct, ReadOnlyNote, taxIn, yen } from "./components/ui";
 import { AppShell, useShell } from "./components/shell";
 
 /* ============================================================
@@ -57,15 +58,19 @@ function useDashboardData() {
   const [company, setCompany] = useState<Company>(MOCK.companies[0]);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<Role>("owner");
 
   const load = useCallback(async () => {
     if (!getToken()) { setMode("demo"); return; }
-    api.me().then((m) => setEmail(m.account?.email ?? null)).catch(() => setEmail(null));
+    // Rol (T-041) "live"dan önce çözülür: viewer'a düzenleme düğmeleri bir an bile görünmesin.
+    const me = api.me().catch(() => null);
     try {
       const now = new Date();
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const end = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
-      const [cf, tx, inv, prof] = await Promise.all([api.cashflow(6, end), api.tax(now.getFullYear()), api.invoices(), api.profile()]);
+      const [cf, tx, inv, prof, m] = await Promise.all([api.cashflow(6, end), api.tax(now.getFullYear()), api.invoices(), api.profile(), me]);
+      setEmail(m?.account?.email ?? null);
+      setRole(parseRole(m?.role));
       setCashflow(cf.map((c) => ({ m: monthLabel(c.month), income: c.income, expense: c.expense })));
       setTax({
         out10: tx.by_rate["10"].output, out8: tx.by_rate["8"].output, in10: tx.by_rate["10"].input, in8: tx.by_rate["8"].input,
@@ -83,7 +88,7 @@ function useDashboardData() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, email, reload: load };
+  return { mode, cashflow, tax, invoices, setInvoices, company, setCompany, error, email, role, reload: load };
 }
 
 
@@ -199,7 +204,7 @@ function CashFlowChart({ cashflow }: { cashflow: CashMonth[] }) {
   );
 }
 
-function QuickActions({ onInvoice, toast }: { onInvoice: () => void; toast: (m: string) => void }) {
+function QuickActions({ onInvoice, toast, canEdit = true }: { onInvoice: () => void; toast: (m: string) => void; canEdit?: boolean }) {
   const [ocr, setOcr] = useState<"idle" | "reading" | "done">("idle");
   const [last, setLast] = useState<{ store: string; amount: number; rate: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -216,6 +221,7 @@ function QuickActions({ onInvoice, toast }: { onInvoice: () => void; toast: (m: 
 
   return (
     <Card title="クイックアクション" en="Quick Actions" className="sm:col-span-6 lg:col-span-4">
+      {!canEdit ? <ReadOnlyNote /> : <>
       <div className="grid grid-cols-2 gap-2">
         <button onClick={onInvoice} className="flex flex-col items-start gap-2 rounded-lg bg-navy p-3 text-left text-white transition hover:bg-navy-700">
           <FileText size={20} className="text-mint" />
@@ -249,6 +255,7 @@ function QuickActions({ onInvoice, toast }: { onInvoice: () => void; toast: (m: 
           <Upload size={14} />領収書をここにドロップ
         </label>
       )}
+      </>}
 
       <ul className="space-y-1.5 text-xs">
         {[
@@ -419,7 +426,7 @@ const STATUS: Record<InvoiceStatus, { ja: string; tone: "ok" | "warn" | "bad" }>
   overdue: { ja: "期日超過", tone: "bad" },
 };
 
-function InvoiceTable({ invoices, onPaid, live }: { invoices: Invoice[]; onPaid: (no: string) => void; live: boolean }) {
+function InvoiceTable({ invoices, onPaid, live }: { invoices: Invoice[]; onPaid?: (no: string) => void; live: boolean }) {
   const [filter, setFilter] = useState<"all" | InvoiceStatus>("all");
   const rows = invoices.filter((i) => filter === "all" || i.status === filter).slice(0, 6);
   const open = invoices.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
@@ -475,7 +482,7 @@ function InvoiceTable({ invoices, onPaid, live }: { invoices: Invoice[]; onPaid:
                 </td>
                 <td className="px-2 py-2"><Badge tone={STATUS[i.status].tone}>{STATUS[i.status].ja}</Badge></td>
                 <td className="whitespace-nowrap px-4 py-2 text-right">
-                  {i.status !== "paid" ? (
+                  {i.status !== "paid" && markPaid ? (
                     <button onClick={() => markPaid(i.no)} className="rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:border-mint hover:text-mint-700">消込</button>
                   ) : (
                     <span className="text-[11px] text-slate-300">—</span>
@@ -573,7 +580,7 @@ function InvoiceDrawer({ open, onClose, onCreate }: { open: boolean; onClose: ()
 
 export default function DashboardPage() {
   const data = useDashboardData();
-  const conn = { mode: data.mode, company: data.company, setCompany: data.setCompany, error: data.error, email: data.email };
+  const conn = { mode: data.mode, company: data.company, setCompany: data.setCompany, error: data.error, email: data.email, role: data.role };
   return (
     <AppShell title="ダッシュボード" sub={`${data.company.name} ・ ${data.company.fiscal}`} conn={conn}>
       <Dashboard data={data} />
@@ -585,7 +592,7 @@ function Dashboard({ data }: { data: ReturnType<typeof useDashboardData> }) {
   const [invOpen, setInvOpen] = useState(false);
   const { mode, invoices, setInvoices, company } = data;
   const live = mode === "live";
-  const { toast } = useShell();
+  const { toast, canEdit } = useShell();
 
   const onPaid = async (no: string) => {
     if (!live) {
@@ -625,11 +632,11 @@ function Dashboard({ data }: { data: ReturnType<typeof useDashboardData> }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 lg:grid-cols-12">
         <KpiCards cashflow={data.cashflow} />
         <CashFlowChart cashflow={data.cashflow} />
-        <QuickActions onInvoice={() => setInvOpen(true)} toast={toast} />
+        <QuickActions onInvoice={() => setInvOpen(true)} toast={toast} canEdit={canEdit} />
         <ConsumptionTax tax={data.tax} />
         <Compliance reg={company.reg} />
         <BankSync />
-        <InvoiceTable invoices={invoices} onPaid={onPaid} live={live} />
+        <InvoiceTable invoices={invoices} onPaid={canEdit ? onPaid : undefined} live={live} />
       </div>
       <InvoiceDrawer open={invOpen} onClose={() => setInvOpen(false)} onCreate={onCreate} />
     </>

@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { ArrowRightLeft, CircleCheck, FileUp, LoaderCircle } from "lucide-react";
 import { api, EXPENSE_CATEGORIES, type ApiBankTx, type ApiSuggestion } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
-import { Badge, Btn, Card, Empty, Field, inputCls, selectCls, Stat, yen } from "../components/ui";
+import { Badge, Btn, Card, Empty, Field, inputCls, ReadOnlyNote, selectCls, Stat, yen } from "../components/ui";
 import { useLoad } from "../components/useLoad";
 
 type BankData = { transactions: ApiBankTx[]; suggestions: ApiSuggestion[] };
@@ -31,7 +31,7 @@ export default function BankPage() {
 }
 
 function Bank() {
-  const { mode, live, toast } = useShell();
+  const { mode, live, toast, canEdit } = useShell();
   const { data, setData, loading, reload } = useLoad<BankData>(mode, api.bank, DEMO);
   const fileRef = useRef<HTMLInputElement>(null);
   const [account, setAccount] = useState("");
@@ -100,6 +100,7 @@ function Bank() {
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="明細CSVを取り込む" en="Import" className="lg:col-span-1">
+          {canEdit ? <>
           <Field label="口座名（任意）">
             <input id="bank-account" value={account} onChange={(e) => setAccount(e.target.value)} placeholder="三菱UFJ 普通" className={inputCls} />
           </Field>
@@ -109,6 +110,7 @@ function Bank() {
           </button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
           {result && <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">{result}</p>}
+          </> : <ReadOnlyNote>閲覧者のため、明細の取込・消込・経費登録はできません。</ReadOnlyNote>}
           <p className="text-[11px] leading-relaxed text-slate-400">
             ネットバンキングの「入出金明細」画面からCSVをダウンロードしてください。Shift_JIS / UTF-8 どちらも対応。同じ明細を何度取り込んでも重複しません。
           </p>
@@ -129,7 +131,7 @@ function Bank() {
                     <p className="text-[11px] text-slate-400">{s.date.replaceAll("-", "/")} 入金</p>
                   </div>
                   <span className="font-mono text-sm font-semibold text-mint-600 tabular">{yen(s.amount)}</span>
-                  <Btn kind="mint" onClick={() => match(s)}><CircleCheck size={13} />消込する</Btn>
+                  {canEdit && <Btn kind="mint" onClick={() => match(s)}><CircleCheck size={13} />消込する</Btn>}
                 </li>
               ))}
             </ul>
@@ -165,7 +167,7 @@ function Bank() {
                     <td className="px-4 py-1.5">
                       {t.invoice_no ? <Badge tone="ok">消込済 {t.invoice_no}</Badge>
                         : t.entry_id ? <Badge tone="ok">経費登録済</Badge>
-                          : t.amount < 0 ? <ExpenseAction desc={t.description} onSave={(c, r) => toEntry(t, c, r)} />
+                          : t.amount < 0 && canEdit ? <ExpenseAction desc={t.description} onSave={(c, r) => toEntry(t, c, r)} />
                             : <Badge tone="muted">未消込</Badge>}
                     </td>
                   </tr>

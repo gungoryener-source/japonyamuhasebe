@@ -115,6 +115,16 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-xs text-slate-400">{children}</p>;
 }
 
+/** 閲覧者（viewer）向け: 編集フォームの代わりに表示する案内（T-041b）。 */
+export function ReadOnlyNote({ children }: { children?: React.ReactNode }) {
+  return (
+    <p role="note" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+      <span className="mr-1.5 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">閲覧専用</span>
+      {children ?? "閲覧者として参加しているため、登録・編集はできません。変更が必要な場合は帳簿のオーナーに依頼してください。"}
+    </p>
+  );
+}
+
 /** 法人番号チェックデジット（登録番号 T + 13桁 の検証） */
 export function registrationOk(t: string): boolean {
   if (!/^T\d{13}$/.test(t)) return false;

@@ -40,7 +40,8 @@ const STATUS_LABEL: Record<string, string> = {
 const fmtDate = (iso: string) => (iso ? new Date(iso).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric" }) : "");
 
 function Billing() {
-  const { live, mode, toast } = useShell();
+  const { live, mode, toast, role } = useShell();
+  const owner = role === "owner";
   const [plans, setPlans] = useState<ApiPlan[]>(DEMO_PLANS);
   const [st, setSt] = useState<ApiBillingStatus>(DEMO_STATUS);
   const [loading, setLoading] = useState(true);
@@ -128,7 +129,7 @@ function Billing() {
               {cancelScheduled && (
                 <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-amber-800">期間末に解約予定です。終了後はフリープランに戻り、データはそのまま残ります。</p>
               )}
-              {paid && !cancelScheduled && (
+              {paid && !cancelScheduled && owner && (
                 <Btn kind="danger" onClick={cancel} disabled={busy !== null || !st.payments_enabled}>
                   {busy === "cancel" ? <LoaderCircle size={13} className="animate-spin" /> : null}解約（期間末）
                 </Btn>
@@ -178,6 +179,8 @@ function Billing() {
                 <p className="text-center text-[11px] text-slate-400">{current ? "現在のプランです" : "有料プランの解約後はこのプランになります"}</p>
               ) : current ? (
                 <Btn kind="ghost" disabled>ご利用中</Btn>
+              ) : !owner ? (
+                <Btn kind="ghost" disabled title="プランの変更は帳簿のオーナーのみ行えます">オーナーのみ変更可</Btn>
               ) : !st.payments_enabled || !p.available ? (
                 <Btn kind="ghost" disabled title="オンライン決済の開始までお待ちください">準備中</Btn>
               ) : (
