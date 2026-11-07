@@ -53,7 +53,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-046b | P1 | todo | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
 | T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
 | T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
-| T-048 | P1 | todo | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
+| T-048 | P1 | doing (developer, 2026-11-07) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | todo | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
 | T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
