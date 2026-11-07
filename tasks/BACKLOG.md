@@ -79,6 +79,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-062 | P0 | done | 通帳取込 (AI, PDF/写真, 残高チェック) + 確認画面 /passbook + 通帳整理表 Excel |
 | T-063 | P1 | done | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
 | T-012c | P2 | todo | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
+| T-064 | P0 | done | Bir hesapta birden çok şirket: `account_companies`, POST /companies, sahiplik kontrolleri (resolve/switch/join/şifre sıfırlama), LINE 「会社」 kayıt yeri seçimi (yalnızca sahip olunan şirketler) |
+| T-064b | P1 | todo | Şirket bazlı fiyatlandırma (Q-16 cevaplanınca): plan kontrolünü hesap düzeyine taşı veya şirket başına abonelik |
 
 ---
 

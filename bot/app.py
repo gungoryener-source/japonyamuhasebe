@@ -62,6 +62,7 @@ from api import router as api_router  # noqa: E402
 init_db()
 
 import ai_usage  # noqa: E402
+import companies  # noqa: E402
 import store as _store  # noqa: E402  (fonksiyon içindeki `store` yerel adıyla çakışmasın)
 import passbook  # noqa: E402  (T-062: 通帳)
 import slips  # noqa: E402  (T-060: 仕切書)
@@ -281,7 +282,49 @@ def respond(user_id: str, text: str, source: str = "LINE") -> tuple[str, Options
             return i18n.lang_prompt(get_lang(user_id)), i18n.lang_options()
         set_lang(user_id, chosen)
         return localize(chosen, i18n.lang_set_text(chosen) + "\n\n" + HELP, opts(CAMERA, "合計"))
-    return localize(get_lang(user_id), *_respond_ja(user_id, i18n.normalize(text.strip()), source))
+    lang = get_lang(user_id)
+    if source == "LINE" and (company_reply := _company_command(user_id, i18n.normalize(text.strip()))):
+        return localize(lang, *company_reply)
+    ledger = companies.line_target(user_id) if source == "LINE" else user_id
+    msg, options = _respond_ja(ledger, i18n.normalize(text.strip()), source)
+    return localize(lang, _company_prefix(user_id, ledger) + msg, options)
+
+
+COMPANY_CMD = re.compile(r"^(会社|事業所|会社切替|şirket|sirket|company)(?:[:：\s]+(\d{1,3}))?$", re.I)
+
+
+def _company_command(line_user_id: str, t: str) -> tuple[str, Options] | None:
+    """「会社」→ 一覧、「会社:2」→ LINE の記録先を2番目の事業所に。"""
+    m = COMPANY_CMD.match(t)
+    if not m:
+        return None
+    lst = companies.line_companies(line_user_id)
+    current = companies.line_target(line_user_id)
+    if m.group(2):
+        i = int(m.group(2)) - 1
+        if not 0 <= i < len(lst):
+            return "その番号の事業所はありません。", []
+        c = companies.set_line_target(line_user_id, lst[i]["user_id"])
+        return f"記録先を「{c['business_name']}」に切り替えました。", opts(CAMERA, "合計")
+    if len(lst) == 1:
+        return ("事業所は1つです。事業所を追加するには、パネルの右上のメニューから「事業所を追加」を選んでください。"), []
+    lines = "\n".join(f"{n}. {c['business_name']}" + ("（記録先）" if c["user_id"] == current else "")
+                      for n, c in enumerate(lst, 1))
+    return f"記録先の事業所を選んでください\n{lines}", [(c["business_name"][:20], f"会社:{n}") for n, c in enumerate(lst[:13], 1)]
+
+
+def _company_prefix(line_user_id: str, ledger: str) -> str:
+    if ledger == line_user_id:
+        return ""
+    name = (store_get_profile(ledger).get("business_name") or "").strip()
+    return f"［{name}］\n" if name else ""
+
+
+def store_get_profile(user_id: str) -> dict:
+    try:
+        return _store.get_profile(user_id)
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def localize(lang: str, msg: str, options: Options) -> tuple[str, Options]:
@@ -397,7 +440,9 @@ IMAGE_FAIL_TEXT = "画像を読み取れませんでした。もう一度送る�
 
 async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     """Fiş görseli → OCR → kayıt. Kanaldan bağımsız. Yanıt kullanıcının dilinde (T-047c)."""
-    return localize(get_lang(user_id), *await _process_image_ja(user_id, img, ref, source))
+    ledger = companies.line_target(user_id) if source == "LINE" else user_id
+    msg, options = await _process_image_ja(ledger, img, ref, source)
+    return localize(get_lang(user_id), _company_prefix(user_id, ledger) + msg, options)
 
 
 async def receive_slip(user_id: str, img: bytes, ref: str, source: str, path: str = "") -> dict:

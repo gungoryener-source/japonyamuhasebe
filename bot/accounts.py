@@ -174,6 +174,9 @@ def link_ledger(current_user_id: str, code: str) -> tuple[dict, str]:
     if target == current_user_id:
         return {"id": acc["id"], "email": acc["email"], "user_id": target}, store.issue_token(target, "web-login")
     with tx() as con:
+        if con.execute("SELECT 1 FROM account_companies WHERE user_id=?", (target,)).fetchone():
+            # Eklenen şirketin sahip token'ı LINE kodu gibi verilirse aynı defter iki yerde sahiplenilirdi
+            raise AccountError("この接続コードは使えません。LINEで「パネル」と送って取得したコードを入力してください。", 409)
         other = con.execute("SELECT account_id FROM account_ledgers WHERE user_id=?", (target,)).fetchone()
         if other and other["account_id"] != acc["id"]:
             raise AccountError("このLINEの帳簿はすでに別のアカウントに連携されています。", 409)
@@ -236,9 +239,9 @@ def confirm_password_reset(token: str, new_password: str) -> None:
         # Bu hesabın kullanılmamış tüm sıfırlama bağlantıları da geçersiz (eski e-postadaki bağlantı çalışmasın)
         con.execute("UPDATE password_resets SET used_at=? WHERE account_id=? AND used_at=''",
                     (store.now(), row["account_id"]))
-        led = con.execute("SELECT user_id FROM account_ledgers WHERE account_id=?", (row["account_id"],)).fetchone()
-        if led:
-            # Parola değişince tüm oturumları kapat
-            con.execute("DELETE FROM api_tokens WHERE user_id=?", (led["user_id"],))
+        import companies
+        for led in companies.owned_ledgers(con, row["account_id"]):
+            # Parola değişince tüm oturumları kapat (ana defter + eklenen şirketler)
+            con.execute("DELETE FROM api_tokens WHERE user_id=?", (led,))
         # T-041: bu hesabın başka defterlerdeki üye oturumları da kapanır
         con.execute("DELETE FROM api_tokens WHERE account_id=?", (row["account_id"],))

@@ -19,6 +19,18 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # Bir hesapta birden çok şirket (companies.py): ana defter account_ledgers'ta, ekler burada
+    """CREATE TABLE IF NOT EXISTS account_companies(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id BIGINT NOT NULL,
+        user_id TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL
+    )""",
+    """CREATE TABLE IF NOT EXISTS line_targets(
+        line_user_id TEXT PRIMARY KEY,
+        ledger_user_id TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )""",
     # AI 読み取りの利用量（概算料金の表示用）
     """CREATE TABLE IF NOT EXISTS ai_usage(
         id INTEGER PRIMARY KEY AUTOINCREMENT,

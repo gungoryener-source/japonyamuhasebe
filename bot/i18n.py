@@ -28,10 +28,22 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "パネル": ("Panel", "Panel"),
     "仕切書": ("Hurda fişi", "Scrap slip"),
     "通帳": ("Banka defteri", "Passbook"),
+    "会社": ("Şirket", "Company"),
 }
 
 # Japonca parça → (tr, en). Uzun parçalar önce uygulanır.
 PHRASES: dict[str, tuple[str, str]] = {
+    # 複数の事業所
+    "記録先の事業所を選んでください": ("Kayıtların gideceği şirketi seçin", "Choose the company to record to"),
+    "（記録先）": (" (seçili)", " (current)"),
+    "記録先を「": ("Kayıtlar artık 「", "Now recording to 「"),
+    "」に切り替えました。": ("」 şirketine gidecek.", "」."),
+    "その番号の事業所はありません。": ("Bu numarada şirket yok.", "No company with that number."),
+    "事業所は1つです。事業所を追加するには、パネルの右上のメニューから「事業所を追加」を選んでください。": (
+        "Tek şirketiniz var. Şirket eklemek için panelde sağ üstteki menüden 「Şirket ekle」yi seçin.",
+        "You have one company. To add one, use 「Add company」 in the panel's top-right menu."),
+    "（LINE の帳簿）": ("(LINE defteri)", "(LINE ledger)"),
+    "（名称未設定）": ("(adsız)", "(unnamed)"),
     # AI 読み取りの設定
     "レシートの読み取り方法を選んでください（現在: ": ("Fiş okuma yöntemini seçin (şu an: ", "Choose how receipts are read (now: "),
     "・OCR: 無料（印字のレシート向け）": ("・OCR: ücretsiz (basılı fişler için)", "・OCR: free (for printed receipts)"),

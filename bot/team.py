@@ -17,6 +17,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 
+import companies
 import store
 from store import JST, tx
 
@@ -50,8 +51,7 @@ def resolve(token: str) -> dict | None:
     uid, acc = info["user_id"], info["account_id"]
     with tx() as con:
         if acc == 0:
-            row = con.execute("SELECT account_id FROM account_ledgers WHERE user_id=?", (uid,)).fetchone()
-            return {"user_id": uid, "role": "owner", "account_id": int(row["account_id"]) if row else 0}
+            return {"user_id": uid, "role": "owner", "account_id": companies.owner_account(con, uid)}
         row = con.execute("SELECT role FROM ledger_members WHERE user_id=? AND account_id=?", (uid, acc)).fetchone()
     if not row:
         return None
@@ -112,7 +112,7 @@ def join(account_id: int, code: str) -> tuple[dict, str]:
         if not inv or inv["used_at"] or inv["expires_at"] <= now:
             raise TeamError("招待コードが無効か期限切れです。オーナーに新しいコードを依頼してください。", 400)
         uid = inv["user_id"]
-        if _own_ledger(con, account_id) == uid:
+        if companies.owns(con, account_id, uid):
             raise TeamError("ご自身の帳簿には参加できません。", 409)
         if con.execute("SELECT 1 FROM ledger_members WHERE user_id=? AND account_id=?", (uid, account_id)).fetchone():
             raise TeamError("すでにこの帳簿のメンバーです。", 409)
@@ -137,9 +137,8 @@ def list_members(user_id: str) -> list[dict]:
             """SELECT m.account_id, m.role, m.created_at, a.email FROM ledger_members m
                JOIN accounts a ON a.id = m.account_id WHERE m.user_id=? ORDER BY m.created_at""",
             (user_id,)).fetchall()
-        owner = con.execute(
-            """SELECT a.id, a.email FROM accounts a JOIN account_ledgers l ON l.account_id=a.id
-               WHERE l.user_id=?""", (user_id,)).fetchone()
+        oacc = companies.owner_account(con, user_id)
+        owner = con.execute("SELECT id, email FROM accounts WHERE id=?", (oacc,)).fetchone() if oacc else None
     out = [{"account_id": int(owner["id"]), "email": owner["email"], "role": "owner"}] if owner else []
     out += [{"account_id": int(r["account_id"]), "email": r["email"], "role": r["role"],
              "joined_at": r["created_at"]} for r in rows]
@@ -172,14 +171,15 @@ def ledgers_for(account_id: int) -> list[dict]:
     if not account_id:
         return []
     with tx() as con:
-        own = _own_ledger(con, account_id)
+        owned = companies.owned_ledgers(con, account_id)
         rows = con.execute(
             """SELECT m.user_id, m.role, p.business_name FROM ledger_members m
                LEFT JOIN profiles p ON p.user_id = m.user_id WHERE m.account_id=? ORDER BY m.created_at""",
             (account_id,)).fetchall()
-        own_name = con.execute("SELECT business_name FROM profiles WHERE user_id=?", (own,)).fetchone() if own else None
-    out = [{"user_id": own, "role": "owner", "business_name": (own_name["business_name"] if own_name else "")}] \
-        if own else []
+        out = []
+        for own in owned:
+            nm = con.execute("SELECT business_name FROM profiles WHERE user_id=?", (own,)).fetchone()
+            out.append({"user_id": own, "role": "owner", "business_name": (nm["business_name"] if nm else "") or ""})
     out += [{"user_id": r["user_id"], "role": r["role"], "business_name": r["business_name"] or ""} for r in rows]
     return out
 
@@ -189,7 +189,7 @@ def switch(account_id: int, user_id: str) -> tuple[dict, str]:
     if not account_id:
         raise TeamError("メールアドレスでログインしてください。", 403)
     with tx() as con:
-        if _own_ledger(con, account_id) == user_id:
+        if companies.owns(con, account_id, user_id):
             role, tok_acc = "owner", 0
         else:
             row = con.execute("SELECT role FROM ledger_members WHERE user_id=? AND account_id=?",

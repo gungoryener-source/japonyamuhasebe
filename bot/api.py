@@ -17,6 +17,7 @@ import ai_usage
 import archive
 import bank_csv
 import billing
+import companies
 import counterparties as cpmod
 import deletion
 import export
@@ -1036,6 +1037,21 @@ def team_join(body: JoinIn, p: dict = Depends(current_principal)):
 @router.get("/team/ledgers")
 def team_ledgers(p: dict = Depends(current_principal)):
     return {"current": p["user_id"], "ledgers": team.ledgers_for(p["account_id"])}
+
+
+class CompanyIn(BaseModel):
+    business_name: str = Field(..., min_length=1, max_length=100)
+
+
+@router.post("/companies", status_code=201)
+def company_create(body: CompanyIn, p: dict = Depends(current_principal)):
+    """Hesaba yeni şirket (事業所) ekler ve o şirkete geçiş token'ı döner. Fiyat kuralı: Q-16 (şimdilik sınırsız)."""
+    try:
+        c = companies.create(p["account_id"], body.business_name)
+    except companies.CompanyError as e:
+        raise HTTPException(e.code, str(e))
+    target, token = _team_call(team.switch, p["account_id"], c["user_id"])
+    return {**c, "token": token}
 
 
 @router.post("/team/switch")

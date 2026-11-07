@@ -78,3 +78,7 @@ Tüm veri ZIP'indeki `entries.csv` artık `=`/`+`/`-`/`@`/TAB/CR ile başlayan �
 ## Q-15 · 国税庁 法人番号 Web-API アプリケーションID (açık — ürün sahibi)
 Banka defterindeki firma adlarını resmi kayıttan bulmak için. Başvuru ücretsiz: https://www.houjin-bangou.nta.go.jp/webapi/ → 「アプリケーションIDの発行届出」. Gelen kimlik Render'a `NTA_APP_ID` olarak girilir. O zamana kadar firma rehberi (Excel + onaylar) ile çalışır.
 **Cevap:**
+
+## Q-16 · Birden çok şirket — fiyatlandırma (açık — ürün sahibi, sonraya bırakıldı 2026-11-07)
+Bir hesaba sınırsız şirket (事業所) eklenebiliyor; her şirket ayrı defter ve şimdilik kendi planı (Free). Seçenekler: (a) her şirket ayrı abonelik, (b) 法人 planında N şirkete kadar dahil + ek şirket başına ücret, (c) şirket sayısına göre kademeli plan. Koruma sınırı: `MAX_COMPANIES_PER_ACCOUNT` (varsayılan 100).
+**Cevap:**
