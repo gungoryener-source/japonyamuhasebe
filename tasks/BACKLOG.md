@@ -17,7 +17,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
-| T-011 | P0 | todo | Fiş görselleri için depolama soyutlaması: yerel / **S3 uyumlu (Cloudflare R2, Q-14 cevaplandı)**; `STORAGE_*` render.yaml'a `sync: false`; yoksa yerel disk |
+| T-011 | P0 | doing (developer, 2026-11-07) | Fiş görselleri için depolama soyutlaması: yerel / **S3 uyumlu (Cloudflare R2, Q-14 cevaplandı)**; `STORAGE_*` render.yaml'a `sync: false`; yoksa yerel disk |
 | T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
 | T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
