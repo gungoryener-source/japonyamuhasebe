@@ -11,7 +11,7 @@ Bu dosyayı okuyan her ajan aşağıdaki kurallara uyar. Rolüne özel talimatla
 
 ## Sprint (2026-11-06 18:00 → 2026-11-08 18:00 İstanbul)
 Ürün sahibi 2 günde kod tarafının bitmesini istedi. Bu sürede geliştirici **saatte bir**, inceleyici 4 saatte bir, planlayıcı günde bir çalışır.
-- Öncelik: önce `review-fix`, sonra P0 (Faz 5: T-040, T-042, T-043), sonra P1, sonra P2.
+- Öncelik: önce `review-fix`, sonra **T-047 dil seçeneği (ja/tr/en)**, sonra P0 (Faz 5: T-040, T-042, T-043), sonra P1, sonra P2.
 - Görevi tek çalışmada bitirmeye çalış; bitmiyorsa çalışan bir dilimi birleştir ve kalanını alt görev (T-0xxb) olarak aç.
 - Kullanıcı kararı gereken her şey (fiyat, yasal bilgiler, anahtarlar) yapılandırmaya veya yer tutucuya bağlanır, QUESTIONS'a yazılır, iş durmaz.
 

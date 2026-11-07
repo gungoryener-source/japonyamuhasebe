@@ -52,7 +52,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-046 | P1 | todo | Tüm veri dışa aktarma: `GET /api/v1/export/all.zip` (kayıtlar CSV + faturalar CSV/PDF) + 設定'te indirme düğmesi |
 | T-046b | P1 | todo | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
 | T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
-| T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
+| T-047 | P0 | todo | **Dil seçeneği (ürün sahibi isteği 2026-11-07):** 日本語 / Türkçe / English — panel + LINE/WhatsApp bot |
 | T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | todo | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
@@ -264,8 +264,14 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-046c · Yedekleme (P2)
 - `scripts/backup.sh` (`pg_dump "$DATABASE_URL" | gzip`, tarih adlı dosya, sır yazmaz) + `docs/OPERATIONS.md` (geri yükleme adımları, Render free DB 30 gün sınırı — Q-07). Kabul: `bash -n` + shellcheck temiz (varsa); belge geri yükleme komutunu içerir.
 
-## T-047 · Metinler (P2)
-- `app/lib/i18n.ts` (ja varsayılan); önce ホーム + 経費 + 設定 sayfaları taşınır (diğerleri T-047b). `docs/JA_REVIEW.md` anadil kontrol listesi (sayfa, anahtar, metin).
+## T-047 · Dil seçeneği ja / tr / en (P0 — review-fix'lerden hemen sonra, T-040'tan önce)
+Ürün sahibi 2026-11-07'de istedi: programda dil seçeneği olsun, **Türkçe de olsun**.
+- `dashboard-next/app/lib/i18n.ts`: `ja` (varsayılan), `tr`, `en` sözlükleri + `useT()` hook; seçim localStorage `jsaas.lang` (try/catch), `<html lang>` güncellenir.
+- Üst çubuğa (Topbar) ve 設定 sayfasına dil seçici (日本語 / Türkçe / English).
+- Dilim 1 (bu çalışma): shell (menü, üst çubuk, komut paleti), ホーム, 設定. Dilim 2 (T-047b): 請求書, 経費, 銀行, 税務, connect.
+- Vergi/muhasebe terimleri (確定申告, 消費税, 適格請求書, 勘定科目 adları) tr/en'de Japonca terim parantez içinde kalır: "Kesin beyan (確定申告)". Saklanan veri (勘定科目) her zaman Japonca; yalnızca görüntü çevrilir. Fatura PDF'i Japonca kalır (yasal belge).
+- Bot (T-047c): `profiles.lang` sütunu ekle (sütun ekleme serbest), `言語` / `dil` / `language` komutu + hızlı yanıt; bot metinleri `bot/i18n.py`'de ja/tr/en. Testler: her dilde temel akış.
+- `docs/JA_REVIEW.md`: anadil kontrol listesi.
 - Kabul: `next build` geçer; taşınan sayfalarda sabit Japonca dize kalmaz (grep notu LOG'a); görünüm değişmez.
 
 ## T-019 · PostgreSQL bağlantı havuzu (P2)
