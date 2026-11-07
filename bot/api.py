@@ -21,6 +21,7 @@ import export
 import invoices as inv_mod
 import ratelimit
 import reports
+import slips
 import store
 import team
 from store import MAX_ENTRY_AMOUNT
@@ -216,6 +217,113 @@ async def receipt_ocr(request: Request, uid: str = Depends(writer_user)):
         return {"ok": False, "error": result.get("error"), "partial": result.get("partial", {}), "entries": []}
     return {"ok": True, "entries": result}
 
+
+
+# ---------------------------------------------------------------- 仕切書 (T-060)
+class SlipLine(BaseModel):
+    item: str = Field("", max_length=40)
+    qty: float | None = Field(None, ge=0, le=10_000_000)
+    unit_price: float | None = Field(None, ge=0, le=100_000_000)
+    amount: int | None = Field(None, ge=0, lt=MAX_ENTRY_AMOUNT)
+
+
+class SlipPatch(BaseModel):
+    d: str | None = None
+    issuer: str | None = Field(None, max_length=60)
+    registration_no: str | None = Field(None, max_length=14)
+    kind: str | None = Field(None, pattern="^(inc|exp)$")
+    total: int | None = Field(None, ge=0, lt=MAX_ENTRY_AMOUNT)
+    note: str | None = Field(None, max_length=200)
+    lines: list[SlipLine] | None = Field(None, max_length=30)
+
+
+def _slip_or_404(uid: str, sid: int) -> dict:
+    s = slips.get(uid, sid)
+    if not s:
+        raise HTTPException(404, "slip not found")
+    s["duplicate_of"] = slips.duplicate_of(uid, s)
+    return s
+
+
+@router.get("/slips")
+def slip_list(status: str = Query("", pattern="^(|pending|approved|rejected)$"),
+              date_from: str = "", date_to: str = "", uid: str = Depends(current_user)):
+    rows = slips.list_(uid, status, date_from and _valid_date(date_from, "date_from"),
+                       date_to and _valid_date(date_to, "date_to"))
+    counts = {st: 0 for st in slips.STATUSES}
+    for r in slips.list_(uid):
+        counts[r["status"]] += 1
+    return {"slips": rows, "counts": counts, "ai_enabled": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+
+
+@router.get("/slips/{sid}")
+def slip_get(sid: int, uid: str = Depends(current_user)):
+    return _slip_or_404(uid, sid)
+
+
+@router.get("/slips/{sid}/image")
+async def slip_image(sid: int, uid: str = Depends(current_user)):
+    import storage
+    s = _slip_or_404(uid, sid)
+    data = await storage.get(s["image_path"]) if s["image_path"] else None
+    if not data:
+        raise HTTPException(404, "image not found")
+    media = "image/png" if data[:8].startswith(b"\x89PNG") else "image/jpeg"
+    return Response(data, media_type=media, headers={"Cache-Control": "private, max-age=300"})
+
+
+@router.patch("/slips/{sid}")
+def slip_patch(sid: int, body: SlipPatch, uid: str = Depends(writer_user)):
+    _slip_or_404(uid, sid)
+    data = body.model_dump(exclude_none=True)
+    if "d" in data:
+        _valid_date(data["d"], "d")
+    if "lines" in data:
+        data["lines"] = [ln for ln in data["lines"]]
+    try:
+        return slips.update(uid, sid, data)
+    except ValueError as ex:
+        raise HTTPException(409, str(ex))
+
+
+@router.post("/slips/{sid}/approve")
+def slip_approve(sid: int, uid: str = Depends(writer_user)):
+    _slip_or_404(uid, sid)
+    try:
+        return slips.approve(uid, sid)
+    except ValueError as ex:
+        raise HTTPException(409, str(ex))
+
+
+@router.post("/slips/{sid}/reject")
+def slip_reject(sid: int, uid: str = Depends(writer_user)):
+    _slip_or_404(uid, sid)
+    try:
+        return slips.reject(uid, sid)
+    except ValueError as ex:
+        raise HTTPException(409, str(ex))
+
+
+@router.post("/slips/upload", status_code=201, dependencies=[Depends(ratelimit.limiter("ocr"))])
+async def slip_upload(request: Request, uid: str = Depends(writer_user)):
+    """パネルから仕切書の画像をアップロード → 確認待ちに追加（AI キーがあれば読み取り）。"""
+    raw = await _body(request)
+    import app as app_mod
+    return await app_mod.receive_slip(uid, raw, f"web{int(__import__('time').time())}", "web")
+
+
+@router.get("/reports/slips.pdf")
+def slips_pdf(date_from: str = Query(...), date_to: str = Query(...),
+              status: str = Query("approved", pattern="^(approved|pending|all)$"), uid: str = Depends(current_user)):
+    _valid_date(date_from, "date_from")
+    _valid_date(date_to, "date_to")
+    rows = slips.list_(uid, "" if status == "all" else status, date_from, date_to)
+    rows = [r for r in rows if r["status"] != "rejected"]
+    label = date_from[:4] + "年" if date_from[:4] == date_to[:4] and date_from[5:] == "01-01" and date_to[5:] == "12-31" \
+        else f"{date_from}〜{date_to}"
+    pdf = slips.render_list_pdf(rows, label, store.get_profile(uid).get("business_name") or "")
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="slips-{date_from}-{date_to}.pdf"'})
 
 # ---------------------------------------------------------------- bank (CSV)
 @router.post("/bank/import")

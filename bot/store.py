@@ -19,6 +19,26 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # T-060: 仕切書（買取伝票）の確認キュー
+    """CREATE TABLE IF NOT EXISTS slips(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    kind TEXT NOT NULL DEFAULT 'inc',
+    d TEXT NOT NULL DEFAULT '',
+    issuer TEXT NOT NULL DEFAULT '',
+    registration_no TEXT NOT NULL DEFAULT '',
+    total BIGINT NOT NULL DEFAULT 0,
+    lines TEXT NOT NULL DEFAULT '[]',
+    image_path TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'LINE',
+    reader TEXT NOT NULL DEFAULT 'manual',
+    entry_id INTEGER,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+)""",
+    "CREATE INDEX IF NOT EXISTS slips_user_status ON slips(user_id, status, d)",
     # T-047c: kullanıcı tercihleri (bot yanıt dili)
     """CREATE TABLE IF NOT EXISTS user_prefs(
         user_id TEXT PRIMARY KEY,

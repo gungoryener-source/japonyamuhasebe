@@ -61,6 +61,7 @@ from api import router as api_router  # noqa: E402
 
 init_db()
 
+import slips  # noqa: E402  (T-060: 仕切書)
 import storage  # noqa: E402  (T-011: fiş görselleri local | S3/R2)
 
 if _storage_warning := storage.startup_warning():
@@ -224,7 +225,9 @@ async def ocr_receipt_tesseract(img: bytes) -> list[dict] | dict:
     import receipt_ocr
 
     data = await asyncio.to_thread(receipt_ocr.read_receipt, img, datetime.now(JST).date())
-    data.pop("_raw_text", None)
+    raw = data.pop("_raw_text", "")
+    if "error" in data and slips.looks_like_slip(raw):
+        return {"slip": True, "error": "仕切書"}   # T-060: レシートでなく仕切書 → 確認キューへ
     return normalize_ocr(data)
 
 
@@ -241,7 +244,7 @@ async def ocr_receipt(img: bytes) -> list[dict] | dict:
             return await ocr_receipt_claude(img)
         return {"error": "OCRエンジンが利用できません"}
     result = await ocr_receipt_tesseract(img)
-    if isinstance(result, dict) and engine == "auto" and ANTHROPIC_KEY:
+    if isinstance(result, dict) and not result.get("slip") and engine == "auto" and ANTHROPIC_KEY:
         return await ocr_receipt_claude(img)  # kural tabanlı okuma başarısızsa AI yedeği
     return result
 
@@ -278,6 +281,9 @@ def localize(lang: str, msg: str, options: Options) -> tuple[str, Options]:
 
 
 def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
+    if t.lower() in ("仕切書", "仕切", "伝票", "hurda fişi", "hurda", "slip", "scrap slip"):
+        slips.start_mode(user_id)
+        return ("仕切書の写真を送ってください。\nこれから30分間、送られた写真は仕切書として確認待ちに入ります。"), opts(CAMERA)
     if re.match(r"^(取消|取り消し|iptal)", t):
         row = undo_last(user_id)
         msg = f"「{row['store']} {yen(row['amount'])}」を取り消しました" if row else "取り消す記録がありません"
@@ -367,6 +373,21 @@ async def process_image(user_id: str, img: bytes, ref: str, source: str) -> tupl
     return localize(get_lang(user_id), *await _process_image_ja(user_id, img, ref, source))
 
 
+async def receive_slip(user_id: str, img: bytes, ref: str, source: str, path: str = "") -> dict:
+    """仕切書の画像を確認キューに追加。AI キーがあれば手書きの明細を読み取る（仕切書に限る）。"""
+    if not path:
+        safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80] or "img"
+        path = f"slips/{safe}.jpg"
+        await storage.put(path, img, "image/jpeg")
+    data, reader = {}, "manual"
+    if ANTHROPIC_KEY:
+        try:
+            data, reader = await slips.ai_extract(img, ANTHROPIC_KEY, OCR_MODEL), "ai"
+        except Exception as ex:  # noqa: BLE001  ağ / API hatası → elle girişe düş
+            print("slip ai error", type(ex).__name__)
+    return slips.create(user_id, data, image_path=path, source=source, reader=reader)
+
+
 async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> tuple[str, Options]:
     if notice := limit_notice(user_id):  # OCR'dan önce: sınır aşıldıysa görsel işlenmez/saklanmaz
         return notice, opts("合計")
@@ -374,7 +395,11 @@ async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> 
         safe = re.sub(r"[^A-Za-z0-9_-]", "", f"{user_id[-8:]}_{ref}")[:80] or "img"
         path = f"receipts/{safe}.jpg"
         await storage.put(path, img, "image/jpeg")
+        if slips.mode_active(user_id):
+            return slips.line_reply(await receive_slip(user_id, img, ref, source, path)), opts("パネル", "合計")
         result = await ocr_receipt(img)
+        if isinstance(result, dict) and result.get("slip"):
+            return slips.line_reply(await receive_slip(user_id, img, ref, source, path)), opts("パネル", "合計")
     except Exception as ex:  # ağ / API hatası
         print("image error", type(ex).__name__)
         return IMAGE_FAIL_TEXT, []
@@ -384,7 +409,8 @@ async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> 
         hint = f"\n読み取れた項目: {got}" if got else ""
         store = p.get("store") or "店名"
         return (f"金額を読み取れませんでした（{result['error']}）。{hint}\n"
-                f"「{store} 1234」のように金額を送ってください。"), []
+                f"「{store} 1234」のように金額を送ってください。\n"
+                "手書きの仕切書なら「仕切書」と送ってから写真を送ってください。"), opts("仕切書")
     if any(int(e["amount"]) >= MAX_ENTRY_AMOUNT for e in result):
         return TOO_LARGE, []
     for e in result:

@@ -26,10 +26,26 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "📷 レシート": ("📷 Fiş", "📷 Receipt"),
     "ヘルプ": ("Yardım", "Help"),
     "パネル": ("Panel", "Panel"),
+    "仕切書": ("Hurda fişi", "Scrap slip"),
 }
 
 # Japonca parça → (tr, en). Uzun parçalar önce uygulanır.
 PHRASES: dict[str, tuple[str, str]] = {
+    # T-060 仕切書
+    "仕切書の写真を送ってください。\nこれから30分間、送られた写真は仕切書として確認待ちに入ります。": (
+        "Hurda fişinin (仕切書) fotoğrafını gönderin.\n30 dakika boyunca gönderilen fotoğraflar hurda fişi olarak onay kuyruğuna girer.",
+        "Send a photo of the scrap slip (仕切書).\nFor 30 minutes, photos you send go to the review queue as slips."),
+    "仕切書を受け付けました（確認待ち）": ("Hurda fişi alındı (onay bekliyor)", "Scrap slip received (awaiting review)"),
+    "発行元未読取": ("firma okunamadı", "issuer not read"),
+    "日付未読取": ("tarih okunamadı", "date not read"),
+    "金額はパネルで入力してください": ("Tutarları panelde girin", "Enter the amounts in the panel"),
+    "「パネル」と送ると確認画面のリンクが届きます。承認すると売上として記録されます": (
+        "「Panel」 yazınca onay ekranının bağlantısı gelir. Onayladığınızda satış olarak kaydedilir",
+        "Send 「Panel」 to get the review link. Once approved it's recorded as sales"),
+    "手書きの仕切書なら「仕切書」と送ってから写真を送ってください。": (
+        "El yazısı hurda fişiyse önce 「Hurda fişi」 yazıp sonra fotoğrafı gönderin.",
+        "For a handwritten scrap slip, send 「Scrap slip」 first, then the photo."),
+    "\n合計 ¥": ("\nToplam ¥", "\nTotal ¥"),
     HELP_JA: (
         "Fiş fotoğrafı ya da 「mağaza tutar」 gönderin.\n"
         "Örnek: ローソン 540円 軽減 (indirimli %8)\nÖrnek: Taksi 2300 T1234567890123\n"
