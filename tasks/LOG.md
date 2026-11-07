@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 11:10 JST · developer · T-054 çok oranlı fiş kotası (review-fix)
+- Yorum (ürün kararı gerekmedi): Q-11 planı 「ayda 30 fiş」 → kota fiş başına. `billing.usage` 経費 sayımı `COUNT(DISTINCT image_path | 'id:'+id)`: 税率ごとに分割された tek fiş 1 件, görselsiz (metin/web) kayıt satır başına. Şema değişmedi.
+- Sonuç: 29/30 kullanımda 8%+10% fiş kabul edilir → kullanım 30 (31 satır); sonraki fiş OCR öncesi, metin girişi de reddedilir. Panel kullanım çubuğu `status()` ile aynı sayıyı gösterir.
+- Yeni `tests/test_receipt_quota_split.py` (4; 3'ü eski kodda kırmızı). Kapı: pytest 345 geçti (SQLite); billing/limit testleri yerel PostgreSQL 16'da 31 geçti. dashboard-next değişmedi.
+- Sonraki: P1 T-025 (LINE OCR uzun sürerse önce 「読み取り中…」 + push).
+
 ## 2026-11-07 10:05 JST · reviewer · 6012a33..8c1a4f6 incelemesi (T-042b, T-052, T-053, T-043)
 - Kapı başta yeşil (297, SQLite). T-052 koşullu UPDATE + ekleyici sütun (yıkıcı migration yok), T-053 409 yalnızca e-posta gerçekten kayıtlıysa, T-042b sınır OCR öncesi — doğru. Vergi kuralı değişikliği yok; render.yaml yalnızca `sync: false` değişken ekledi.
 - **Düzeltme:** T-043 プライバシーポリシー 「レシート画像…画像そのものは保存しません」 yanlıştı — `process_image` görseli `receipts/` altına yazıp kayda `image_path` bağlıyor. Metin 「…取引データと紐づけてサーバーに保存します」 olarak düzeltildi (`dashboard-next/app/lib/legal.ts`).

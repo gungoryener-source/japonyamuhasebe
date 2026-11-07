@@ -58,6 +58,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-051 | P2 | done (bu commit) | Banka CSV: birden çok 摘要 sütunu (MUFG 「摘要」+「摘要内容」) → yalnızca ilki alınıyor; karşı taraf adı kayboluyor |
 | T-052 | P1 | done (bu commit) | Stripe webhook olay sırası: geç gelen eski `customer.subscription.updated`, `deleted` sonrası aboneliği yeniden ücretli yapabilir |
 | T-053 | P2 | done (c5108d7) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
+| T-054 | P2 | done (bu commit) | Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor |
 
 ---
 
@@ -249,3 +250,4 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/app.py` `process_image` (~satır 324): `limit_notice` OCR'dan önce bir kez kontrol eder; OCR 8%/10% karışık fişi N kayda böler (`for e in result: add_entry`). Ücretsiz planda 29/30 kullanımda iki oranlı fiş → 31 kayıt; ayrıca `billing.usage` (`entries` satırı sayar) tek fişi 2 sayar, oysa plan metni 「経費 30件」.
 - Beklenen (ürün sahibi kararı gerekebilir → gerekirse QUESTIONS): ya kota "fiş" başına sayılır (aynı `image_path` = 1) ya da kalan kota < N ise kayıt yapılmaz/uyarı verilir. Panel kullanım çubuğu ile aynı tanımı kullanmalı.
 - Test: 29 kullanımda 2 oranlı sahte OCR → beklenen sayım; `usage()` sonucu.
+- ✅ Yapıldı: kota "fiş" başına (Q-11 「ayda 30 fiş」): `billing.usage` aynı `image_path`'li satırları 1 sayar, görselsiz kayıtlar satır başına. 29 kullanımda 2 oranlı fiş → 30 (31 satır), sonraki fiş/metin reddedilir. Panel kullanım çubuğu `status()` üzerinden aynı tanımı kullanır. Testler `tests/test_receipt_quota_split.py`.

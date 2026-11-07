@@ -110,12 +110,18 @@ def _month_prefix() -> str:
 
 
 def usage(user_id: str) -> dict:
-    """Bu ay (JST, oluşturulma zamanına göre) eklenen fiş/経費 ve fatura sayısı."""
+    """Bu ay (JST, oluşturulma zamanına göre) eklenen fiş/経費 ve fatura sayısı.
+
+    T-054: 税率ごとに分割された tek fiş (aynı `image_path`) 1 件 sayılır — plan 「ayda 30 fiş」 (Q-11).
+    Görselsiz kayıtlar (metin girişi vb.) satır başına sayılır.
+    """
     ym = _month_prefix()
     ph = ",".join("?" * len(NON_RECEIPT_SOURCES))
     with tx() as con:
         r = con.execute(
-            f"""SELECT COUNT(*) n FROM entries WHERE user_id=? AND kind='exp'
+            f"""SELECT COUNT(DISTINCT CASE WHEN COALESCE(image_path,'')<>'' THEN image_path
+                                           ELSE 'id:' || CAST(id AS TEXT) END) n
+                FROM entries WHERE user_id=? AND kind='exp'
                 AND substr(created_at,1,7)=? AND source NOT IN ({ph})""",
             (user_id, ym, *NON_RECEIPT_SOURCES)).fetchone()
         i = con.execute("SELECT COUNT(*) n FROM invoices WHERE user_id=? AND substr(created_at,1,7)=?",

@@ -46,6 +46,7 @@ Varsayılan: **Stripe** (JPY, Japonya kartları, konbini ödemesi). Alternatif: 
 ## Q-11 · Fiyatlandırma (açık)
 Yer tutucu: Free (ayda 30 fiş, 3 fatura) / 個人 ¥980 / 法人 ¥2,980 (vergi hariç, aylık). Gerçek fiyatları yaz.
 (2026-11-07 developer, T-042: yer tutucular `bot/billing.py` `PLANS` içinde. Ek karar: `STRIPE_SECRET_KEY` girildiği anda mevcut LINE kullanıcılarına da ücretsiz plan sınırı uygulanır — mevcut kullanıcılara geçiş süresi / ücretsiz dönem istiyor musun? İstemezsen `BILLING_ENFORCE_LIMITS=0` ile sınırlar kapalı tutulabilir.)
+(2026-11-07 developer, T-054: 税率ごとに分割 edilen tek fiş kotada 1 件 sayılıyor (aynı görsel = 1). Satır başına sayılmasını istersen belirt.)
 **Cevap:**
 
 ## Q-12 · Satıcı bilgileri — 特定商取引法に基づく表記 (açık)
