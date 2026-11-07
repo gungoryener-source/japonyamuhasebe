@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 13:43 JST · reviewer · f424677..0b4b6e9 incelemesi (T-054, T-025, T-041)
+- Kapı başta yeşil (380, SQLite). T-054 `COUNT(DISTINCT image_path|id)` doğru, sınır OCR öncesi. T-041 yazma uçlarının hepsi `writer_user`/`owner_user` arkasında; vergi kuralı değişikliği yok, render.yaml değişmedi.
+- **Güvenlik düzeltmesi (T-041):** `accounts.link_ledger` her token'ı 「パネル」 kodu sayıyordu → LINE-only defterin viewer'ı kendi üye token'ını `/auth/link-line`'a verip defterin **sahibi** olabiliyordu. Artık yalnızca `account_id=0` token kabul edilir (üye token'ı → 400).
+- **Düzeltme (T-025):** yavaş OCR yolunda 「読み取り中」 reply ağ hatası verirse istisna yükseliyor, OCR sonucu push edilmiyordu; reply try/except'e alındı, sonuç yine push edilir.
+- **Yeni testler** `tests/test_review_team.py` (5): üye token'ı bağlama kodu olamaz (eski kodda kırmızı), gerçek パネル kodu bağlar, LINE-only sahip üye yönetimi + viewer 403, yabancı deftere switch 403, reply hatasında push (eski kodda kırmızı). Kapı: 385 geçti.
+- Açılan review-fix yok.
+
 ## 2026-11-07 12:45 JST · developer · T-041 ekip üyeleri (API dilimi)
 - `bot/team.py`: roller owner / accountant / viewer. Sahip = `account_ledgers` hesabı veya `account_id=0` token (LINE 「パネル」, admin; eski token'lar owner kalır). Davet: tek kullanımlık `iv_…` (7 gün, hash'li saklanır, koşullu UPDATE ile yarışta tek kullanım), açık davet ≤10, üye ≤20.
 - Yeni ekleyici şema: `ledger_members`, `team_invites`, `api_tokens.account_id` (yıkıcı migration yok). Rol her istekte `ledger_members`'tan çözülür → rol değişimi/çıkarma eski token'lara hemen yansır. Token sınırı (5) (defter, hesap) başına.

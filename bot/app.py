@@ -395,7 +395,10 @@ async def handle_image(user_id: str, token: str, message_id: str):
     try:
         msg = await asyncio.wait_for(asyncio.shield(task), timeout=reply_wait_seconds())
     except asyncio.TimeoutError:
-        await reply(token, [text_msg(READING_TEXT)])
+        try:  # 「読み取り中」 reply ağ hatası sonucu (push) engellemesin
+            await reply(token, [text_msg(READING_TEXT)])
+        except Exception as ex:
+            print("LINE reply error", type(ex).__name__)
         try:
             msg = await task
         except Exception as ex:

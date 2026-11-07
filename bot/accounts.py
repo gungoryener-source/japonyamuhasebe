@@ -165,7 +165,10 @@ def link_ledger(current_user_id: str, code: str) -> tuple[dict, str]:
     acc = account_for_ledger(current_user_id)
     if not acc:
         raise AccountError("アカウントでログインしてください。", 403)
-    target = store.user_for_token((code or "").strip())
+    # Yalnızca sahip/LINE 「パネル」 token'ı (account_id=0) bağlama kodudur; ekip üyesi oturumu (T-041)
+    # kod olarak verilirse üye defterin sahibi olurdu (reviewer 2026-11-07).
+    info = store.token_info((code or "").strip())
+    target = info["user_id"] if info and info["account_id"] == 0 else None
     if not target:
         raise AccountError("接続コードが無効です。LINEで「パネル」と送って新しいコードを取得してください。", 400)
     if target == current_user_id:
