@@ -8,7 +8,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-002 | P0 | done (bu commit) | Vergi motoru `bot/tax/` (消費税) + testler |
 | T-003 | P0 | done (bu commit) | `/entries/{user_id}` uç noktasını kapat / kimlik doğrulaması ekle |
 | T-004 | P1 | done (2025 tablosu) | Vergi motoru: 所得税 (所得税・復興税・青色控除・基礎控除) |
-| T-004b | P1 | todo | `BASIC_DEDUCTION[2026]` ve `[2027]` (令和8・9年分) tablosunu ekle + sınır testleri (Q-03 cevaplandı) |
+| T-004b | P1 | doing (developer, 2026-11-07) | `BASIC_DEDUCTION[2026]` ve `[2027]` (令和8・9年分) tablosunu ekle + sınır testleri (Q-03 cevaplandı) |
 | T-005 | P1 | done | REST API v1: tenant'a göre özet, nakit akışı, faturalar |
 | T-006 | P1 | done | PostgreSQL desteği (`DATABASE_URL`), SQLite yedek |
 | T-007 | P1 | done | dashboard-next'i API'ye bağla (mock → fetch, yükleniyor/hata durumları) |
