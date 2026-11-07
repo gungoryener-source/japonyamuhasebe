@@ -25,7 +25,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-016 | P1 | done (743716d) | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
 | T-012b | P1 | done (弥生 25項目 + freee 公式列; MF → T-012c) | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
 | T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
-| T-019 | P2 | doing (developer, 2026-11-08) | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
+| T-019 | P2 | done (bu commit) | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-020 | P1 | done | dashboard-next: 確定申告 önizleme sayfası (`/api/v1/pl`, `/api/v1/tax/income`) |
 | T-022 | P1 | done | Yapay zekâsız fiş okuma: Tesseract (jpn) + kural tabanlı ayrıştırıcı, Docker imajı |
 | T-023 | P1 | done | Gerçek fişlerle OCR ölçümü (67 fiş; tüm alanlar %70, toplam %85, yanlış kayıt %7 — docs/OCR.md) |

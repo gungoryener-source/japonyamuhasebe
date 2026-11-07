@@ -15,6 +15,7 @@
 - `bot/app.py`: `/callback` (LINE), `/whatsapp` (WhatsApp Cloud API), `/api/v1/*` (`bot/api.py`, Bearer token), `/entries/{user_id}` (admin), `/admin/richmenu`, `/`.
 - Sohbet çekirdeği `app.respond()` kanaldan bağımsız; vergi motoru `bot/tax/`; fatura `bot/invoices.py`; CSV `bot/export.py`.
 - Veritabanı: Render PostgreSQL `jsaas-db` (`DATABASE_URL`); yerelde/testte SQLite. Katman: `bot/store.py`.
+  PostgreSQL'de süreç başına `psycopg_pool.ConnectionPool` (min 1 / max 10, hazır ifade kapalı, kapanışta `close_pool()`); > 1 sn süren istekler `tegaru.slow` WARNING log'u (yalnızca rota şablonu, `bot/timing.py`) — T-019.
 - `dashboard-next/`: API'ye bağlı panel (token yoksa demo veri), Render statik site `jsaas-panel`.
 - Render: `tegaru-line-bot` web servisi, bölge singapore, free plan, `main` push'unda otomatik deploy.
 - LINE kanalı: **henüz açılmadı** (insan işi, Q-01).

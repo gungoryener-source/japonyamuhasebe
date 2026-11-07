@@ -3,5 +3,6 @@ uvicorn[standard]==0.32.1
 httpx==0.28.1
 reportlab==4.2.5
 psycopg[binary]==3.2.3
+psycopg_pool==3.2.4  # T-019: yalnızca DATABASE_URL varken kullanılır
 pillow==11.0.0
 openpyxl==3.1.5

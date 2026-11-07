@@ -26,6 +26,7 @@ from fastapi.responses import PlainTextResponse
 from parser import parse_text
 from security import SecurityHeadersMiddleware, cors_origins
 from tax.consumption import input_credit_ratio
+from timing import SlowRequestMiddleware
 
 # .strip(): panele telefondan yapıştırılan değerin sonundaki boşluk/satır sonu imzayı bozmasın
 CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "").strip()
@@ -52,6 +53,8 @@ app.add_middleware(
 )
 # En dışta: CORS ön kontrol yanıtları dahil tüm yanıtlara güvenlik başlıkları
 app.add_middleware(SecurityHeadersMiddleware)
+# T-019: > 1 sn süren istekleri rota şablonuyla log'a yaz (gerçek yol/kişisel veri yok)
+app.add_middleware(SlowRequestMiddleware)
 
 
 # ---------------------------------------------------------------- DB (store.py)
@@ -605,6 +608,12 @@ def health():
             "version": os.environ.get("RENDER_GIT_COMMIT", "")[:7],
             "ocr_configured": bool(ANTHROPIC_KEY), "ocr_engine": OCR_ENGINE,
             "tesseract": __import__("receipt_ocr").available()}
+
+
+@app.on_event("shutdown")
+def _close_db_pool() -> None:
+    """T-019: PostgreSQL bağlantı havuzunu kapat (SQLite'ta havuz yok, bir şey yapmaz)."""
+    _store.close_pool()
 
 
 @app.on_event("startup")

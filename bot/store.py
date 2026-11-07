@@ -8,11 +8,13 @@ Defter anahtarı `user_id`: LINE userId, `wa:<telefon>` (WhatsApp) veya web'den 
 """
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import os
 import secrets
 import sqlite3
+import threading
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 
@@ -266,14 +268,65 @@ def is_integrity_error(exc: BaseException) -> bool:
     return isinstance(exc, psycopg.IntegrityError)
 
 
+# T-019: PostgreSQL bağlantı havuzu (yalnızca DATABASE_URL varken). Her istekte yeni TCP+TLS bağlantısı
+# açmak yerine `psycopg_pool.ConnectionPool` yeniden kullanılır. URL değişirse (testler) eski havuz kapanır.
+POOL_MIN_SIZE = 1
+POOL_MAX_SIZE = 10  # iç içe tx() derinliği + eşzamanlı istekler için yeterli; Render free PG ~97 bağlantı
+POOL_TIMEOUT = 30.0  # sn: havuz doluysa bekleme üst sınırı (sonra PoolTimeout)
+_pool = None
+_pool_url = ""
+_pool_lock = threading.Lock()
+_atexit_registered = False
+
+
+def _get_pool():
+    """Süreç başına tek havuz; ilk kullanımda açılır (uvicorn worker fork'undan sonra)."""
+    global _pool, _pool_url, _atexit_registered
+    url = database_url()
+    with _pool_lock:
+        if _pool is not None and _pool_url == url and not _pool.closed:
+            return _pool
+        from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
+
+        old = _pool
+        _pool = ConnectionPool(
+            url,
+            min_size=POOL_MIN_SIZE,
+            max_size=POOL_MAX_SIZE,
+            timeout=POOL_TIMEOUT,
+            # prepare_threshold=None: sunucu tarafı hazır ifade yok → init_db sütun eklese de
+            # havuzdaki eski bağlantılarda "cached plan must not change result type" olmaz.
+            kwargs={"row_factory": dict_row, "prepare_threshold": None},
+            # Render'ın kapattığı boş bağlantılar verilmeden önce yoklanır
+            check=ConnectionPool.check_connection,
+            name="tegaru",
+            open=True,
+        )
+        _pool_url = url
+        if not _atexit_registered:  # betikler/testler: süreç biterken arka plan iş parçacıkları düzgün dursun
+            atexit.register(close_pool)
+            _atexit_registered = True
+    if old is not None:
+        old.close()
+    return _pool
+
+
+def close_pool() -> None:
+    """Uygulama kapanışında havuzu kapat (app.py shutdown). Havuz yoksa bir şey yapmaz."""
+    global _pool, _pool_url
+    with _pool_lock:
+        pool, _pool, _pool_url = _pool, None, ""
+    if pool is not None:
+        pool.close()
+
+
 @contextmanager
 def tx():
     """Tek işlem (transaction): blok hatasız biterse commit, hata olursa rollback."""
     if is_pg():
-        import psycopg
-        from psycopg.rows import dict_row
-
-        with psycopg.connect(database_url(), row_factory=dict_row) as con:
+        # pool.connection(): blok sonunda commit (hata → rollback) ve bağlantıyı havuza iade
+        with _get_pool().connection() as con:
             yield _Conn(con, True)
     else:
         con = sqlite3.connect(db_path())

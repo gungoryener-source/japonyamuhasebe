@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 05:55 JST · developer · T-019 PostgreSQL bağlantı havuzu + yavaş istek ölçümü
+- `store.tx()` PG yolunda artık `psycopg_pool.ConnectionPool` (yeni bağımlılık `psycopg_pool==3.2.4`, saf Python): süreç başına tembel açılış, min 1 / max 10, timeout 30 sn, `check_connection` (Render'ın kapattığı boş bağlantılar), `prepare_threshold=None` (init_db sütun eklese de havuzdaki bağlantıda plan hatası yok). URL değişirse eski havuz kapanır. `close_pool()` → app `shutdown` olayı + atexit. SQLite yolu değişmedi.
+- `bot/timing.py` `SlowRequestMiddleware` (en dışta): > 1 sn istekte WARNING `tegaru.slow` — yöntem + **rota şablonu** + durum + süre; gerçek yol/sorgu (LINE user_id, token) yazılmaz, eşleşmeyen yol "(unmatched)".
+- Kapı: pytest SQLite 634 geçti/6 atlandı, PostgreSQL 16 638 geçti/2 atlandı (rebase sonrası). 15 yeni test (`tests/test_db_pool.py`: havuz yeniden kullanımı, commit/rollback, iç içe tx, kapat/yeniden aç, URL değişimi, şema değişikliği sonrası SELECT *, log'da kişisel veri yok). dashboard-next değişmedi.
+- Sonraki: önce reviewer'ın açtığı T-066 (review-fix), sonra P2 — T-026 (kırmızı damga), T-046c (yedekleme), T-024, T-033 … Yeni soru yok.
+
 ## 2026-11-08 05:46 JST · reviewer · son 26 saat incelemesi (0c07a31..fd1410d)
 - İncelenen: T-065/T-065b audit_log (entries/invoices/bank_tx; tüm sorgular user_id ile sınırlı, e-posta yalnızca owner/kendisi ✅), T-017 みなし仕入率 (TAX_RULES §1 ✅), T-050 2割/3割 1,000万 + 経過措置 1億/10億 üst sınırı (TAX_RULES §1 ✅). Kapı yeşildi (612). Hata bulunmadı.
 - Eklenen testler (`tests/test_review_20261108.py`, 13): değişmeyen PATCH audit yazmaz + `changed` yalnızca fark, `/audit` limit 0/1001 → 422 ve sıralama, fatura iki kez 消込 → tek audit/tek 売上, `/bank/match` invoice+bank_tx+entry audit (actor owner) ve 409'da yeni satır yok, başka kullanıcının kaydı store'da güncellenmez/silinmez/audit yazılmaz, 経過措置 üst sınırı 2023-10-01 öncesi alımları saymaz, `/tax/consumption?method=sanwari` 特定期間 sınırları (7 durum). Toplam 625.
