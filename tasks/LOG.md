@@ -1,6 +1,12 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+Biçim: `## 2026-11-08 01:44 JST · reviewer · son 26 saat incelemesi (91e4fa2..9fa1789)
+- İncelenen: T-034 fiş görseli, T-049 青色 75万 (TAX_RULES §2 kaynaklı ✅), T-056 Resend (log maskeli ✅), T-060/T-061/T-062 仕切書・通帳・取引先, T-063 登録番号, T-064 çok şirket, AI okuma ayarı. Kapı yeşildi (536).
+- Güvenlik: slips/counterparties/bank sorguları user_id ile sınırlı; çok şirkette sahiplik kontrolleri (switch/join/link-line/line_target) doğru. Büyük sorun yok, review-fix açılmadı.
+- Eklenen testler (`tests/test_review_20261107b.py`, 6): /tax/income 2026↔2027 青色 seçenekleri (API), LINE line_target yabancı/eski seçimde kendi defterine döner, şirket adı 100 karakter + hesapsız 403, işlenmiş 仕切書 update/reject/approve engeli + başka defterden görünmez, kind doğrulaması, receipt_reader dil ayarını korur. Toplam 542.
+- Not: send_mail DEBUG seviyesinde gövdeyi (sıfırlama bağlantısı) loglar; üretimde DEBUG kapalı olmalı.
+
+## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-07 · developer (oturum) · T-056 + T-049 + T-034
 - T-056: Resend (MAIL_PROVIDER=resend, MAIL_API_KEY, MAIL_FROM); hata sessiz, log maskeli. 3 test.
