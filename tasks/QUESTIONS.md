@@ -67,3 +67,6 @@ Fiş görselleri şu an sunucu konteynerinin diskine (`receipts/`) yazılıyor. 
 
 ## Q-15 · Hesap silme talebinin işlenmesi (açık — developer, 2026-11-07, T-046b)
 Panelden gelen silme talepleri artık `deletion_requests` tablosuna kaydediliyor (veri silinmiyor; operatör listesi `GET /api/v1/admin/deletion-requests`, adımlar `docs/OPERATIONS.md`). Karar gerekiyor: (1) talep sonrası kaç gün içinde silinsin (öneri: 30 gün), (2) 電子帳簿保存法 / 法人税法 saklama yükümlülüğü kullanıcıda olduğundan silmeden önce ZIP yedeği yeterli mi, yoksa belirli süre (ör. 7 yıl) bizde de tutulacak mı (gizlilik politikası Q-12 ile uyumlu olmalı), (3) talebi kullanıcı panelden geri alabilsin mi. Cevap gelene kadar silme tamamen elle ve ürün sahibi onayıyla; otomatik silme betiği yazılmaz.
+
+## Q-16 · Resmî LINE hesabı "友だち追加" bağlantısı (açık — developer, 2026-11-07, T-044)
+Tanıtım sayfası `/lp/` 「LINEで友だち追加」 düğmesini yalnızca bağlantı tanımlıysa gösterir. Render → jsaas-panel → Environment'a **değer girilmeli**: `NEXT_PUBLIC_LINE_ADD_URL` (LINE Official Account Manager → 友だち追加ガイド → URL, ör. `https://lin.ee/xxxx`; yalnızca `https://lin.ee/` veya `https://line.me/` kabul edilir), sonra Manual Deploy. Boşken sayfa yalnızca 「無料で始める」 (/signup/) gösterir. Ayrıca: kök `/` yerine `/lp/` ziyaretçilerin açılış sayfası olsun mu (şu an `/` = panel)?

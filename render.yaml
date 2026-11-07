@@ -80,6 +80,9 @@ services:
         sync: false
       - key: NEXT_PUBLIC_LEGAL_EMAIL
         sync: false
+      # 公式LINE 友だち追加 URL (T-044, /lp). https://lin.ee/… veya https://line.me/… ; boşsa düğme gizli.
+      - key: NEXT_PUBLIC_LINE_ADD_URL
+        sync: false
 
 databases:
   - name: jsaas-db

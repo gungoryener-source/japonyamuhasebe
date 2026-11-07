@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 21:46 JST · developer · T-044 tanıtım sayfası /lp
+- Yeni `/lp/` (sunucu bileşeni, JS'siz okunur): kahraman (LINEに送るだけ → 帳簿・インボイス・確定申告), 3 özellik, 「LINEで始める3ステップ」, fiyat tablosu (Free/個人¥980/法人¥2,980 税抜), 7 soruluk SSS (`<details>`, 税理士法 notu), alt bilgide yasal bağlantılar; CTA 「無料で始める」 → /signup/.
+- Yorum: statik export → fiyatlar API'den değil `app/lib/lp.ts` `LP_PLANS`'tan; `bot/billing.py` ile eşitlik iki yerde denetleniyor (`npm run check:lp`, `tests/test_lp_plan_parity.py`). Yalnızca çalışan özellikler yazıldı (WhatsApp canlı değil, 電帳法 T-034'e kadar yok, e-Tax gönderimi yok denildi).
+- 「LINEで友だち追加」 düğmesi `NEXT_PUBLIC_LINE_ADD_URL` (render.yaml'a `sync: false`, yalnızca https lin.ee/line.me) → Q-16 değer girilmeli.
+- Kapı: pytest 474 geçti (yeni 2, rebase sonrası); `next build` + check:tax/legal/team/lp yeşil. Playwright: 375px (JS kapalı) ve 1280px'te yatay taşma yok, konsol hatası yok.
+- Sonraki: T-044b (/welcome sihirbazı), sonra T-049.
+
 ## 2026-11-07 21:45 JST · reviewer · son 13 saat (T-055, T-058, T-011, T-046, T-046b, LINE secret/teşhis/rich menu)
 - İncelenen: c4ce6cc..558f349 (8 kod commit'i). Kapı başta yeşil (468). Vergi oranı/eşiği ekleyen commit yok; T-055 fiyatları Q-11 cevabıyla uyumlu (税抜).
 - Düzeltme: ZIP `invoices.csv` 取引先 alanında CSV formül enjeksiyonu (`=HYPERLINK…`) → `archive._cell` baştaki `=+-@` için `'` ekler. Aynı sorun `/export.csv` ve ZIP `entries.csv`'de → **T-059 review-fix (P2)** açıldı (içe aktarma uyumu doğrulanmalı).

@@ -45,7 +45,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
-| T-044 | P1 | doing (developer, 2026-11-07) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
+| T-044 | P1 | done (bu commit; LINE URL Q-16) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
 | T-044b | P1 | todo | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | done | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
 | T-045b | P2 | todo | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
@@ -248,6 +248,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-044 · Tanıtım sayfası (P1)
 - `dashboard-next/app/lp/page.tsx` (sunucu bileşeni, JS'siz okunur): kahraman bölümü (LINE'a fiş at → 帳簿・インボイス・確定申告), 3 özellik kartı, fiyat tablosu (`/billing/plans` yer tutucu fiyatlar 「仮」; API yoksa statik yedek), SSS (≥5 soru, vergi danışmanlığı değildir notu), 「無料で始める」 → `/signup/`, alt bilgide yasal sayfa bağlantıları.
 - Kabul: `next build` geçer; 375px'te yatay taşma yok (Playwright notu LOG'a); metinler Japonca, uydurma rakam/iddia yok (ör. "電帳法対応" yalnızca T-011/T-034 bitince).
+- ✅ Yapıldı: `app/lp/page.tsx` (sunucu bileşeni) + içerik `app/lib/lp.ts` (kahraman, 3 özellik, 3 adım, fiyat tablosu `LP_PLANS` = `billing.PLANS` kopyası — statik export olduğu için API çağrılmaz, eşitlik `check:lp` + `tests/test_lp_plan_parity.py` ile denetlenir; SSS 7 soru, 税理士法 notu). 「LINEで友だち追加」 düğmesi `NEXT_PUBLIC_LINE_ADD_URL` (render.yaml `sync: false`, Q-16) doluysa görünür. `check:lp` CI'a eklendi (yasak ifadeler: 仮, 電帳法, WhatsApp, abartılı rakamlar).
 
 ## T-044b · Kurulum sihirbazı (P1)
 - `/welcome`: kayıt sonrası yönlendirme; adım 1 事業者情報 (mevcut settings API), adım 2 LINE bağlantısı (`/connect` akışı veya 「あとで」), adım 3 ilk fiş (経費 sayfasına yükleme veya LINE). İlerleme adım göstergesi; atlanabilir; tamamlanınca ホーム.

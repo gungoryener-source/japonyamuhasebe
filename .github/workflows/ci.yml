@@ -82,3 +82,5 @@ jobs:
         run: npm run check:legal
       - name: check:team (ekip rolleri)
         run: npm run check:team
+      - name: check:lp (tanıtım sayfası ↔ bot/billing.py)
+        run: npm run check:lp
