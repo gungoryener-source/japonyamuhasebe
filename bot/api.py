@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from pydantic import BaseModel, Field
 
 import accounts
+import archive
 import bank_csv
 import billing
 import export
@@ -473,6 +474,15 @@ def export_csv(format: str = "freee", year: int = Query(..., ge=2023, le=2035), 
     # 会計ソフトは Shift_JIS(CP932) 取込が一般的
     return Response(body.encode("cp932", errors="replace"), media_type="text/csv; charset=Shift_JIS",
                     headers={"Content-Disposition": f'attachment; filename="tegaru_{format}_{year}.csv"'})
+
+
+@router.get("/export/all.zip")
+def export_all_zip(uid: str = Depends(current_user)):
+    """T-046: 全期間の仕訳・請求書（CSV + PDF）を ZIP で。閲覧メンバーも可。"""
+    body = archive.build_zip(uid)
+    stamp = store.today().strftime("%Y%m%d")
+    return Response(body, media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="tegaru_all_{stamp}.zip"'})
 
 
 @router.delete("/tokens/current", status_code=204)

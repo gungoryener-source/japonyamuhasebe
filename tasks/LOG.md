@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 19:46 JST · developer · T-046 tüm veri ZIP
+- Yeni `bot/archive.py` + `GET /api/v1/export/all.zip` (tüm roller, viewer dahil): `entries.csv` (tüm dönem, freee sütunları), `invoices.csv` (明細 JSON sütunu, 入金済/未入金, 入金日), `invoices/<番号>.pdf`, Japonca `README.txt` (JST oluşturma zamanı, sayılar). Bellekte `zipfile`, `entries_in_range` ile satır sınırı yok.
+- Yorum: ZIP içindeki CSV'ler **UTF-8 BOM** (yedek amaçlı, CP932'de olmayan karakterler kaybolmasın); muhasebe yazılımı içe aktarımı için mevcut Shift_JIS `/export.csv` duruyor (README'de not). PDF adı yol geçişine karşı temizleniyor. 電帳法 保存期間 TAX_RULES'ta ⚠️ olduğundan README'ye süre yazılmadı.
+- Panel 設定: 「データのダウンロード」 kartı + 「全データをダウンロード」 (ja/tr/en). docs/API.md güncellendi.
+- Kapı: pytest 456 geçti (yeni 10: 401, boş defter, tüm yıllar + fatura durumları, kiracı ayrımı, viewer, >5000 kayıt, PDF adı güvenliği); `next build` + check:tax/legal/team yeşil.
+- Sonraki: T-046b (hesap silme talebi), sonra T-044 / T-044b.
+
 ## 2026-11-07 18:44 JST · developer · T-011 fiş görseli depolama (R2)
 - Yeni `bot/storage.py`: `put`/`get`, sürücü local | s3 (S3 uyumlu, Cloudflare R2; yol stili, AWS SigV4 — yeni paket yok). 4 `STORAGE_*` doluysa otomatik s3; değilse yerel + başlangıç uyarısı.
 - `process_image` görseli `storage.put` ile yazar; `image_path` biçimi (`receipts/<ad>.jpg`) aynı. S3 hatasında yerel yedek; anahtar doğrulaması yol geçişini reddeder.

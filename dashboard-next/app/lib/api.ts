@@ -210,6 +210,8 @@ export const api = {
   exportCsv: (format: "freee" | "mf" | "yayoi", year: number) => fetchBlob(`/export.csv${qs({ format, year })}`),
   /** T-045: 青色申告決算書（損益計算書）転記用 PDF */
   blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),
+  /** T-046: 全データ ZIP（全期間の仕訳 CSV・請求書 CSV/PDF） */
+  exportAll: () => fetchBlob("/export/all.zip"),
   channels: () => call<ApiChannels>("/channels"),
   revoke: () => call<void>("/tokens/current", { method: "DELETE" }),
   me: () => call<ApiMe>("/auth/me"),

@@ -18,6 +18,7 @@ Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri
 | POST | `/invoices/{no}/paid?paid_on=` | 入金消込 (oran başına 売上 kaydı da oluşturur) |
 | GET | `/invoices/{no}/pdf` | PDF (IPAゴシック gömülü) |
 | GET | `/export.csv?format=freee|mf|yayoi&year=` | Muhasebe yazılımı CSV (Shift_JIS) |
+| GET | `/export/all.zip` | T-046: tüm veri ZIP — `entries.csv` (tüm dönem, freee sütunları, UTF-8 BOM, satır sınırı yok), `invoices.csv`, `invoices/<番号>.pdf`, `README.txt`. Tüm roller (viewer dahil) |
 
 Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şema).
 | GET | `/pl?year=` | 青色申告決算書 (損益計算書) özeti: 売上, kalem bazında 経費, 所得 |

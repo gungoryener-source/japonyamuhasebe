@@ -2,8 +2,8 @@
 
 /** 設定 — 事業者情報（インボイス登録番号）・連携チャネルの状態・接続管理 */
 import { useEffect, useState } from "react";
-import { Copy, CreditCard, KeyRound, Languages, LogOut, MessageCircle, ScanText, ShieldCheck } from "lucide-react";
-import { API_BASE, api, setToken, type ApiChannels } from "../lib/api";
+import { Copy, CreditCard, Download, KeyRound, Languages, LogOut, MessageCircle, ScanText, ShieldCheck } from "lucide-react";
+import { API_BASE, api, saveBlob, setToken, type ApiChannels } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Field, inputCls, ReadOnlyNote, registrationOk } from "../components/ui";
 import { MembersCard } from "./members";
@@ -59,6 +59,20 @@ function Settings() {
 
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); toast(t("コピーしました")); } catch { toast(text); }
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const exportAll = async () => {
+    if (!live) return toast(t("データのダウンロードは帳簿に接続すると使えます"));
+    setExporting(true);
+    try {
+      const stamp = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }).replaceAll("-", "");
+      saveBlob(await api.exportAll(), `tegaru_all_${stamp}.zip`);
+    } catch (err) {
+      toast(t("ダウンロードに失敗しました: {e}", { e: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const disconnect = async () => {
@@ -136,6 +150,13 @@ function Settings() {
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <span className="text-slate-500">{t("現在のプラン・今月の利用状況の確認、アップグレードや解約はこちらから。")}</span>
           <a href="/billing/" className="ml-auto"><Btn kind="ghost">{t("料金プランを見る")}</Btn></a>
+        </div>
+      </Card>
+
+      <Card title="データのダウンロード" en="Export" right={<Download size={16} className="text-mint" />} className="lg:col-span-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <span className="min-w-0 flex-1 text-slate-500">{t("全期間の仕訳（CSV）と請求書（CSV・PDF）を ZIP でまとめてダウンロードします。バックアップや他サービスへの移行にご利用ください。")}</span>
+          <Btn kind="primary" onClick={exportAll} disabled={exporting} className="ml-auto"><Download size={13} />{t(exporting ? "作成中…" : "全データをダウンロード")}</Btn>
         </div>
       </Card>
 
