@@ -839,20 +839,29 @@ def channels(uid: str = Depends(current_user)):
 # ---------------------------------------------------------------- consumption tax
 @router.get("/tax/consumption")
 def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "honsoku",
-                    kani_type: int | None = None, uid: str = Depends(current_user)):
+                    kani_type: int | None = None,
+                    base_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                    specific_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                    specific_period_salaries: int | None = Query(None, ge=0, lt=10**13),
+                    uid: str = Depends(current_user)):
     rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
     sales = [ct.Sale(r["amount"], r["rate"]) for r in rows if r["kind"] == "inc"]
-    purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]))
+    purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]), r["store"])
                  for r in rows if r["kind"] == "exp"]
     prof = store.get_profile(uid)
     try:
         res = ct.compute(sales, purchases, method, kani_type=kani_type,  # type: ignore[arg-type]
-                         individual=bool(prof["individual"]), tax_year=year)
+                         individual=bool(prof["individual"]), tax_year=year,
+                         base_period_sales=base_period_sales, specific_period_sales=specific_period_sales,
+                         specific_period_salaries=specific_period_salaries)
     except ValueError as ex:
         raise HTTPException(400, str(ex))
     return {"year": year, "method": method, "output_tax": res.output_tax, "input_tax": res.input_tax,
             "payable": res.payable, "by_rate": res.by_rate,
-            "unqualified": ct.transitional_breakdown(purchases)}
+            "unqualified": ct.transitional_breakdown(purchases),
+            # 課税期間 = 暦年（API は年単位で集計）。一の免税事業者等からの経過措置上限超過（T-050）
+            "transitional_cap": ct.transitional_cap(date(year, 1, 1)),
+            "transitional_over_cap": ct.transitional_cap_warnings(purchases, date(year, 1, 1))}
 
 
 # ---------------------------------------------------------------- 確定申告 (individual)

@@ -29,6 +29,7 @@ type CashMonth = { m: string; income: number; expense: number };
 /** 消費税カードの入力: 本則課税の税率別集計（API by_rate と同じ）+ 経過措置の内訳。方式の切替はカード内で settle() する。 */
 type TaxView = {
   out10: number; out8: number; in10: number; in8: number; unqualified: Transitional[];
+  overCap: { seller: string; excess: number; cap: number }[];
   interimPaid: number; nextDeadline: string | null; taxYear: number; individual: boolean;
 };
 type Mode = "loading" | "live" | "demo";
@@ -38,7 +39,7 @@ function demoTax(): TaxView {
   const r = compute(t.sales, t.purchases, "honsoku");
   return {
     out10: r.byRate["10"].output, out8: r.byRate["8"].output, in10: r.byRate["10"].input, in8: r.byRate["8"].input,
-    unqualified: transitionalBreakdown(t.purchases), interimPaid: t.interimPaid, nextDeadline: t.nextDeadline,
+    unqualified: transitionalBreakdown(t.purchases), overCap: [], interimPaid: t.interimPaid, nextDeadline: t.nextDeadline,
     taxYear: t.taxYear, individual: t.individual,
   };
 }
@@ -75,7 +76,7 @@ function useDashboardData() {
       setCashflow(cf.map((c) => ({ m: monthLabel(c.month), income: c.income, expense: c.expense })));
       setTax({
         out10: tx.by_rate["10"].output, out8: tx.by_rate["8"].output, in10: tx.by_rate["10"].input, in8: tx.by_rate["8"].input,
-        unqualified: tx.unqualified ?? [], interimPaid: 0, nextDeadline: null, taxYear: tx.year, individual: Boolean(prof.individual),
+        unqualified: tx.unqualified ?? [], overCap: tx.transitional_over_cap ?? [], interimPaid: 0, nextDeadline: null, taxYear: tx.year, individual: Boolean(prof.individual),
       });
       setInvoices(inv.map(toInvoice));
       setCompany({ id: prof.user_id, name: prof.business_name || T("事業者名未設定"), reg: prof.registration_no || T("登録番号未設定"), fiscal: T("{a}年分", { a: now.getFullYear() }) });
@@ -370,6 +371,15 @@ function ConsumptionTax({ tax: t }: { tax: TaxView }) {
             </tbody>
           </table>
           {!honsoku && <p className="mt-1 text-[10px] text-slate-400">{METHOD_LABEL[active]}{T("では仕入税額を使わないため計算に影響しません")}</p>}
+        </div>
+      )}
+      {honsoku && t.overCap.length > 0 && (
+        <div className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
+          <p className="font-bold">{T("経過措置の上限超過（一の取引先 {a}/年）", { a: yen(t.overCap[0].cap) })}</p>
+          {t.overCap.map((o) => (
+            <p key={o.seller} className="tabular">{o.seller}: {T("超過")} {yen(o.excess)}</p>
+          ))}
+          <p className="text-[10px]">{T("超過分は控除できません。上の控除額には反映されていないため確認してください")}</p>
         </div>
       )}
 

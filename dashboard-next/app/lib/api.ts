@@ -142,6 +142,8 @@ export type ApiTax = {
   year: number; method: string; output_tax: number; input_tax: number; payable: number; by_rate: Record<"10" | "8", ApiRate>;
   /** 登録番号なし仕入の控除割合別内訳（古いサーバーでは無い） */
   unqualified?: { ratio: number; gross: number; tax: number; credited: number }[];
+  /** 一の免税事業者等からの経過措置上限（税込）を超えた取引先（T-050、古いサーバーでは無い） */
+  transitional_over_cap?: { seller: string; gross: number; cap: number; excess: number }[];
 };
 export type ApiInvoice = {
   no: string; client: string; issued: string; due: string; total: number;

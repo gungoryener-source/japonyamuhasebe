@@ -594,5 +594,8 @@
  "（消費税": " (tüketim vergisi ",
  "（登録番号": " (kayıt no ",
  "（税率": " (KDV ",
- "）。メンバーの管理はオーナーのみ行えます。": "). Üyeleri yalnızca sahip yönetebilir."
+ "）。メンバーの管理はオーナーのみ行えます。": "). Üyeleri yalnızca sahip yönetebilir.",
+ "経過措置の上限超過（一の取引先 {a}/年）": "Geçiş önlemi (経過措置) üst sınırı aşıldı (satıcı başına {a}/yıl)",
+ "超過": "aşım",
+ "超過分は控除できません。上の控除額には反映されていないため確認してください": "Aşan kısım indirilemez. Yukarıdaki indirim tutarına yansıtılmadı; lütfen kontrol edin"
 }

@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 04:49 JST · developer · T-050 2割/3割特例 uygunluk + 経過措置 1億 üst sınırı
+- `consumption.compute`: isteğe bağlı `base_period_sales` / `specific_period_sales` / `specific_period_salaries`. 2割: 基準期間 >1,000万 → ValueError; 3割: 基準期間 veya 特定期間 >1,000万 → ValueError (特定期間 給与等 ≤1,000万 ise uygun — TAX_RULES §1). Parametre yoksa davranış aynı. `method_ineligible` yardımcı.
+- 経過措置 üst sınırı: `transitional_cap(period_start)` (2024-10-01〜 10億, 2026-10-01〜 1億) + `transitional_cap_warnings` (取引先 bazında, kırpılmış ad,適格/非課税/isimsiz/0% hariç). Yorum: aşan kısım `compute`'ta düşülmez, yalnızca uyarı (backlog kabulüne göre). `Purchase.seller` isteğe bağlı alan.
+- API `/tax/consumption`: yeni sorgu parametreleri (ge=0) + `transitional_cap`, `transitional_over_cap` (dönem = takvim yılı). Panel: `tax.ts methodUnavailable` aynı şartlar (check:tax'a sınır testleri), ホーム 消費税 kartında üst sınır aşım uyarısı (ja/tr/en).
+- Kapı: pytest SQLite 612 geçti, PostgreSQL 16 610 geçti/2 atlandı; `next build` + check:* yeşil. 28 yeni test (`tests/test_tax_eligibility.py`).
+- Seçim notu: P2 todo'lar arasında T-050 seçildi (önceki LOG önerisi; kaynakları TAX_RULES'ta ✅). Sonraki: T-019, T-026, T-046c … Panelde 基準期間 girişi yok (ileride 設定'e eklenebilir).
+
 ## 2026-11-08 03:50 JST · developer · T-017 簡易課税 みなし仕入率 testleri
 - `bot/tests/test_tax_kani.py` (30 test): tablo = TAX_RULES §1 (NTA No.6505, 90/80/70/60/50/40), her tür için みなし仕入税額/納付, 円未満・100円未満 切捨て sınırları, 8%+10% karışık satış, alışların yok sayılması, geçersiz tür (0/7/-1/None/"5"/5.5) → ValueError, `/tax/consumption?method=kani` (5/6/7/eksik), panel `tax.ts` KANI_RATIO paritesi.
 - `consumption.py` yorumu 「❓ 要確認」 → kaynak + kontrol tarihi. Panel vergi kartı notu 「みなし仕入率は確認中」 → 「第1種90%〜第6種40%」 (ja/tr/en).

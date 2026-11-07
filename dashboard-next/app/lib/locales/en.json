@@ -594,5 +594,8 @@
  "（消費税": " (consumption tax ",
  "（登録番号": " (reg. no ",
  "（税率": " (rate ",
- "）。メンバーの管理はオーナーのみ行えます。": "). Only the owner can manage members."
+ "）。メンバーの管理はオーナーのみ行えます。": "). Only the owner can manage members.",
+ "経過措置の上限超過（一の取引先 {a}/年）": "Transitional measure (経過措置) cap exceeded ({a}/year per supplier)",
+ "超過": "over by",
+ "超過分は控除できません。上の控除額には反映されていないため確認してください": "The excess is not deductible. It is not reflected in the credit above — please check"
 }

@@ -33,6 +33,15 @@ for (const [d, r] of [["2023-09-30", 100], ["2023-10-01", 80], ["2026-09-30", 80
 assert.equal(methodUnavailable("niwari", { taxYear: 2027 }) !== null, true);
 assert.equal(methodUnavailable("sanwari", { individual: false, taxYear: 2027 }) !== null, true);
 assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2028 }), null);
+// T-050: 1,000万円要件（test_tax_eligibility.py と同じ境界）
+assert.equal(methodUnavailable("niwari", { taxYear: 2026, basePeriodSales: 10_000_000 }), null);
+assert.ok(methodUnavailable("niwari", { taxYear: 2026, basePeriodSales: 10_000_001 }));
+assert.equal(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 50_000_000 }), null); // 2割は基準期間のみ
+assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2027, basePeriodSales: 10_000_000, specificPeriodSales: 10_000_000 }), null);
+assert.ok(methodUnavailable("sanwari", { individual: true, taxYear: 2027, basePeriodSales: 10_000_001 }));
+assert.ok(methodUnavailable("sanwari", { individual: true, taxYear: 2027, specificPeriodSales: 10_000_001 }));
+assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2027, specificPeriodSales: 10_000_001, specificPeriodSalaries: 10_000_000 }), null);
+assert.ok(methodUnavailable("sanwari", { individual: true, taxYear: 2027, specificPeriodSales: 10_000_001, specificPeriodSalaries: 10_000_001 }));
 assert.deepEqual(settle(-1_250, 0, "honsoku"), { input: 0, payable: -1_200 }); // 還付も0方向へ切捨て
 
 // 所得税（test_tax_income.py と同じ例）: 2026年分 事業所得 300万 → 基礎控除 104万

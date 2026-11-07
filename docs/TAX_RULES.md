@@ -22,7 +22,7 @@ Durum etiketleri: ✅ birincil kaynakla doğrulandı · ⚠️ ikincil kaynak / 
 | 2030-10-01 〜 2031-09-30 | 30% |
 | 2031-10-01 〜 | 0% (控除不可) |
 - Oran, **課税仕入れの日** (alım tarihi) ile belirlenir.
-- Tek bir muaf satıcıdan bir yılda/事業年度で経過措置 uygulanabilecek alım üst sınırı (税込): 2024-10-01〜2026-09-30 arasında başlayan課税期間 **10億円**, 2026-10-01 以後に開始する課税期間 **1億円** (aşan kısım控除不可). Kod bu sınırı uygulamıyor → BACKLOG T-050.
+- Tek bir muaf satıcıdan bir yılda/事業年度で経過措置 uygulanabilecek alım üst sınırı (税込): 2024-10-01〜2026-09-30 arasında başlayan課税期間 **10億円**, 2026-10-01 以後に開始する課税期間 **1億円** (aşan kısım控除不可). Kod: `transitional_cap_warnings` satıcı (取引先) bazında uyarı verir (T-050); aşan kısım `compute` içinde düşülmez, panelde uyarı olarak gösterilir.
 - Durum ✅ (birincil kaynak) · Kaynaklar: [NTA お知らせ 経過措置が変わります](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/0026004-066_02.pdf), [NTA インボイスQ&A 問113-3 / 経過措置](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/qa/01-15.pdf) · ikincil: [弥生](https://www.yayoi-kk.co.jp/kaiketsu/invoice/zeiseikaisei-r8/) · kontrol: 2026-11-06
 - `web/` prototipleri T-001 ile düzeltildi; motor: `bot/tax/consumption.py` `TRANSITIONAL_CREDIT` (tablo ile uyumlu, kontrol: 2026-11-06).
 

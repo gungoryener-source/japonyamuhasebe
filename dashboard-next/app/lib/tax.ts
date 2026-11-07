@@ -11,7 +11,11 @@ export type Method = "honsoku" | "kani" | "niwari" | "sanwari";
 export type Sale = { gross: number; rate: Rate };
 export type Purchase = { gross: number; rate: Rate; day: string /* YYYY-MM-DD */; qualified: boolean };
 export type ByRate = Record<"10" | "8", { sales: number; output: number; input: number }>;
-export type Opts = { kaniType?: number | null; individual?: boolean; taxYear?: number | null };
+export type Opts = {
+  kaniType?: number | null; individual?: boolean; taxYear?: number | null;
+  // 任意: 2割・3割特例の 1,000万円要件（Python compute の base_period_sales 等と同じ）
+  basePeriodSales?: number | null; specificPeriodSales?: number | null; specificPeriodSalaries?: number | null;
+};
 export type Result = { output: number; input: number; payable: number; byRate: ByRate; method: Method };
 export type Transitional = { ratio: number; gross: number; tax: number; credited: number };
 
@@ -26,11 +30,22 @@ export const TRANSITIONAL_CREDIT: readonly (readonly [string, number])[] = [
   ["2031-10-01", 0],
 ];
 
-// 簡易課税 みなし仕入率（第1種〜第6種）— TAX_RULES で ❓（要確認）
+// 簡易課税 みなし仕入率（第1種〜第6種）— TAX_RULES §1 ✅（NTA No.6505）
 export const KANI_RATIO: Record<number, number> = { 1: 90, 2: 80, 3: 70, 4: 60, 5: 50, 6: 40 };
 export const KANI_LABEL: Record<number, string> = {
   1: "第1種 卸売業", 2: "第2種 小売業", 3: "第3種 製造業等", 4: "第4種 その他", 5: "第5種 サービス業等", 6: "第6種 不動産業",
 };
+
+// 2割・3割特例の要件: 基準期間（3割は特定期間も）の課税売上高 ≤ 1,000万円 — TAX_RULES §1 ✅
+export const SMALL_BUSINESS_LIMIT = 10_000_000;
+
+/** Python method_ineligible と同じ。特定期間は給与等支払額 ≤ 1,000万でも可。 */
+export function smallBusinessIneligible(o: Opts): "base_period" | "specific_period" | null {
+  if (o.basePeriodSales != null && o.basePeriodSales > SMALL_BUSINESS_LIMIT) return "base_period";
+  if (o.specificPeriodSales != null && o.specificPeriodSales > SMALL_BUSINESS_LIMIT
+    && !(o.specificPeriodSalaries != null && o.specificPeriodSalaries <= SMALL_BUSINESS_LIMIT)) return "specific_period";
+  return null;
+}
 
 export const METHOD_LABEL: Record<Method, string> = { honsoku: "本則課税", kani: "簡易課税", niwari: "2割特例", sanwari: "3割特例" };
 
@@ -54,10 +69,16 @@ export const floor100 = (n: number) => (n >= 0 ? Math.floor(n / 100) * 100 : -Ma
 /** その方式が使えない理由（使えるなら null）。compute の ValueError と同じ条件。 */
 export function methodUnavailable(method: Method, o: Opts = {}): string | null {
   if (method === "kani" && !(o.kaniType != null && o.kaniType in KANI_RATIO)) return "事業区分（第1〜6種）を選択してください";
-  if (method === "niwari" && o.taxYear != null && o.taxYear > 2026) return "2割特例は令和8年（2026年）分までです";
+  if (method === "niwari") {
+    if (o.taxYear != null && o.taxYear > 2026) return "2割特例は令和8年（2026年）分までです";
+    if (smallBusinessIneligible({ basePeriodSales: o.basePeriodSales })) return "基準期間の課税売上高が1,000万円を超えるため2割特例は使えません";
+  }
   if (method === "sanwari") {
     if (o.individual === false) return "3割特例は個人事業者のみです";
     if (o.taxYear !== 2027 && o.taxYear !== 2028) return "3割特例は令和9・10年（2027・2028年）分のみです";
+    const why = smallBusinessIneligible(o);
+    if (why === "base_period") return "基準期間の課税売上高が1,000万円を超えるため3割特例は使えません";
+    if (why === "specific_period") return "特定期間の課税売上高（および給与等）が1,000万円を超えるため3割特例は使えません";
   }
   return null;
 }
