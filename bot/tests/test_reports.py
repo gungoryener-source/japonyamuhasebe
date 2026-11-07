@@ -95,3 +95,9 @@ def test_pdf_user_isolation(client, auth):
     from pypdf import PdfReader
     text = "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)
     assert "777,777" not in text
+
+
+def test_pdf_blue_by_year(client, auth):
+    assert client.get("/api/v1/reports/blue-return.pdf?year=2027&blue=750000", headers=auth).status_code == 200
+    assert client.get("/api/v1/reports/blue-return.pdf?year=2027&blue=550000", headers=auth).status_code == 400
+    assert client.get("/api/v1/reports/blue-return.pdf?year=2026&blue=750000", headers=auth).status_code == 400

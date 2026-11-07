@@ -45,6 +45,10 @@ function Tax() {
   const [year, setYear] = useState(live ? thisYear : 2025);
   const [pl, setPl] = useState<ApiPL>(DEMO_PL);
   const [blue, setBlue] = useState(650_000);
+  // T-049: 令和9年分（2027）以後は 75万 が選べ、55万 は廃止。年を変えて選択肢から外れたら 65万 に戻す
+  useEffect(() => {
+    if ((year >= 2027 && blue === 550_000) || (year < 2027 && blue === 750_000)) setBlue(650_000);
+  }, [year, blue]);
   const [social, setSocial] = useState("420000");
   const [other, setOther] = useState("0");
   const [it, setIt] = useState<Omit<ApiIncomeTax, "year" | "revenue" | "expenses" | "disclaimer"> | null>(null);
@@ -151,11 +155,13 @@ function Tax() {
           <div className="grid grid-cols-2 gap-2">
             <Field label={T("青色申告特別控除")} className="col-span-2">
               <select id="tx-blue" value={blue} onChange={(e) => setBlue(Number(e.target.value))} className={selectCls}>
+                {year >= 2027 && <option value={750_000}>{T("75万円（e-Tax＋優良な電子帳簿・届出）")}</option>}
                 <option value={650_000}>{T("65万円（e-Tax＋複式簿記）")}</option>
-                <option value={550_000}>{T("55万円")}</option>
+                {year < 2027 && <option value={550_000}>{T("55万円")}</option>}
                 <option value={100_000}>{T("10万円（簡易簿記）")}</option>
                 <option value={0}>{T("白色申告")}</option>
               </select>
+              {year >= 2027 && <span className="mt-1 block text-[10px] text-slate-400">{T("令和9年分以後: 55万円は廃止。75万円は e-Tax に加えて優良な電子帳簿等の要件と届出が必要です。")}</span>}
             </Field>
             <Field label={T("社会保険料控除")}><input id="tx-social" value={social} onChange={(e) => setSocial(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>
             <Field label={T("その他の所得控除")}><input id="tx-other" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>

@@ -855,8 +855,8 @@ def invoice_pdf(no: str, uid: str = Depends(current_user)):
 def blue_return_pdf(year: int = Query(..., ge=2023, le=2035),
                     blue: int = Query(650_000), uid: str = Depends(current_user)):
     """青色申告決算書（損益計算書）への転記用 PDF（参考資料）。"""
-    if blue not in (0, 100_000, 550_000, 650_000):
-        raise HTTPException(400, "blue must be 0, 100000, 550000 or 650000")
+    if blue not in it.blue_options(year):
+        raise HTTPException(400, f"blue must be one of {', '.join(map(str, it.blue_options(year)))} for {year}")
     pl = profit_and_loss(year, uid)
     rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
     pdf = reports.render_blue_return_pdf(year, pl, rows, store.get_profile(uid), blue)

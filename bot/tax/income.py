@@ -41,7 +41,15 @@ BASIC_DEDUCTION = {
     # 2028〜 (令和10年分以後): 132万超の段階が TAX_RULES で ⚠️。確定するまで未実装。
 }
 
-BLUE_RETURN = (650_000, 550_000, 100_000, 0)
+BLUE_RETURN = (650_000, 550_000, 100_000, 0)   # 令和8年分（2026）まで — TAX_RULES §2, NTA No.2072
+# 令和9年分以後（令和8年度改正）: 75万（65万要件 + 優良な電子帳簿 等 + 届出）/ 65万 / 55万 廃止 / 10万（簡易簿記）
+# 簡易簿記で前々年の事業・不動産収入 > 1,000万 → 0（ここでは利用者が 0 を選ぶ）。TAX_RULES §2, NTA リーフレット 0026007-003_02
+BLUE_RETURN_FROM_2027 = (750_000, 650_000, 100_000, 0)
+
+
+def blue_options(year: int) -> tuple[int, ...]:
+    """その年分に選べる青色申告特別控除額。"""
+    return BLUE_RETURN_FROM_2027 if year >= 2027 else BLUE_RETURN
 
 
 def basic_deduction(total_income: int, year: int) -> int:
@@ -85,8 +93,8 @@ def compute(
     other_income: int = 0,
 ) -> IncomeTaxResult:
     """事業所得者の所得税（概算）。源泉徴収税額・予定納税は考慮しない。"""
-    if blue not in BLUE_RETURN:
-        raise ValueError("blue must be one of 650000/550000/100000/0")
+    if blue not in blue_options(year):
+        raise ValueError(f"blue must be one of {'/'.join(map(str, blue_options(year)))} for {year}")
     profit = revenue - expenses
     blue_used = min(blue, max(0, profit))
     business = profit - blue_used

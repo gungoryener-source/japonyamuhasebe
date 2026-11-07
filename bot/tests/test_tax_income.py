@@ -90,3 +90,24 @@ def test_loss():
 def test_bad_blue():
     with pytest.raises(ValueError):
         compute(1, 0, year=2025, blue=123)
+
+
+# ---------------------------------------------------------------- T-049: 青色申告特別控除 令和9年分以後
+def test_blue_options_by_year():
+    from tax import income as it
+    assert it.blue_options(2026) == (650_000, 550_000, 100_000, 0)
+    assert it.blue_options(2027) == (750_000, 650_000, 100_000, 0)
+    assert it.blue_options(2030) == it.blue_options(2027)
+
+
+def test_blue_validation_2026_vs_2027():
+    import pytest as _pt
+    from tax import income as it
+    it.compute(5_000_000, 0, year=2026, blue=550_000)
+    with _pt.raises(ValueError):
+        it.compute(5_000_000, 0, year=2026, blue=750_000)
+    r = it.compute(5_000_000, 0, year=2027, blue=750_000)
+    assert r.blue_deduction == 750_000
+    with _pt.raises(ValueError):
+        it.compute(5_000_000, 0, year=2027, blue=550_000)
+    assert it.compute(300_000, 0, year=2027, blue=750_000).blue_deduction == 300_000   # 所得を超えない
