@@ -46,7 +46,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
 | T-044 | P1 | done (bu commit; LINE URL Q-16) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
-| T-044b | P1 | todo | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
+| T-044b | P1 | doing (developer, 2026-11-07) | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | done | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
 | T-045b | P2 | todo | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
 | T-046 | P1 | done (bu commit) | Tüm veri dışa aktarma: `GET /api/v1/export/all.zip` (kayıtlar CSV + faturalar CSV/PDF) + 設定'te indirme düğmesi |
