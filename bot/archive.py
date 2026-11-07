@@ -24,6 +24,12 @@ ALL_FROM, ALL_TO = "0000-01-01", "9999-12-31"
 INVOICE_COLUMNS = ["請求書番号", "取引先", "発行日", "支払期限", "10%対象（税抜）", "消費税10%",
                    "8%対象（税抜）", "消費税8%", "合計（税込）", "状態", "入金日", "明細(JSON)"]
 _SAFE = re.compile(r"[^0-9A-Za-z._-]")
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _cell(v: str) -> str:
+    """CSV 数式インジェクション対策: 表計算ソフトで式と解釈される先頭文字に ' を付ける（review）。"""
+    return "'" + v if isinstance(v, str) and v.startswith(_FORMULA_START) else v
 
 
 def _bom(text: str) -> bytes:
@@ -35,7 +41,7 @@ def invoices_csv(invs: list[dict]) -> str:
     w = csv.writer(buf, lineterminator="\r\n")
     w.writerow(INVOICE_COLUMNS)
     for i in invs:
-        w.writerow([i["no"], i["client"], i["issued"], i["due"], i["subtotal10"], i["tax10"],
+        w.writerow([i["no"], _cell(i["client"]), i["issued"], i["due"], i["subtotal10"], i["tax10"],
                     i["subtotal8"], i["tax8"], i["total"], "入金済" if i["status"] == "paid" else "未入金",
                     i.get("paid_on") or "", json.dumps(i["items"], ensure_ascii=False)])
     return buf.getvalue()

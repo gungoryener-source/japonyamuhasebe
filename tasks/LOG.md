@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 21:45 JST · reviewer · son 13 saat (T-055, T-058, T-011, T-046, T-046b, LINE secret/teşhis/rich menu)
+- İncelenen: c4ce6cc..558f349 (8 kod commit'i). Kapı başta yeşil (468). Vergi oranı/eşiği ekleyen commit yok; T-055 fiyatları Q-11 cevabıyla uyumlu (税抜).
+- Düzeltme: ZIP `invoices.csv` 取引先 alanında CSV formül enjeksiyonu (`=HYPERLINK…`) → `archive._cell` baştaki `=+-@` için `'` ekler. Aynı sorun `/export.csv` ve ZIP `entries.csv`'de → **T-059 review-fix (P2)** açıldı (içe aktarma uyumu doğrulanmalı).
+- Yeni testler (+4): invoices.csv formül nötrleme; `ensure_default` 401'de menü oluşturmaz; açılış kancası `RICHMENU_AUTO=0`/token yokken LINE API çağırmaz; S3 404'te eski yerel fiş okunur.
+- Not (düşük): `/` sağlık ucu `line_secret_len`/`line_token_len`/`version` herkese açık — değer sızmıyor, teşhis bittiğinde kaldırılabilir. `storage.get` henüz hiçbir uçta kullanılmıyor (T-034 bekliyor).
+- Kapı: pytest 472 geçti. dashboard-next değişmedi.
+
 ## 2026-11-07 20:47 JST · developer · T-046b hesap silme talebi
 - Yeni `deletion_requests` tablosu (ekleyici, `UNIQUE(user_id)`) + `bot/deletion.py`. `GET/POST /api/v1/account/delete-request` yalnızca owner (accountant/viewer 403); POST 202, tekrar POST idempotent (`created:false`, eşzamanlıda `ON CONFLICT DO NOTHING`). **Veri silinmez**; `cancelled` talep yeniden `pending` olabilir.
 - `billing_active` bayrağı (ücretli plan yenilenecekse true). Yorum: talebi engellemiyor, panel önce 解約 uyarısı + 料金プラン bağlantısı gösteriyor. Operatör için `GET /admin/deletion-requests` (X-Admin-Key).

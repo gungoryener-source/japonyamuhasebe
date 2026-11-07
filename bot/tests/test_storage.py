@@ -163,3 +163,11 @@ async def test_process_image_empty_ref_still_valid_key(bot, monkeypatch, tmp_pat
     assert msg.startswith("登録しました")
     files = list((tmp_path / "receipts").iterdir())
     assert len(files) == 1 and files[0].read_bytes() == b"x"
+
+
+async def test_s3_404_falls_back_to_legacy_local_file(s3, tmp_path):
+    """review: R2 移行前に yerel diske yazılmış eski fiş, S3'te yoksa yerelden okunur."""
+    (tmp_path / "receipts").mkdir()
+    (tmp_path / "receipts/old.jpg").write_bytes(b"legacy")
+    assert await storage.get("receipts/old.jpg") == b"legacy"
+    assert [c.method for c in s3["calls"]] == ["GET"]

@@ -116,3 +116,15 @@ def test_pdf_name_is_safe(no, expected):
     name = archive.pdf_name(no)
     assert name == expected
     assert "/" not in name.removeprefix("invoices/") and not name.removeprefix("invoices/").startswith(".")
+
+
+def test_invoices_csv_formula_injection_neutralized(client):
+    """review: 取引先名が式（=,+,-,@）で始まっても invoices.csv では文字列として扱われる。"""
+    a = tok(client, "UF")
+    evil = '=HYPERLINK("http://example.invalid","x")'
+    assert client.post("/api/v1/invoices", json={**INVOICE, "client": evil}, headers=a).status_code == 201
+    assert client.post("/api/v1/invoices", json={**INVOICE, "client": "普通商事"}, headers=a).status_code == 201
+    rows = csv_rows(unzip(client.get(URL, headers=a)), "invoices.csv")[1:]
+    clients = sorted(r[1] for r in rows)
+    assert "'" + evil in clients and "普通商事" in clients  # 通常の名前は変更されない
+    assert not any(c.startswith("=") for c in clients)
