@@ -80,8 +80,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-063 | P1 | done | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
 | T-012c | P2 | todo | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
 | T-064 | P0 | done | Bir hesapta birden çok şirket: `account_companies`, POST /companies, sahiplik kontrolleri (resolve/switch/join/şifre sıfırlama), LINE 「会社」 kayıt yeri seçimi (yalnızca sahip olunan şirketler) |
-| T-064b | P1 | todo | Şirket bazlı fiyatlandırma (Q-16 cevaplanınca): plan kontrolünü hesap düzeyine taşı veya şirket başına abonelik |
-| T-065 | P1 | todo | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
+| T-064b | P1 | blocked (Q-16 fiyat) | Şirket bazlı fiyatlandırma (Q-16 cevaplanınca): plan kontrolünü hesap düzeyine taşı veya şirket başına abonelik |
+| T-065 | P1 | doing (developer, 2026-11-07) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
 
 ---
 
