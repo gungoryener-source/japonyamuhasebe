@@ -31,3 +31,12 @@ def bot(tmp_path, monkeypatch):
     monkeypatch.setattr(app_module, "reply", fake_reply)
     app_module.sent = sent
     return app_module
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Hız sınırı sayaçları süreç geneli; testler birbirini etkilemesin (T-048)."""
+    import ratelimit
+    ratelimit.reset()
+    yield
+    ratelimit.reset()

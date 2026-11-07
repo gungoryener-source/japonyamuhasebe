@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 15:20 JST · developer · T-048 hız sınırı
+- Yeni `bot/ratelimit.py`: (kural, IP) başına bellek içi kayan pencere; login 10/dk, signup 5/dk, password-reset/request 5/dk, `/receipts/ocr` 20/dk → 429 + `Retry-After` + 「リクエストが多すぎます…」. Reddedilen istek pencereye sayılmaz; anahtar sayısı 20.000 ile sınırlı (süresi dolanlar temizlenir).
+- IP: `X-Forwarded-For` ilk değeri (görev tanımı). Not (reviewer): istemci kendi XFF'ini gönderip vekil sonuna eklerse ilk değer sahtelenebilir → `RATE_LIMIT_PROXY_HOPS=1` sağdan değeri kullanır; Render'ın XFF davranışı doğrulanınca varsayılan değiştirilebilir. Sınırlar `RATE_LIMIT_<KURAL>` ile ayarlanır (render.yaml değişmedi, kod varsayılanı).
+- `/callback`, `/` ve diğer uçlar etkilenmez; `conftest` her testte sayaçları sıfırlar. docs/API.md'ye not.
+- Kapı: pytest 395 geçti (yeni `tests/test_ratelimit.py` 10: N geçer/N+1 429, pencere sonrası 401'e dönüş (saat monkeypatch), IP ve kural bağımsızlığı, env override/kapatma, proxy hops, bellek sınırı). dashboard-next değişmedi.
+- Sonraki: T-048b (CORS + güvenlik başlıkları).
+
 ## 2026-11-07 14:44 JST · developer · T-021 CI panel işi
 - `.github/workflows/ci.yml` `dashboard` işi: Node 20 → 22 (`--experimental-strip-types` için 22.6+ gerekli), `next build` sonrası adlandırılmış 3 adım: `npm run check:tax`, `check:legal` (build çıktısı `out/legal/*` HTML'ini de denetler), `check:team`. Diğer işler değişmedi.
 - Yerel kapı (Node 22.23): `npm ci && next build` geçti, 3 kontrol OK (check:tax honsoku=1419500 …). pytest 385 geçti (bot değişmedi). YAML ayrıştırıldı.

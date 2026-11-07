@@ -17,6 +17,7 @@ import bank_csv
 import billing
 import export
 import invoices as inv_mod
+import ratelimit
 import store
 import team
 from store import MAX_ENTRY_AMOUNT
@@ -202,7 +203,7 @@ async def _body(request: Request) -> bytes:
     return raw
 
 
-@router.post("/receipts/ocr")
+@router.post("/receipts/ocr", dependencies=[Depends(ratelimit.limiter("ocr"))])
 async def receipt_ocr(request: Request, uid: str = Depends(writer_user)):
     """Fiş görseli (ham gövde, image/*) → okunan kayıt önerileri. Kaydetmez; kullanıcı onaylayınca POST /entries."""
     raw = await _body(request)
@@ -495,12 +496,12 @@ def _account_call(fn, *args):
         raise HTTPException(e.code, str(e))
 
 
-@router.post("/auth/signup", status_code=201)
+@router.post("/auth/signup", status_code=201, dependencies=[Depends(ratelimit.limiter("signup"))])
 def auth_signup(body: SignupIn):
     return _auth_result(*_account_call(accounts.signup, body.email, body.password))
 
 
-@router.post("/auth/login")
+@router.post("/auth/login", dependencies=[Depends(ratelimit.limiter("login"))])
 def auth_login(body: SignupIn):
     return _auth_result(*_account_call(accounts.login, body.email, body.password))
 
@@ -519,7 +520,8 @@ def auth_link_line(body: LinkIn, uid: str = Depends(owner_user)):
     return _auth_result(*_account_call(accounts.link_ledger, uid, body.code))
 
 
-@router.post("/auth/password-reset/request", status_code=202)
+@router.post("/auth/password-reset/request", status_code=202,
+             dependencies=[Depends(ratelimit.limiter("password_reset"))])
 def auth_reset_request(body: ResetRequestIn):
     accounts.request_password_reset(body.email)  # hesap olsun olmasın aynı yanıt
     return {"ok": True}

@@ -53,7 +53,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-046b | P1 | todo | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
 | T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
 | T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
-| T-048 | P1 | doing (developer, 2026-11-07) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
+| T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | todo | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
 | T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
@@ -290,6 +290,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-048 · Hız sınırı (P1)
 - `bot/ratelimit.py`: bellek içi kayan pencere (IP + uç nokta; `X-Forwarded-For` ilk değeri Render arkasında). Sınırlar (yapılandırılabilir): login 10/dk, signup 5/dk, password-reset/request 5/dk, `/receipts/ocr` 20/dk → 429 + `Retry-After`, Japonca `detail`. LINE `/callback` ve `/` etkilenmez.
 - Kabul: sınırda N geçer, N+1 → 429; pencere sonrası tekrar 200 (saat monkeypatch); farklı IP bağımsız. Parola politikası zaten var (`accounts.PASSWORD_MIN`) — değiştirme.
+- ✅ Yapıldı: `bot/ratelimit.py` (kayan pencere, kilitli, ≤20.000 anahtar), `api.py` 4 uçta `dependencies=[Depends(ratelimit.limiter(...))]`. Reddedilen istek sayılmaz. Ortam: `RATE_LIMIT_<KURAL>="adet/sn"` / `0`, `RATE_LIMIT_PROXY_HOPS` (varsayılan 0 = XFF ilk değer; istemci XFF sahteleyebiliyorsa 1 yap). Testler `tests/test_ratelimit.py`.
 
 ## T-048b · CORS + güvenlik başlıkları (P1)
 - `app.py` CORS: `CORS_ORIGINS` boş veya `*` ise `PANEL_URL` (+ `http://localhost:3000`) kullan; render.yaml'daki `CORS_ORIGINS: "*"` değerini değiştirmeden kodda ele al (değişken adı aynı kalır). Middleware: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=31536000`, `X-Frame-Options: DENY`.
