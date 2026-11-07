@@ -34,6 +34,16 @@ export type ApiSlip = {
 };
 export type ApiSlipList = { slips: ApiSlip[]; counts: Record<"pending" | "approved" | "rejected", number>; ai_enabled: boolean };
 
+/** T-061/T-062: 通帳取込・取引先照合 */
+export type ApiCounterparty = { id: number; name: string; registration_no: string; corporate_number: string; category?: string; furigana?: string };
+export type ApiReviewRow = {
+  id: number; d: string; description: string; amount: number; balance: number | null; account: string; src: string;
+  balance_ok: 0 | 1 | null; status: "" | "confirmed" | "excluded"; entry_id: number | null; category: string;
+  counterparty: ApiCounterparty | null; match: "" | "learned" | "name" | "rule"; book: boolean; candidates: { id: number; name: string }[];
+};
+export type ApiReview = { rows: ApiReviewRow[]; counts: { total: number; open: number; unknown: number; balance_errors: number }; nta_enabled: boolean; ai_enabled: boolean };
+export type ApiPassbookResult = { account: string; read: number; imported: number; duplicates: number; balance_errors: number; date_from: string; date_to: string };
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -230,6 +240,19 @@ export const api = {
   blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),
   /** T-046: 全データ ZIP（全期間の仕訳 CSV・請求書 CSV/PDF） */
   exportAll: () => fetchBlob("/export/all.zip"),
+  bankReview: (date_from = "", date_to = "") => call<ApiReview>(`/bank/review${qs({ date_from, date_to })}`),
+  passbookUpload: (file: Blob, account = "") =>
+    call<ApiPassbookResult>(`/bank/passbook${qs({ account })}`, { method: "POST", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } }),
+  bankConfirm: (id: number, body: { book: boolean; category: string; counterparty_name: string; registration_no: string; rate?: number }) =>
+    call<{ id: number; status: string; entry_id: number | null }>(`/bank/${id}/confirm`, { method: "POST", body: JSON.stringify(body) }),
+  bankFix: (id: number, amount: number, balance: number | null) =>
+    call<unknown>(`/bank/${id}`, { method: "PATCH", body: JSON.stringify({ amount, balance }) }),
+  bankConfirmMatched: (ids: number[]) => call<{ confirmed: number; skipped: number }>("/bank/confirm-matched", { method: "POST", body: JSON.stringify({ ids }) }),
+  counterparties: () => call<{ counterparties: ApiCounterparty[]; nta_enabled: boolean }>("/counterparties"),
+  counterpartyImport: (file: Blob) => call<{ imported: number }>("/counterparties/import", { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
+  counterpartyLookup: (desc: string) =>
+    call<{ results: { name: string; furigana: string; corporate_number: string; address: string; registration_no_guess: string }[] }>(`/counterparties/lookup${qs({ desc })}`),
+  bankXlsx: (date_from: string, date_to: string) => fetchBlob(`/reports/bank.xlsx${qs({ date_from, date_to })}`),
   slips: (status = "") => call<ApiSlipList>(`/slips${qs({ status })}`),
   slipImage: (id: number) => fetchBlob(`/slips/${id}/image`),
   slipPatch: (id: number, body: Partial<Pick<ApiSlip, "d" | "issuer" | "registration_no" | "kind" | "total" | "note" | "lines">>) =>

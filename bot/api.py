@@ -506,6 +506,38 @@ def bank_confirm(tx_id: int, body: ConfirmIn, uid: str = Depends(writer_user)):
     return {"id": tx_id, "status": "confirmed" if entry_id else "excluded", "entry_id": entry_id}
 
 
+class TxFix(BaseModel):
+    amount: int = Field(..., gt=-10_000_000_000, lt=10_000_000_000)
+    balance: int | None = None
+
+
+@router.patch("/bank/{tx_id}")
+def bank_fix(tx_id: int, body: TxFix, uid: str = Depends(writer_user)):
+    """通帳の読み取り誤りを修正（未確認の行のみ）。修正後に同じ口座の残高チェックをやり直す。"""
+    t = store.get_bank_tx(uid, tx_id)
+    if not t:
+        raise HTTPException(404, "transaction not found")
+    if t.get("status") or t["entry_id"] or t["invoice_no"]:
+        raise HTTPException(409, "already recorded")
+    with store.tx() as con:
+        con.execute("UPDATE bank_tx SET amount=?, balance=COALESCE(?, balance) WHERE id=? AND user_id=?",
+                    (body.amount, body.balance, tx_id, uid))
+    _recheck_balances(uid, t.get("account") or "")
+    return store.get_bank_tx(uid, tx_id)
+
+
+def _recheck_balances(uid: str, account: str) -> None:
+    rows = [r for r in sorted(store.list_bank_tx(uid, 5000), key=lambda r: (r["d"], r["id"]))
+            if (r.get("account") or "") == account and r.get("src") == "passbook"]
+    prev = None
+    with store.tx() as con:
+        for r in rows:
+            ok = None if prev is None or r["balance"] is None else int(prev + r["amount"] == r["balance"])
+            con.execute("UPDATE bank_tx SET balance_ok=? WHERE id=?", (ok if ok is not None else r.get("balance_ok"), r["id"]))
+            if r["balance"] is not None:
+                prev = r["balance"]
+
+
 class BulkIn(BaseModel):
     ids: list[int] = Field(..., max_length=2000)
 

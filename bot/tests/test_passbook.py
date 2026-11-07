@@ -201,3 +201,21 @@ async def test_line_passbook_without_ai(bot, monkeypatch, tmp_path):
     monkeypatch.setattr(bot, "ANTHROPIC_KEY", "")
     text, _ = await bot.process_image("UL5", b"%PDF-1.7", "p", "LINE")
     assert "AI の設定が必要" in text
+
+
+def test_fix_misread_amount(client, auth, bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+
+    async def fake_read(data, key, model):
+        return passbook.parse_ai(ai_text(PAGE))
+
+    monkeypatch.setattr(passbook, "ai_read", fake_read)
+    client.post("/api/v1/bank/passbook", content=b"%PDF-1.4", headers=auth)
+    rows = {r["description"]: r for r in client.get("/api/v1/bank/review", headers=auth).json()["rows"]}
+    eb = rows["EB基本手数料"]
+    assert eb["balance_ok"] == 0
+    r = client.patch(f"/api/v1/bank/{eb['id']}", json={"amount": -3300, "balance": 4430477}, headers=auth)
+    assert r.status_code == 200
+    rows = {r["description"]: r for r in client.get("/api/v1/bank/review", headers=auth).json()["rows"]}
+    assert rows["EB基本手数料"]["balance_ok"] == 1
+    assert rows["ｾﾞﾝﾎﾟﾚﾝ(ｶ"]["balance_ok"] == 1          # 次の行も正しい前残高で再チェック → OK

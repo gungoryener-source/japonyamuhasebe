@@ -75,6 +75,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 | T-059 | P2 | done (bu commit) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
 | T-060 | P0 | done | **仕切書 (hurda satış fişi) akışı** — ürün sahibi isteği: LINE'dan el yazısı 仕切書 → onay kuyruğu → 売上; 一覧 PDF; AI yalnızca bu fişlerde (karar 2026-11-07). Ajanlar dokunmasın: `bot/slips*.py`, `dashboard-next/app/slips/` |
+| T-061 | P0 | done | 取引先マスタ + 摘要照合 + Excel 取込 + 国税庁 Web-API 検索 (NTA_APP_ID) |
+| T-062 | P0 | done | 通帳取込 (AI, PDF/写真, 残高チェック) + 確認画面 /passbook + 通帳整理表 Excel |
+| T-063 | P1 | todo | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
 
 ---
 

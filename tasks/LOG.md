@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-061/T-062 通帳取込・取引先照合
+- Ürün sahibi isteği: banka defteri (通帳) LINE'dan/panelden → firma resmi adı + 登録番号 + 勘定科目 → kontrol → resmi muhasebe. Karar: AI ile okuma + banka CSV.
+- `bot/passbook.py` (PDF/foto → AI → bakiye kontrolü → bank_tx, görsel saklanmaz), `bot/counterparties.py` (kana anahtar, Excel'den rehber, öğrenme, 国税庁 API NTA_APP_ID ile).
+- API: /bank/passbook, /bank/review, PATCH /bank/{id}, /bank/{id}/confirm, /bank/confirm-matched, /counterparties(+import, lookup), /reports/bank.xlsx. Panel /passbook. 15 test (kurgusal veri).
+- Açık: NTA_APP_ID başvurusu (ürün sahibi), ANTHROPIC_API_KEY girilmesi.
+
 ## 2026-11-07 · developer (oturum) · T-060 仕切書
 - Ürün sahibi isteği: el yazısı hurda satış fişleri (仕切書) LINE'dan → onay kuyruğu → 売上. AI yalnızca bu fişlerde (anahtar yoksa elle giriş).
 - `bot/slips.py` + `slips` tablosu; API /slips (liste, PATCH, approve, reject, image, upload) + /reports/slips.pdf (ürün sahibinin örneğiyle aynı düzen).
