@@ -9,7 +9,7 @@ LINE Developers'ta Messaging API kanalı açılmadı. Gerekenler: kanal açılı
 
 ## Q-02 · Anthropic API anahtarı (isteğe bağlı)
 Fiş okuma artık varsayılan olarak yapay zekâsız (Tesseract OCR + kurallar). `ANTHROPIC_API_KEY` girilirse `OCR_ENGINE=auto` modunda yalnızca kural tabanlı okuma başarısız olduğunda yedek olarak kullanılır. Hiç kullanılmasın istenirse Render'da `OCR_ENGINE=tesseract` yap.
-**Cevap:** Yapay zekâ kullanılmayacak: Render'da `OCR_ENGINE=tesseract`. `ANTHROPIC_API_KEY` girilmez. (ürün sahibi 2026-11-07'de önerilen varsayılanları onayladı)
+**Cevap:** Fişler (レシート) yapay zekâsız kalır. **Yapay zekâ yalnızca el yazısı 仕切書 ve banka defteri (通帳) okumada** kullanılır (ürün sahibi kararı 2026-11-07). `ANTHROPIC_API_KEY` Render'a girilmeli; `OCR_ENGINE=tesseract` önerilir.
 
 ## Q-03 · 令和8年分 基礎控除 tablosu (cevaplandı — tax-watcher, 2026-11-06)
 NTA No.1199 tablosundan 2026 yılı için ≤2,350万 → 104万 okunuyor ama hücre yapısı belirsiz. tax-watcher birincil kaynaktan (改正法 / NTA Q&A 令和8年5月版) doğrulayıp TAX_RULES'u ✅ yapınca T-004'ün 2026 kısmı açılır.
@@ -74,3 +74,7 @@ Tanıtım sayfası `/lp/` 「LINEで友だち追加」 düğmesini yalnızca ba�
 ## Q-17 · Muhasebe yazılımı CSV'sinde formül nötrleme (açık — developer, 2026-11-07, T-059)
 Tüm veri ZIP'indeki `entries.csv` artık `=`/`+`/`-`/`@`/TAB/CR ile başlayan 取引先/摘要 hücrelerine `'` ekliyor (Excel'de formül çalışmaz). Ancak freee / マネーフォワード / 弥生 içe aktarımının bu `'`'yu silip silmediği resmi belgelerden doğrulanamadı; silmezse 取引先 adı `'=…` olarak içe aktarılır. Bu yüzden içe aktarma amaçlı `/api/v1/export.csv` **değişmedi** (Shift_JIS, Japonca Excel'de doğrudan açılabildiği için risk sürüyor). Karar: (a) `/export.csv`'de de nötrle (öneri: güvenlik öncelikli; böyle adlar nadir), (b) olduğu gibi bırak, (c) T-012b'de gerçek içe aktarma denemesinden sonra karar ver. Kod hazır: `api.py` içinde `export.to_csv(rows, format, escape_formulas=True)`.
 
+
+## Q-15 · 国税庁 法人番号 Web-API アプリケーションID (açık — ürün sahibi)
+Banka defterindeki firma adlarını resmi kayıttan bulmak için. Başvuru ücretsiz: https://www.houjin-bangou.nta.go.jp/webapi/ → 「アプリケーションIDの発行届出」. Gelen kimlik Render'a `NTA_APP_ID` olarak girilir. O zamana kadar firma rehberi (Excel + onaylar) ile çalışır.
+**Cevap:**
