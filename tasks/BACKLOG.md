@@ -72,6 +72,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-055 | P0 | doing (developer, 2026-11-07) | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
 | T-056 | P1 | todo | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
 | T-057 | P1 | todo | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
+| T-058 | P1 | review-fix | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 
 ---
 
@@ -162,6 +163,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Dosyalar: `bot/tax/income.py` (`BLUE_RETURN` → yıla göre izinli değerler, 2027+ için 750,000 ekle / 550,000 reddet), `bot/api.py` `/tax/income` (`blue` doğrulaması), `dashboard-next/app/tax/page.tsx` (seçenekler yıla göre: 2027+ 「75万円（優良電子帳簿＋e-Tax）」, 55万 gizli), `dashboard-next/app/lib/income.ts`.
 - Kabul: 2026 → 550,000 kabul, 750,000 ValueError; 2027 → 750,000 kabul, 550,000 ValueError; 控除は所得を超えない testi; `next build` geçer. Ürünün 優良な電子帳簿 şartlarını karşılayıp karşılamadığına dair not `docs/` altına (iddia etme; QUESTIONS'a gerekirse).
 - Kaynak: [NTA リーフレット](https://www.nta.go.jp/taxes/shiraberu/shinkoku/kojin_jigyo/0026007-003_02.pdf), TAX_RULES §2.
+- (review 2026-11-07) T-045 ile gelen `GET /reports/blue-return.pdf` (`bot/api.py` `blue_return_pdf`) de `blue ∈ {0,10万,55万,65万}` sabit listesini kullanıyor ve `bot/reports.py` dipnotu 「55万円は複式簿記等」 diyor → 2027+ için aynı yıl bazlı doğrulamayı buraya da uygula, dipnotu yıla göre yaz.
 
 ## T-050 · 2割/3割特例 uygunluk + 経過措置 1億円 sınırı (P2)
 - Kural: 2割/3割特例 yalnızca 基準期間 課税売上高 ≤1,000万 (3割: ayrıca 特定期間 ≤1,000万, 個人のみ, 令和9・10年分). 経過措置: 2026-10-01 以後開始課税期間, 一の免税事業者等からの経過措置対象仕入 年 1億円 (税込) aşan kısım控除不可. Şu an `bot/tax/consumption.py` ve `dashboard-next/app/lib/tax.ts` bunları kontrol etmiyor (küçük müşteride nadir → P2).
@@ -329,3 +331,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Beklenen (ürün sahibi kararı gerekebilir → gerekirse QUESTIONS): ya kota "fiş" başına sayılır (aynı `image_path` = 1) ya da kalan kota < N ise kayıt yapılmaz/uyarı verilir. Panel kullanım çubuğu ile aynı tanımı kullanmalı.
 - Test: 29 kullanımda 2 oranlı sahte OCR → beklenen sayım; `usage()` sonucu.
 - ✅ Yapıldı: kota "fiş" başına (Q-11 「ayda 30 fiş」): `billing.usage` aynı `image_path`'li satırları 1 sayar, görselsiz kayıtlar satır başına. 29 kullanımda 2 oranlı fiş → 30 (31 satır), sonraki fiş/metin reddedilir. Panel kullanım çubuğu `status()` üzerinden aynı tanımı kullanır. Testler `tests/test_receipt_quota_split.py`.
+
+## T-058 · Hız sınırı XFF sahteleme (review-fix, P1)
+- `bot/ratelimit.py` `client_ip` (~satır 55): `RATE_LIMIT_PROXY_HOPS=0` varsayılanı XFF'in **ilk** (istemci yazabilir) değerini anahtar yapar. Render vekili istemci başlığına ekliyorsa (çoğu vekil öyle yapar) `X-Forwarded-For: <rastgele>` ile her istek yeni kova → `/auth/login` kaba kuvvet koruması etkisiz.
+- Beklenen: Render'ın XFF davranışını (append mi, overwrite mı; Cloudflare katmanı var mı) belgelerden doğrula, `docs/ARCHITECTURE.md`'ye yaz; varsayılanı güvenilir vekil sayısına göre sağdan değere çevir (muhtemelen 1). Ek savunma: login için IP'den bağımsız e-posta başına kova (ör. `login_email` 20/10dk).
+- Test: hops varsayılanıyla farklı sahte ilk XFF değerleri + aynı gerçek (sağdaki) IP → N+1'inci istek 429.

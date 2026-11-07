@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 17:44 JST · reviewer · 732e831..7332dab incelemesi (T-041b, T-021, T-048, T-047/b/c, T-045, T-048b)
+- Kapı başta yeşil (425, SQLite). Vergi oranı/eşik değişikliği yok; render.yaml değişmedi; SecurityHeaders en dışta, CORS PATCH/DELETE düzeltmesi doğru. T-045 PDF `current_user` arkasında, 控除 所得'i aşmıyor.
+- **Hata düzeltmesi (T-047c):** `i18n.parse_lang_command` 「Dil kursu 2000」「Language school 30000」 gibi kayıtları dil komutu sanıp seçenek gösteriyor, kaydı yutuyordu. Bilinmeyen değer artık yalnızca 「:」 ile yazılırsa (「dil: klingon」) komut sayılır.
+- Yeni testler (+5): dil kelimesiyle başlayan kayıt (düzeltmesiz başarısız olduğu doğrulandı), hızlı yanıt ↔ normalize gidiş-dönüş, PDF 赤字年 控除 0, 控除 = min(選択, 所得), PDF kullanıcı ayrımı. Toplam 430 yeşil.
+- Açılan: **T-058 (review-fix, P1)** hız sınırı XFF ilk değeri sahtelenebilir → login sınırı atlatılabilir. T-049'a not: blue-return.pdf 2027+ için 55万 kabul ediyor, dipnot yıla göre değil.
+- dashboard-next bu çalışmada değişmedi (build gerekmedi).
+
 ## 2026-11-07 16:43 JST · developer · T-048b CORS + güvenlik başlıkları
 - Yeni `bot/security.py`: `CORS_ORIGINS` boş/`*` → yalnızca `PANEL_URL` origin'i + `http://localhost:3000` (render.yaml'daki `"*"` değiştirilmedi, kodda daraltıldı); açık liste verilirse aynen kullanılır.
 - Tüm yanıtlara nosniff, Referrer-Policy, HSTS (1 yıl), X-Frame-Options DENY, CSP `frame-ancestors 'none'` (ASGI middleware, en dışta).

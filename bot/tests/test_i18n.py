@@ -57,3 +57,23 @@ def test_text_without_translation_falls_back():
     assert i18n.text("tr", "未知のメッセージ") == "未知のメッセージ"
     assert i18n.text("ja", i18n.HELP_JA) == i18n.HELP_JA
     assert "Fiş fotoğrafı" in i18n.text("tr", i18n.HELP_JA)
+
+
+def test_entry_starting_with_language_word_is_recorded(bot):
+    """review: 「Dil kursu 2000」 dil komutu sanılıp kayıt yutulmamalı."""
+    assert i18n.parse_lang_command("Dil kursu 2000") == (False, None)
+    assert i18n.parse_lang_command("Language school 30000") == (False, None)
+    assert i18n.parse_lang_command("言語 教室 5000") == (False, None)
+    assert i18n.parse_lang_command("dil tr") == (True, "tr")
+    assert i18n.parse_lang_command("言語：英語") == (True, "en")
+    bot.respond("u-dk", "Türkçe")
+    msg, _ = bot.respond("u-dk", "Dil kursu 2000")
+    assert msg.startswith("Kaydedildi ✅") and "¥2,000" in msg
+
+
+def test_options_roundtrip_through_normalize():
+    """Çevrilmiş hızlı yanıtın gönderdiği metin normalize ile Japonca komuta döner."""
+    for lang in ("tr", "en"):
+        for label, send in i18n.options(lang, [(k, k) for k in i18n.COMMANDS if k != "📷 レシート"], "📷 レシート"):
+            assert i18n.normalize(send) in i18n.COMMANDS
+    assert i18n.normalize("Taksi 2300") == "Taksi 2300"   # komut olmayan metin değişmez

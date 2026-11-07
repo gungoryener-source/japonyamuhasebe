@@ -132,7 +132,12 @@ def parse_lang_command(text: str) -> tuple[bool, str | None]:
         return False, None
     if not m.group(2):
         return True, None
-    return True, _LANG_WORDS.get(m.group(2).strip().lower())
+    chosen = _LANG_WORDS.get(m.group(2).strip().lower())
+    # 「Dil kursu 2000」「Language school 30000」 gibi kayıtlar komut sayılmaz:
+    # bilinmeyen değer yalnızca 「:」 ile yazıldıysa (「dil: klingon」) seçenekleri gösterir.
+    if chosen is None and not re.match(r"^\S+\s*[:：]", t):
+        return False, None
+    return True, chosen
 
 
 def lang_prompt(lang: str) -> str:

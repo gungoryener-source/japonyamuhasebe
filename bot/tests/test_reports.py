@@ -67,3 +67,31 @@ def test_pdf_endpoint(client, auth):
 def test_pdf_requires_auth_and_valid_blue(client, auth):
     assert client.get("/api/v1/reports/blue-return.pdf?year=2026").status_code == 401
     assert client.get("/api/v1/reports/blue-return.pdf?year=2026&blue=123", headers=auth).status_code == 400
+
+
+def test_pdf_loss_year_blue_deduction_not_negative(client, auth):
+    """review: 赤字年は青色申告特別控除 0、所得金額は差引金額のまま（控除で損失を増やさない）。"""
+    add(client, auth, kind="inc", category="売上高", amount=100000, store="A")
+    add(client, auth, amount=250000)
+    r = client.get("/api/v1/reports/blue-return.pdf?year=2026&blue=650000", headers=auth)
+    assert r.status_code == 200
+    from pypdf import PdfReader
+    text = "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)
+    assert "-150,000" in text and "650,000" in text   # 選択値は表示、控除額は 0
+
+
+def test_pdf_blue_clamped_to_income(client, auth):
+    add(client, auth, kind="inc", category="売上高", amount=400000, store="A")
+    r = client.get("/api/v1/reports/blue-return.pdf?year=2026&blue=650000", headers=auth)
+    from pypdf import PdfReader
+    text = "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)
+    assert "400,000" in text   # 控除額 = min(65万, 40万)
+
+
+def test_pdf_user_isolation(client, auth):
+    add(client, auth, kind="inc", category="売上高", amount=777777, store="A")
+    other = client.post("/api/v1/admin/tokens", json={"user_id": "UOTHER"}, headers=ADMIN).json()["token"]
+    r = client.get("/api/v1/reports/blue-return.pdf?year=2026", headers={"Authorization": f"Bearer {other}"})
+    from pypdf import PdfReader
+    text = "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)
+    assert "777,777" not in text
