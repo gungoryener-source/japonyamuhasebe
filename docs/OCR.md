@@ -35,6 +35,12 @@ Görseller ve doğru değer listesi kişisel alışveriş verisi olduğu için d
 
 Gerçek damgalı fişlerle ölçüm henüz yapılmadı (görseller depoda yok) — ürün sahibi kendi fişleriyle betiği çalıştırabilir.
 
+## Düşük güvenli sonuç onayı (T-024, 2026-11-08)
+- `parse_receipt` güven bayrakları yalnızca False iken ekler: `date_found` (tarih okunamadı) ve `rate_breakdown_found` (税率 内訳 tahmini: oran satırı yok ya da diğer oran = 合計 − bilinen). Tek oranlı fişte 「(内消費税 ¥500)」 satırı `floor(合計×r/(100+r))` ile tutuyorsa tahmin sayılmaz.
+- `app.normalize_ocr` → kayıtlarda `needs_check: ["date", "rate"]` (AI yolunda total10/total8 yoksa "rate"). Kayıt yine yapılır (tarih yoksa bugün).
+- LINE/WhatsApp yanıtı: ⚠️ uyarı + 「確認」, 「日付:昨日」「日付:一昨日」, (tek kayıtta) 「税率8%/10%」. Yeni komut 「日付 11/3」 / 「日付 2026-11-03」: son fişin tüm 税率別 kayıtlarını değiştirir (audit_log'a yazılır); gelecek tarih reddedilir, yılsız tarih gelecekteyse geçen yıl sayılır.
+- Güvenli sonuçta yanıt ve hızlı yanıtlar değişmedi (testli).
+
 ## Bilinen sınırlar
 - Kırmızı basılmış metin (damga bastırma bunu da siler; `OCR_RED_SUPPRESS=0`), buruşuk termal kâğıt, Vietnamca ürün adları.
 - Ücretsiz Render (0.1 CPU) üzerinde fiş başına ~20–50 sn sürebilir; canlıda en az Starter plan önerilir (Q-09).

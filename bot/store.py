@@ -488,6 +488,19 @@ def last_entry(user_id: str) -> dict | None:
     return dict(row) if row else None
 
 
+def last_receipt_entries(user_id: str) -> list[dict]:
+    """Son kayıt; fiş görselinden geldiyse aynı görselin tüm 税率別 kayıtları (T-024 日付変更)."""
+    with tx() as con:
+        row = con.execute("SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+        if not row:
+            return []
+        if not row["image_path"]:
+            return [dict(row)]
+        rows = con.execute("SELECT * FROM entries WHERE user_id=? AND image_path=? ORDER BY id",
+                           (user_id, row["image_path"])).fetchall()
+    return [dict(r) for r in rows]
+
+
 def update_entry(user_id: str, entry_id: int, actor: str = "", **fields) -> dict | None:
     allowed = {"category", "rate", "store", "amount", "d", "invoice_no", "kind"}
     sets = {k: v for k, v in fields.items() if k in allowed}

@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 09:20 JST · developer · T-024 düşük güvenli OCR sonucu onayı
+- `receipt_parser.parse_receipt`: `date_found` / `rate_breakdown_found` bayrakları yalnızca False iken (güvenli fişte çıktı birebir aynı). Tek oranlı fişte 「内消費税」 tutarı `floor(合計×r/(100+r))` ile tutarsa tahmin sayılmaz (restoran fikstürü uyarısız kalır).
+- `app.normalize_ocr` → `needs_check` (date/rate; AI yolunda 内訳 yoksa rate). LINE/WhatsApp yanıtında ⚠️ 「日付を確認してください」 / 「税率を確認してください」 + 「確認」「日付:昨日」「日付:一昨日」 (+ tek kayıtta 税率8%/10%) hızlı yanıtları; tr/en çeviriler.
+- Yeni komutlar: 「確認」, 「日付 11/3」 (son fişin tüm 税率別 kayıtları, `store.last_receipt_entries`; audit_log'a yazılır; gelecek tarih red, yılsız gelecek → geçen yıl). Şema değişmedi.
+- Kapı: pytest SQLite 711 geçti/6 atlandı, PostgreSQL 16 715 geçti/2 atlandı. 42 yeni test (`tests/test_ocr_confirm.py`). dashboard-next değişmedi (panel API `entries[].needs_check` görebilir → ileride vurgulama).
+- Sonraki: P2 — T-033, T-035, T-045b, T-046c, T-012c. Yeni soru yok.
+
 ## 2026-11-08 07:55 JST · developer · T-026 OCR kırmızı damga bastırma
 - `receipt_ocr.preprocess`: gri tondan önce `suppress_red` — Pillow HSV maskesi (H ≤14 / ≥232, S ≥70, V ≥90) + 1 px açık renkli JPEG halesi → beyaz. Damga üstündeki siyah yazı, mavi/yeşil kalem, gri korunur. Yeni paket yok. `OCR_RED_SUPPRESS=0` ile kapanır (varsayılan açık).
 - Kırmızı piksel yoksa çıktı birebir aynı (5 fikstürde testli) → docs/OCR.md 67 fişlik ölçüm geçerli kalır.

@@ -31,7 +31,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-023 | P1 | done | Gerçek fişlerle OCR ölçümü (67 fiş; tüm alanlar %70, toplam %85, yanlış kayıt %7 — docs/OCR.md) |
 | T-025 | P1 | done (bu commit) | LINE görsel işleme süresi: OCR uzun sürerse önce 「読み取り中…」 yanıtı, sonuç push mesajla (reply token süresi) |
 | T-026 | P2 | done (bu commit) | OCR: kırmızı damga (印) rengini ön işlemede bastır (HSV ile kırmızı → beyaz), tarih/rakam doğruluğu |
-| T-024 | P2 | doing (developer, 2026-11-08) | OCR sonrası kullanıcı onayı: düşük güvenli alanlarda (tarih yok, oran kırılımı tahmini) LINE'da 「確認」 butonlu özet |
+| T-024 | P2 | done (bu commit) | OCR sonrası kullanıcı onayı: düşük güvenli alanlarda (tarih yok, oran kırılımı tahmini) LINE'da 「確認」 butonlu özet |
 | T-030 | P1 | done | dashboard-next: 経費精算 sayfası (kayıt listesi/arama, fiş yükleme + OCR, ekle/düzenle/sil) |
 | T-031 | P1 | done | dashboard-next: 銀行連携 sayfası (banka CSV içe aktarma, faturalarla otomatik eşleştirme) |
 | T-032 | P1 | done | dashboard-next: 設定 sayfası (事業者情報, kanal bağlantıları, oturum) + sayfa yönlendirmeli menü |

@@ -58,7 +58,7 @@ app.add_middleware(SlowRequestMiddleware)
 
 
 # ---------------------------------------------------------------- DB (store.py)
-from store import MAX_ENTRY_AMOUNT, add_entry, get_lang, init_db, issue_token, last_entry, month_summary, set_lang, undo_last, update_entry  # noqa: E402
+from store import MAX_ENTRY_AMOUNT, add_entry, get_lang, init_db, issue_token, last_entry, last_receipt_entries, month_summary, set_lang, undo_last, update_entry  # noqa: E402
 import i18n  # noqa: E402
 from api import router as api_router  # noqa: E402
 
@@ -180,9 +180,14 @@ def normalize_ocr(data: dict) -> list[dict] | dict:
         t8 = int(data.get("total8") or 0)
     except (TypeError, ValueError):
         return {"error": "金額を読み取れません"}
+    checks: list[str] = []   # T-024: düşük güvenli alanlar → LINE'da 「確認」 özeti
     if t10 + t8 == 0:
+        if "rate" not in data:
+            checks.append("rate")   # 税率の内訳なし → 10% と推定
         t10 = total if int(data.get("rate", 10)) != 8 else 0
         t8 = total if int(data.get("rate", 10)) == 8 else 0
+    elif data.get("rate_breakdown_found") is False:
+        checks.append("rate")
     if t10 < 0 or t8 < 0 or t10 + t8 <= 0:
         return {"error": "金額を読み取れません"}
     inv = str(data.get("invoice_no", "")).replace("-", "").replace(" ", "").strip()
@@ -191,9 +196,14 @@ def normalize_ocr(data: dict) -> list[dict] | dict:
         date.fromisoformat(d)
     except ValueError:
         d = datetime.now(JST).date().isoformat()
+        checks.insert(0, "date")
+    if data.get("date_found") is False and "date" not in checks:
+        checks.insert(0, "date")
     cat = data.get("category") if data.get("category") in EXP_CATEGORIES else "雑費"
     base = {"date": d, "kind": "exp", "store": str(data.get("store") or "(店名不明)")[:60],
             "category": cat, "invoice_no": inv if re.fullmatch(r"T\d{13}", inv) else ""}
+    if checks:
+        base["needs_check"] = checks   # add_entry bu anahtarı yok sayar; panel API'si de görür
     out = [{**base, "amount": a, "rate": r} for r, a in ((10, t10), (8, t8)) if a > 0]
     return out
 
@@ -382,6 +392,11 @@ def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
             return "変更する記録がありません", []
         e = update_entry(user_id, last["id"], actor="LINE", rate=int(m.group(1)))
         return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
+    if t == "確認":
+        return (CHECK_OK_TEXT if last_entry(user_id) else "確認する記録がありません"), opts("合計", CAMERA)
+    m = DATE_CMD.match(t)
+    if m:
+        return _change_date(user_id, m.group(1))
     if re.match(r"^(合計|今月|集計)", t):
         inc, exp = month_summary(user_id)
         return f"今月の集計\n売上 {yen(inc)}\n経費 {yen(exp)}\n差引 {yen(inc - exp)}", opts(CAMERA)
@@ -405,6 +420,45 @@ def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
         return notice, opts("合計")
     add_entry(user_id, e, source=source)
     return saved_text(e), opts(*QR_AFTER_SAVE)
+
+
+DATE_CMD = re.compile(r"^日付\s*[:：\s]\s*(\S+)$")
+
+
+def parse_date_arg(v: str, today: date) -> date | None:
+    """「今日 / 昨日 / 一昨日」「2026-11-03」「2026/11/3」「11/3」「11月3日」 → tarih. Gelecek tarih → None."""
+    rel = {"今日": 0, "昨日": 1, "一昨日": 2, "おととい": 2}
+    if v in rel:
+        return today - timedelta(days=rel[v])
+    m = re.fullmatch(r"(?:(\d{4})[-/.年])?(\d{1,2})[-/.月](\d{1,2})日?", v)
+    if not m:
+        return None
+    y = int(m.group(1)) if m.group(1) else today.year
+    try:
+        d = date(y, int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+    if not m.group(1) and d > today:   # 年なしで未来 → 去年（1月に12月のレシート）
+        try:
+            d = date(y - 1, d.month, d.day)
+        except ValueError:
+            return None
+    return d if d <= today else None
+
+
+def _change_date(user_id: str, arg: str) -> tuple[str, Options]:
+    """直前のレシート（同じ画像の税率別レコードはまとめて）の日付を変更。"""
+    d = parse_date_arg(arg, datetime.now(JST).date())
+    if d is None:
+        return "日付を読み取れませんでした。「日付 11/3」や「日付 2026-11-03」のように送ってください（未来の日付は不可）。", []
+    rows = last_receipt_entries(user_id)
+    if not rows:
+        return "変更する記録がありません", []
+    for r in rows:
+        e = update_entry(user_id, r["id"], actor="LINE", d=d.isoformat())
+    if len(rows) == 1:
+        return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
+    return f"日付を変更しました：{d.isoformat()}\n{rows[0]['store']}（{len(rows)}件をまとめて変更）", opts("取消", "合計", CAMERA)
 
 
 TOO_LARGE = "金額が大きすぎます。1件20億円未満で入力してください。"
@@ -505,12 +559,38 @@ async def _process_image_ja(user_id: str, img: bytes, ref: str, source: str) -> 
         return TOO_LARGE, []
     for e in result:
         add_entry(user_id, e, image_path=path, source=source)
+    checks = result[0].get("needs_check") or []
     if len(result) == 1:
-        return saved_text(result[0]), opts(*QR_AFTER_SAVE)
-    lines = "\n".join(f"・{e['rate']}%対象 {yen(e['amount'])}" for e in result)
-    head = saved_text(result[0]).split("\n")[0]
-    return (f"{head}\n{result[0]['store']}（税率ごとに{len(result)}件に分けて記録）\n{lines}\n"
-            f"{result[0]['category']}・{result[0]['date']}\n\n間違っていたら「取消」を押してください"), opts("取消", "合計", CAMERA)
+        msg, options = saved_text(result[0]), opts(*QR_AFTER_SAVE)
+    else:
+        lines = "\n".join(f"・{e['rate']}%対象 {yen(e['amount'])}" for e in result)
+        head = saved_text(result[0]).split("\n")[0]
+        msg = (f"{head}\n{result[0]['store']}（税率ごとに{len(result)}件に分けて記録）\n{lines}\n"
+               f"{result[0]['category']}・{result[0]['date']}\n\n間違っていたら「取消」を押してください")
+        options = opts("取消", "合計", CAMERA)
+    if checks:
+        return check_summary(msg, checks, result[0]["date"], multi=len(result) > 1)
+    return msg, options
+
+
+CHECK_DATE = "⚠️ 日付を読み取れなかったため、今日（{d}）の日付で記録しました。日付を確認してください。"
+CHECK_DATE_HOW = "違う場合は「日付 11/3」のように送ってください。"
+CHECK_RATE = "⚠️ 税率ごとの内訳を読み取れなかったため、推定で記録しました。税率を確認してください。"
+CHECK_OK_TEXT = "確認しました ✅ この内容で記録しています。"
+
+
+def check_summary(msg: str, checks: list[str], d: str, multi: bool = False) -> tuple[str, Options]:
+    """T-024: düşük güvenli OCR sonucu → uyarı + 「確認」 ve hızlı düzeltme butonları."""
+    notes, options = [], ["確認"]
+    if "date" in checks:
+        notes.append(CHECK_DATE.format(d=d) + "\n" + CHECK_DATE_HOW)
+        options += ["日付:昨日", "日付:一昨日"]
+    if "rate" in checks:
+        notes.append(CHECK_RATE)
+        if not multi:
+            options += ["税率8%", "税率10%"]
+    options += ["取消", "科目変更"] if not multi else ["取消"]
+    return msg + "\n\n" + "\n".join(notes), opts(*options, CAMERA)
 
 
 def reply_wait_seconds() -> float:

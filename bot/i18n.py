@@ -29,10 +29,27 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "仕切書": ("Hurda fişi", "Scrap slip"),
     "通帳": ("Banka defteri", "Passbook"),
     "会社": ("Şirket", "Company"),
+    "確認": ("Onayla", "Confirm"),
+    "日付:昨日": ("Tarih: dün", "Date: yesterday"),
+    "日付:一昨日": ("Tarih: önceki gün", "Date: 2 days ago"),
 }
 
 # Japonca parça → (tr, en). Uzun parçalar önce uygulanır.
 PHRASES: dict[str, tuple[str, str]] = {
+    # T-024 低信頼の読み取り結果
+    "⚠️ 日付を読み取れなかったため、今日（": ("⚠️ Tarih okunamadığı için bugünün tarihiyle (", "⚠️ The date could not be read, so it was saved with today's date ("),
+    "）の日付で記録しました。日付を確認してください。": (") kaydedildi. Lütfen tarihi kontrol edin.", "). Please check the date."),
+    "違う場合は「日付 11/3」のように送ってください。": ("Yanlışsa 「日付 11/3」 gibi gönderin.", "If wrong, send e.g. 「日付 11/3」."),
+    "⚠️ 税率ごとの内訳を読み取れなかったため、推定で記録しました。税率を確認してください。": (
+        "⚠️ KDV oranı dökümü okunamadı; tahminle kaydedildi. Lütfen KDV oranını kontrol edin.",
+        "⚠️ The tax-rate breakdown could not be read, so it was estimated. Please check the tax rate."),
+    "確認しました ✅ この内容で記録しています。": ("Onaylandı ✅ Kayıt bu haliyle duruyor.", "Confirmed ✅ The record is kept as is."),
+    "確認する記録がありません": ("Onaylanacak kayıt yok", "No record to confirm"),
+    "日付を読み取れませんでした。「日付 11/3」や「日付 2026-11-03」のように送ってください（未来の日付は不可）。": (
+        "Tarih anlaşılamadı. 「日付 11/3」 veya 「日付 2026-11-03」 gibi gönderin (gelecek tarih olmaz).",
+        "Could not read the date. Send e.g. 「日付 11/3」 or 「日付 2026-11-03」 (no future dates)."),
+    "日付を変更しました：": ("Tarih değiştirildi: ", "Date changed: "),
+    "件をまとめて変更）": (" kayıt birlikte değişti)", " records updated)"),
     # 複数の事業所
     "記録先の事業所を選んでください": ("Kayıtların gideceği şirketi seçin", "Choose the company to record to"),
     "（記録先）": (" (seçili)", " (current)"),

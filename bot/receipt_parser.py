@@ -246,24 +246,40 @@ def find_store(lines: list[str]) -> str:
     return min(cands)[2] if cands else ""
 
 
+def _tax_line_confirms(lines: list[str], total: int, rate: int) -> bool:
+    """T-024: 内訳行がなくても 「(内消費税 ¥500)」 が 単一税率の floor(合計×r/(100+r)) と一致すれば推定ではない."""
+    want = total * rate // (100 + rate)
+    for line in lines:
+        if re.search(r"(内\s*消\s*費\s*税|消\s*費\s*税\s*等|内\s*税)", line) and not RATE_LINE.search(line):
+            if want in _amounts(line):
+                return True
+    return False
+
+
 def parse_receipt(text: str, today: date | None = None) -> dict:
     t = normalize(text)
     lines = [ln.strip() for ln in t.splitlines() if ln.strip()]
     if not lines:
         return {"error": "文字を読み取れませんでした"}
     store = find_store(lines)
-    base = {"date": find_date(t, today), "store": store, "invoice_no": find_invoice_no(t),
+    d = find_date(t, today)
+    base = {"date": d, "store": store, "invoice_no": find_invoice_no(t),
             "category": guess_category(store + " " + " ".join(lines[:5]))}
+    # T-024 güven bayrakları: yalnızca False olduğunda eklenir (güvenli sonuçta çıktı değişmez)
+    if not d:
+        base["date_found"] = False
 
     stated = find_total(lines) or find_dash_total(lines)   # fişte yazan toplam (iri yazı → sık bozulur)
     r10, r8, unreadable = find_rate_totals(lines)           # oran satırları (küçük yazı → daha güvenilir)
     reduced_marked = bool(re.search(r"(※|★|\*|軽)\s*(印|は|マーク)?.{0,6}軽[減滅]", t)) or "軽減税率" in t
 
+    breakdown = True   # T-024: oran kırılımı fişten okundu mu (False = tahmin)
     if r10 is not None and r8 is not None:
         t10, t8 = r10, r8
         total = t10 + t8
         if total == 0 and stated:
             total, t10, t8 = stated, (0 if reduced_marked else stated), (stated if reduced_marked else 0)
+            breakdown = False
     elif r10 is not None or r8 is not None:
         known = r10 if r10 is not None else r8
         if unreadable and not (stated and stated > known):
@@ -272,6 +288,7 @@ def parse_receipt(text: str, today: date | None = None) -> dict:
         if stated and stated >= known:
             other = stated - known
             total = stated
+            breakdown = other == 0   # diğer oran = 合計 − bilinen → tahmin
         else:
             other, total = 0, known
         t10, t8 = (known, other) if r10 is not None else (other, known)
@@ -279,13 +296,20 @@ def parse_receipt(text: str, today: date | None = None) -> dict:
         total = stated
         only8 = reduced_marked and not re.search(r"(?<!\d)10\s*[%％]", t)
         t10, t8 = (0, total) if only8 else (total, 0)
+        breakdown = False
     else:
         sub = max((max(_amounts(l)) for l in lines if re.search(r"小\s*計", l) and _amounts(l)), default=0)
         if not sub:
             return {"error": "合計金額が見つかりませんでした", **base}
         total = sub
         t10, t8 = (0, total) if reduced_marked else (total, 0)
+        breakdown = False
     if total < 50:
         # ¥50 altı fiş çok nadir; genelde poşet ücreti (¥3–7) veya OCR hatası → kaydetmek yerine sor
         return {"error": "合計金額を確認できませんでした", **base}
-    return {**base, "total": total, "total10": t10, "total8": t8}
+    if not breakdown and (t10 == 0 or t8 == 0):
+        breakdown = _tax_line_confirms(lines, total, 8 if t8 else 10)
+    out = {**base, "total": total, "total10": t10, "total8": t8}
+    if not breakdown:
+        out["rate_breakdown_found"] = False   # 税率の内訳は推定 → LINE'da 「税率を確認」
+    return out
