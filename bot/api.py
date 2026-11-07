@@ -59,11 +59,21 @@ def current_user(p: dict = Depends(current_principal)) -> str:
     return p["user_id"]
 
 
-def writer_user(p: dict = Depends(current_principal)) -> str:
-    """Muhasebe verisi yazma: owner / accountant."""
+def writer_principal(p: dict = Depends(current_principal)) -> dict:
+    """Muhasebe verisi yazma: owner / accountant (principal döner; audit için kim yaptı)."""
     if p["role"] not in team.WRITE_ROLES:
         raise HTTPException(403, "閲覧専用のメンバーは編集できません。")
+    return p
+
+
+def writer_user(p: dict = Depends(writer_principal)) -> str:
+    """Muhasebe verisi yazma: owner / accountant."""
     return p["user_id"]
+
+
+def actor_of(p: dict) -> str:
+    """audit_log.actor: `WEB:<rol>:<hesap id>` (0 = hesapsız sahip token'ı, ör. LINE 「パネル」)."""
+    return f"WEB:{p.get('role', '')}:{int(p.get('account_id') or 0)}"
 
 
 def owner_user(p: dict = Depends(current_principal)) -> str:
@@ -167,7 +177,8 @@ def list_entries(date_from: str | None = None, date_to: str | None = None, q: st
 
 
 @router.post("/entries", status_code=201)
-def create_entry(body: EntryIn, uid: str = Depends(writer_user)):
+def create_entry(body: EntryIn, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     _valid_date(body.date, "date")
     if body.rate not in (10, 8, 0):
         raise HTTPException(400, "rate must be 10, 8 or 0")
@@ -181,7 +192,7 @@ def create_entry(body: EntryIn, uid: str = Depends(writer_user)):
         raise HTTPException(400, "invalid image_path")
     if e["kind"] == "exp":
         _billing_call(billing.check_limit, uid, "receipts")
-    eid = store.add_entry(uid, e, image_path=image_path, source="WEB")
+    eid = store.add_entry(uid, e, image_path=image_path, source="WEB", actor=actor_of(p))
     return {"id": eid, **e}
 
 
@@ -195,7 +206,8 @@ class EntryPatch(BaseModel):
 
 
 @router.patch("/entries/{entry_id}")
-def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(writer_user)):
+def patch_entry(entry_id: int, body: EntryPatch, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     if not store.get_entry(uid, entry_id):
         raise HTTPException(404, "entry not found")
     f = body.model_dump(exclude_none=True)
@@ -209,14 +221,35 @@ def patch_entry(entry_id: int, body: EntryPatch, uid: str = Depends(writer_user)
         raise HTTPException(400, "unknown category")
     if f.get("invoice_no") and not re.fullmatch(r"T\d{13}", f["invoice_no"]):
         raise HTTPException(400, "invoice_no must be T + 13 digits")
-    return store.update_entry(uid, entry_id, **f)
+    return store.update_entry(uid, entry_id, actor=actor_of(p), **f)
 
 
 @router.delete("/entries/{entry_id}", status_code=204)
-def remove_entry(entry_id: int, uid: str = Depends(writer_user)):
-    if not store.delete_entry(uid, entry_id):
+def remove_entry(entry_id: int, p: dict = Depends(writer_principal)):
+    if not store.delete_entry(p["user_id"], entry_id, actor=actor_of(p)):
         raise HTTPException(404, "entry not found")
     return Response(status_code=204)
+
+
+@router.get("/entries/{entry_id}/history")
+def entry_history(entry_id: int, uid: str = Depends(current_user)):
+    """訂正・削除の履歴 (T-065): oluşturma/düzeltme/silme, önce/sonra görüntüsüyle (eskiden yeniye).
+    Silinmiş kayıtlar için de döner; geçmişi olmayan kayıt 404."""
+    h = store.audit_history(uid, "entry", entry_id)
+    if not h and not store.get_entry(uid, entry_id):
+        raise HTTPException(404, "entry not found")
+    return h
+
+
+@router.get("/audit")
+def audit_list(entity: str | None = None, action: str | None = None,
+               limit: int = Query(100, ge=1, le=1000), uid: str = Depends(current_user)):
+    """Defterin son değişiklikleri (yeniden eskiye). entity ∈ entry / invoice, action ∈ create / update / delete."""
+    if entity and entity not in store.AUDIT_ENTITIES:
+        raise HTTPException(400, f"entity must be one of {store.AUDIT_ENTITIES}")
+    if action and action not in ("create", "update", "delete"):
+        raise HTTPException(400, "action must be create, update or delete")
+    return store.audit_recent(uid, entity=entity, action=action, limit=limit)
 
 
 MAX_UPLOAD = 10 * 1024 * 1024
@@ -415,7 +448,8 @@ class MatchIn(BaseModel):
 
 
 @router.post("/bank/match")
-def bank_match(body: MatchIn, uid: str = Depends(writer_user)):
+def bank_match(body: MatchIn, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     t = store.get_bank_tx(uid, body.tx_id)
     inv = store.get_invoice(uid, body.invoice_no)
     if not t or not inv:
@@ -424,7 +458,7 @@ def bank_match(body: MatchIn, uid: str = Depends(writer_user)):
         raise HTTPException(409, "already matched")
     if t["amount"] != inv["total"]:
         raise HTTPException(400, "amount does not match invoice total")
-    paid = store.mark_invoice_paid(uid, inv["no"], t["d"])
+    paid = store.mark_invoice_paid(uid, inv["no"], t["d"], actor=actor_of(p))
     store.link_bank_tx(uid, t["id"], invoice_no=inv["no"])
     return paid
 
@@ -857,7 +891,8 @@ def list_invoices(status: str | None = None, uid: str = Depends(current_user)):
 
 
 @router.post("/invoices", status_code=201)
-def create_invoice(body: InvoiceIn, uid: str = Depends(writer_user)):
+def create_invoice(body: InvoiceIn, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     issued = _valid_date(body.issued, "issued") if body.issued else store.today().isoformat()
     _valid_date(body.due, "due")
     if body.due < issued:
@@ -871,13 +906,13 @@ def create_invoice(body: InvoiceIn, uid: str = Depends(writer_user)):
     inv = {"no": store.next_invoice_no(uid, issued), "client": body.client, "issued": issued, "due": body.due,
            "items": items, "subtotal10": t.subtotal10, "subtotal8": t.subtotal8, "tax10": t.tax10,
            "tax8": t.tax8, "total": t.total}
-    return store.insert_invoice(uid, inv)
+    return store.insert_invoice(uid, inv, actor=actor_of(p))
 
 
 @router.post("/invoices/{no}/paid")
-def pay_invoice(no: str, paid_on: str | None = None, uid: str = Depends(writer_user)):
+def pay_invoice(no: str, paid_on: str | None = None, p: dict = Depends(writer_principal)):
     paid_on = _valid_date(paid_on, "paid_on") if paid_on else store.today().isoformat()
-    inv = store.mark_invoice_paid(uid, no, paid_on)
+    inv = store.mark_invoice_paid(p["user_id"], no, paid_on, actor=actor_of(p))
     if not inv:
         raise HTTPException(404, "invoice not found")
     return inv

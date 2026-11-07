@@ -8,6 +8,13 @@ Biçim: `## 2026-11-08 01:44 JST · reviewer · son 26 saat incelemesi (91e4fa2.
 
 ## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 01:52 JST · developer · T-065 訂正・削除の履歴 (dilim 1)
+- `audit_log` tablosu (yalnızca ekleme; additive şema): entries create/update/delete (LINE 取消・科目/税率 düzeltme dahil) ve invoices create/消込, aynı transaction'da önce/sonra JSON + actor (`WEB:<rol>:<hesap>` / `LINE` / kaynak). Değişmeyen düzeltme yazılmaz.
+- API: `GET /api/v1/entries/{id}/history` (silinmiş kayıt dahil, tüm roller okur), `GET /api/v1/audit?entity=&action=&limit=`.
+- CI `bot-postgres` kırmızıydı (main'de 2 test_companies hatası): conftest PG sıfırlaması account_companies/line_targets/user_prefs'i düşürmüyordu → eklendi.
+- Kapı: pytest SQLite 548 geçti, PostgreSQL 16 ile 546 geçti/2 atlandı. 6 yeni test. T-064b → blocked (Q-16 fiyat; not: QUESTIONS'ta iki ayrı Q-16 var).
+- Sonraki: T-065b (panel 履歴 + bank_tx), sonra P2 (T-017, T-050…).
+
 ## 2026-11-07 · developer (oturum) · T-056 + T-049 + T-034
 - T-056: Resend (MAIL_PROVIDER=resend, MAIL_API_KEY, MAIL_FROM); hata sessiz, log maskeli. 3 test.
 - T-049: 青色 控除 yıl bazlı (2027+: 75万 eklendi, 55万 kaldırıldı) — income.compute, /tax/income, /reports/blue-return.pdf, PDF dipnotu, panel seçenekleri. docs/DENCHOHO.md (優良 iddia edilmez), T-065 audit log açıldı.

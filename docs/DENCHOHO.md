@@ -7,7 +7,7 @@
 hesaplamada sunar; şartların karşılanıp karşılanmadığı kullanıcının / 税理士'nin kararıdır.
 
 Bilinen durum (doğrulanmadı, uzman kontrolü gerekir):
-- 訂正・削除の履歴: kayıt düzenleme/silme geçmişi tutulmuyor (entries güncellenir/silinir) → eksik.
+- 訂正・削除の履歴: T-065 ile entries ve invoices için `audit_log` (önce/sonra, kim, ne zaman; silinen kayıt korunur) + `GET /api/v1/entries/{id}/history`. Panel görünümü ve bank_tx/仕切書 → T-065b (kısmen eksik).
 - 相互関連性 (帳簿間の関連): fiş görseli ↔ kayıt bağlantısı var (image_path), banka satırı ↔ kayıt (entry_id) var.
 - 検索機能 (日付・金額・取引先): /api/v1/entries arama var.
 - 電子取引データ保存: fiş görselleri kalıcı depolama (R2, Q-14) kurulana kadar deploy'da silinir → eksik.

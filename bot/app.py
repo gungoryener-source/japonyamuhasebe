@@ -370,14 +370,14 @@ def _respond_ja(user_id: str, t: str, source: str) -> tuple[str, Options]:
         last = last_entry(user_id)
         if not last or last["kind"] != "exp" or cat not in EXP_CATEGORIES:
             return "変更できませんでした（経費の記録と一覧の科目のみ変更できます）", []
-        e = update_entry(user_id, last["id"], category=cat)
+        e = update_entry(user_id, last["id"], actor="LINE", category=cat)
         return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
     m = re.match(r"^税率\s*(8|10)\s*[%％]$", t)
     if m:
         last = last_entry(user_id)
         if not last:
             return "変更する記録がありません", []
-        e = update_entry(user_id, last["id"], rate=int(m.group(1)))
+        e = update_entry(user_id, last["id"], actor="LINE", rate=int(m.group(1)))
         return saved_text(_as_entry(e)).replace("登録しました", "変更しました"), opts(*QR_AFTER_SAVE)
     if re.match(r"^(合計|今月|集計)", t):
         inc, exp = month_summary(user_id)

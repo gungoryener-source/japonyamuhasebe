@@ -19,6 +19,19 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # T-065: 訂正・削除の履歴 (電帳法). Satırlar yalnızca eklenir; güncellenmez/silinmez.
+    """CREATE TABLE IF NOT EXISTS audit_log(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        entity TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        before_json TEXT NOT NULL DEFAULT '',
+        after_json TEXT NOT NULL DEFAULT '',
+        actor TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_audit_entity ON audit_log(user_id, entity, entity_id)",
     # Bir hesapta birden çok şirket (companies.py): ana defter account_ledgers'ta, ekler burada
     """CREATE TABLE IF NOT EXISTS account_companies(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -349,7 +362,60 @@ def check_amount(amount) -> int:
     return a
 
 
-def add_entry(user_id: str, e: dict, image_path: str = "", source: str = "LINE") -> int:
+# ---------------------------------------------------------------- audit (T-065)
+AUDIT_ENTITIES = ("entry", "invoice")
+
+
+def _audit(con: "_Conn", user_id: str, entity: str, entity_id, action: str,
+           before: dict | None, after: dict | None, actor: str = "") -> None:
+    """訂正・削除の履歴: aynı işlemde (transaction) önce/sonra görüntüsünü ekler. Değişiklik yoksa yazmaz."""
+    if action == "update" and before == after:
+        return
+    dump = (lambda r: json.dumps(r, ensure_ascii=False, sort_keys=True, default=str) if r is not None else "")
+    con.execute(
+        """INSERT INTO audit_log(user_id,entity,entity_id,action,before_json,after_json,actor,created_at)
+           VALUES(?,?,?,?,?,?,?,?)""",
+        (user_id, entity, str(entity_id), action, dump(before), dump(after), actor or "", now()),
+    )
+
+
+def _audit_row(r) -> dict:
+    d = dict(r)
+    d["before"] = json.loads(d.pop("before_json")) if d.get("before_json") else None
+    d["after"] = json.loads(d.pop("after_json")) if d.get("after_json") else None
+    if d["before"] and d["after"]:
+        d["changed"] = sorted(k for k in set(d["before"]) | set(d["after"]) if d["before"].get(k) != d["after"].get(k))
+    else:
+        d["changed"] = []
+    return d
+
+
+def audit_history(user_id: str, entity: str, entity_id) -> list[dict]:
+    """Bir kaydın tüm geçmişi (eskiden yeniye). Silinmiş kayıtlar için de döner."""
+    with tx() as con:
+        rows = con.execute("SELECT * FROM audit_log WHERE user_id=? AND entity=? AND entity_id=? ORDER BY id",
+                           (user_id, entity, str(entity_id))).fetchall()
+    return [_audit_row(r) for r in rows]
+
+
+def audit_recent(user_id: str, entity: str | None = None, action: str | None = None, limit: int = 100) -> list[dict]:
+    """Defterin son değişiklikleri (yeniden eskiye)."""
+    sql, args = "SELECT * FROM audit_log WHERE user_id=?", [user_id]
+    if entity:
+        sql += " AND entity=?"; args.append(entity)
+    if action:
+        sql += " AND action=?"; args.append(action)
+    sql += " ORDER BY id DESC LIMIT ?"; args.append(int(limit))
+    with tx() as con:
+        return [_audit_row(r) for r in con.execute(sql, args).fetchall()]
+
+
+def _entry_snapshot(con: "_Conn", user_id: str, entry_id: int) -> dict | None:
+    row = con.execute("SELECT * FROM entries WHERE id=? AND user_id=?", (entry_id, user_id)).fetchone()
+    return dict(row) if row else None
+
+
+def add_entry(user_id: str, e: dict, image_path: str = "", source: str = "LINE", actor: str = "") -> int:
     check_amount(e["amount"])
     with tx() as con:
         cur = con.execute(
@@ -358,7 +424,9 @@ def add_entry(user_id: str, e: dict, image_path: str = "", source: str = "LINE")
             (user_id, e["date"], e["kind"], e["store"], int(e["amount"]), e["category"],
              int(e["rate"]), e.get("invoice_no", ""), source, image_path, now()),
         )
-        return int(cur.fetchone()["id"])
+        eid = int(cur.fetchone()["id"])
+        _audit(con, user_id, "entry", eid, "create", None, _entry_snapshot(con, user_id, eid), actor or source)
+        return eid
 
 
 def last_entry(user_id: str) -> dict | None:
@@ -367,7 +435,7 @@ def last_entry(user_id: str) -> dict | None:
     return dict(row) if row else None
 
 
-def update_entry(user_id: str, entry_id: int, **fields) -> dict | None:
+def update_entry(user_id: str, entry_id: int, actor: str = "", **fields) -> dict | None:
     allowed = {"category", "rate", "store", "amount", "d", "invoice_no", "kind"}
     sets = {k: v for k, v in fields.items() if k in allowed}
     if not sets:
@@ -376,16 +444,20 @@ def update_entry(user_id: str, entry_id: int, **fields) -> dict | None:
         sets["amount"] = check_amount(sets["amount"])
     cols = ", ".join(f"{k}=?" for k in sets)
     with tx() as con:
+        before = _entry_snapshot(con, user_id, entry_id)
         con.execute(f"UPDATE entries SET {cols} WHERE id=? AND user_id=?", (*sets.values(), entry_id, user_id))
-        row = con.execute("SELECT * FROM entries WHERE id=? AND user_id=?", (entry_id, user_id)).fetchone()
-    return dict(row) if row else None
+        after = _entry_snapshot(con, user_id, entry_id)
+        if before is not None:
+            _audit(con, user_id, "entry", entry_id, "update", before, after, actor)
+    return after
 
 
-def undo_last(user_id: str) -> dict | None:
+def undo_last(user_id: str, actor: str = "LINE") -> dict | None:
     with tx() as con:
         row = con.execute("SELECT * FROM entries WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
         if row:
             con.execute("DELETE FROM entries WHERE id=?", (row["id"],))
+            _audit(con, user_id, "entry", row["id"], "delete", dict(row), None, actor)
     return dict(row) if row else None
 
 
@@ -573,7 +645,12 @@ def next_invoice_no(user_id: str, issued: str) -> str:
     return f"{prefix}{n:04d}"
 
 
-def insert_invoice(user_id: str, inv: dict) -> dict:
+def _invoice_snapshot(con: "_Conn", user_id: str, no: str) -> dict | None:
+    row = con.execute("SELECT * FROM invoices WHERE user_id=? AND no=?", (user_id, no)).fetchone()
+    return _inv_row(row) if row else None
+
+
+def insert_invoice(user_id: str, inv: dict, actor: str = "") -> dict:
     with tx() as con:
         con.execute(
             """INSERT INTO invoices(user_id,no,client,issued,due,items_json,subtotal10,subtotal8,tax10,tax8,total,status,created_at)
@@ -581,6 +658,7 @@ def insert_invoice(user_id: str, inv: dict) -> dict:
             (user_id, inv["no"], inv["client"], inv["issued"], inv["due"], json.dumps(inv["items"], ensure_ascii=False),
              inv["subtotal10"], inv["subtotal8"], inv["tax10"], inv["tax8"], inv["total"], "unpaid", now()),
         )
+        _audit(con, user_id, "invoice", inv["no"], "create", None, _invoice_snapshot(con, user_id, inv["no"]), actor)
     return get_invoice(user_id, inv["no"])  # type: ignore[return-value]
 
 
@@ -605,18 +683,19 @@ def list_invoices(user_id: str, status: str | None = None) -> list[dict]:
         return [_inv_row(r) for r in con.execute(sql, args).fetchall()]
 
 
-def mark_invoice_paid(user_id: str, no: str, paid_on: str) -> dict | None:
+def mark_invoice_paid(user_id: str, no: str, paid_on: str, actor: str = "") -> dict | None:
     """入金消込: 請求書を支払済にし、売上入金として帳簿にも記録する。"""
     inv = get_invoice(user_id, no)
     if not inv or inv["status"] == "paid":
         return inv
     with tx() as con:
         con.execute("UPDATE invoices SET status='paid', paid_on=? WHERE user_id=? AND no=?", (paid_on, user_id, no))
+        _audit(con, user_id, "invoice", no, "update", inv, _invoice_snapshot(con, user_id, no), actor)
     # 税率ごとに1件ずつ記録（混在請求書でも消費税計算が正しくなるように）
     for rate, gross in ((10, inv["subtotal10"] + inv["tax10"]), (8, inv["subtotal8"] + inv["tax8"])):
         if gross > 0:
             add_entry(user_id, {"date": paid_on, "kind": "inc", "store": f"{inv['client']}（{no}）", "amount": gross,
-                                "category": "売上高", "rate": rate, "invoice_no": ""}, source="INVOICE")
+                                "category": "売上高", "rate": rate, "invoice_no": ""}, source="INVOICE", actor=actor)
     return get_invoice(user_id, no)
 
 
@@ -627,11 +706,13 @@ def get_entry(user_id: str, entry_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-def delete_entry(user_id: str, entry_id: int) -> bool:
-    """Kullanıcının kendi kaydını silmesi (LINE 「取消」 ile aynı yetki)."""
+def delete_entry(user_id: str, entry_id: int, actor: str = "") -> bool:
+    """Kullanıcının kendi kaydını silmesi (LINE 「取消」 ile aynı yetki). Silinen kayıt audit_log'da kalır (T-065)."""
     with tx() as con:
+        before = _entry_snapshot(con, user_id, entry_id)
         cur = con.execute("DELETE FROM entries WHERE id=? AND user_id=?", (entry_id, user_id))
-        if cur.rowcount > 0:  # 銀行明細からの経費なら紐付けを外し、再登録できるようにする
+        if cur.rowcount > 0:
+            _audit(con, user_id, "entry", entry_id, "delete", before, None, actor)  # 銀行明細からの経費なら紐付けを外し、再登録できるようにする
             con.execute("UPDATE bank_tx SET entry_id=NULL WHERE entry_id=? AND user_id=?", (entry_id, user_id))
             return True
     return False
