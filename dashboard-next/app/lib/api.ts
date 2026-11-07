@@ -23,6 +23,17 @@ export function setToken(token: string | null) {
   }
 }
 
+
+/** T-060: 仕切書（買取伝票） */
+export type SlipLine = { item: string; qty: number | null; unit_price: number | null; amount: number | null };
+export type ApiSlip = {
+  id: number; status: "pending" | "approved" | "rejected"; kind: "inc" | "exp"; d: string; issuer: string;
+  registration_no: string; total: number; lines: SlipLine[]; image_path: string; source: string;
+  reader: "ai" | "manual"; entry_id: number | null; note: string; issues: string[]; duplicate_of: number | null;
+  created_at: string;
+};
+export type ApiSlipList = { slips: ApiSlip[]; counts: Record<"pending" | "approved" | "rejected", number>; ai_enabled: boolean };
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -219,6 +230,15 @@ export const api = {
   blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),
   /** T-046: 全データ ZIP（全期間の仕訳 CSV・請求書 CSV/PDF） */
   exportAll: () => fetchBlob("/export/all.zip"),
+  slips: (status = "") => call<ApiSlipList>(`/slips${qs({ status })}`),
+  slipImage: (id: number) => fetchBlob(`/slips/${id}/image`),
+  slipPatch: (id: number, body: Partial<Pick<ApiSlip, "d" | "issuer" | "registration_no" | "kind" | "total" | "note" | "lines">>) =>
+    call<ApiSlip>(`/slips/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  slipApprove: (id: number) => call<ApiSlip>(`/slips/${id}/approve`, { method: "POST" }),
+  slipReject: (id: number) => call<ApiSlip>(`/slips/${id}/reject`, { method: "POST" }),
+  slipUpload: (file: Blob) => call<ApiSlip>("/slips/upload", { method: "POST", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } }),
+  slipsPdf: (date_from: string, date_to: string, status: "approved" | "pending" | "all") =>
+    fetchBlob(`/reports/slips.pdf${qs({ date_from, date_to, status })}`),
   /** T-046b: アカウント削除申請（owner のみ・即時削除なし） */
   deleteRequest: () => call<ApiDeleteRequest>("/account/delete-request"),
   requestDelete: () => call<ApiDeleteRequest>("/account/delete-request", { method: "POST" }),

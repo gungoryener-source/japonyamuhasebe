@@ -337,7 +337,7 @@ def render_list_pdf(slips_: list[dict], title_year: str, business_name: str = ""
             if i == 0:
                 t(cols[0] + 1 * mm, y, str(no) + ("※" if s.get("duplicate_of") else ""))
                 t(cols[1] + 1 * mm, y, s["d"])
-                t(cols[2] + 1 * mm, y, (s["issuer"] or "").replace("株式会社", "").replace("(株)", "").replace("㈱", "")[:9])
+                t(cols[2] + 1 * mm, y, (s["issuer"] or "").replace("株式会社", "").replace("(株)", "").replace("㈱", "").strip()[:9])
                 t(right["total"], y, f"{int(s['total']):,}", r=True)
             t(cols[3] + 1 * mm, y, (ln["item"] or "")[:10])
             if ln["qty"] is not None:

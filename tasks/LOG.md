@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-060 仕切書
+- Ürün sahibi isteği: el yazısı hurda satış fişleri (仕切書) LINE'dan → onay kuyruğu → 売上. AI yalnızca bu fişlerde (anahtar yoksa elle giriş).
+- `bot/slips.py` + `slips` tablosu; API /slips (liste, PATCH, approve, reject, image, upload) + /reports/slips.pdf (ürün sahibinin örneğiyle aynı düzen).
+- LINE: 「仕切書」/「Hurda fişi」 komutu 30 dk mod; OCR başarısız + basılı anahtar kelime (様, 盗難品, 仕切…) → otomatik kuyruk.
+- Panel `/slips`: görsel + düzenlenebilir tablo, kg×fiyat ve toplam kontrolü, mükerrer uyarısı, onay/ret, PDF. 14 test.
+
 ## 2026-11-07 22:43 JST · developer · T-059 CSV formül enjeksiyonu (review-fix)
 - Ortak yardımcı `export.csv_cell` (baştaki `=+-@`/TAB/CR → `'`; int/None dokunulmaz); `archive._cell` buna bağlandı.
 - `export.to_csv(..., escape_formulas=True)`: 取引先/摘要, 勘定科目, 備考 nötrlenir, giriş dict'i değişmez, 金額 (negatif dahil) sayı kalır. ZIP `entries.csv` bunu kullanıyor.
