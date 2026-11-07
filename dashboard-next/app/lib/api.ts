@@ -154,8 +154,8 @@ export type ApiEntry = {
   id: number; user_id?: string; d: string; kind: "inc" | "exp"; store: string; amount: number; category: string;
   rate: number; invoice_no: string; source: string; image_path?: string; created_at?: string;
 };
-export type EntryDraft = { date: string; kind: "inc" | "exp"; store: string; amount: number; category: string; rate: number; invoice_no: string };
-export type ApiOcr = { ok: boolean; error?: string; partial?: { date?: string; store?: string; invoice_no?: string }; entries: EntryDraft[] };
+export type EntryDraft = { date: string; kind: "inc" | "exp"; store: string; amount: number; category: string; rate: number; invoice_no: string; image_path?: string };
+export type ApiOcr = { ok: boolean; error?: string; partial?: { date?: string; store?: string; invoice_no?: string }; entries: EntryDraft[]; image_path?: string };
 export type ApiBankTx = {
   id: number; d: string; description: string; amount: number; balance: number | null; account: string;
   invoice_no: string; entry_id: number | null;
@@ -226,6 +226,7 @@ export const api = {
     call<ApiProfile>("/profile", { method: "PUT", body: JSON.stringify(body) }),
   entries: (f: { date_from?: string; date_to?: string; q?: string; amount_min?: number; amount_max?: number; kind?: string; limit?: number } = {}) =>
     call<ApiEntry[]>(`/entries${qs(f)}`),
+  entryImage: (id: number) => fetchBlob(`/entries/${id}/image`),
   createEntry: (e: EntryDraft) => call<ApiEntry & { id: number }>("/entries", { method: "POST", body: JSON.stringify(e) }),
   patchEntry: (id: number, e: Partial<EntryDraft>) => call<ApiEntry>(`/entries/${id}`, { method: "PATCH", body: JSON.stringify(e) }),
   deleteEntry: (id: number) => call<void>(`/entries/${id}`, { method: "DELETE" }),

@@ -135,6 +135,23 @@ class EntryIn(BaseModel):
     category: str
     rate: int = 10
     invoice_no: str = ""
+    image_path: str = Field("", max_length=120)   # T-034: /receipts/ocr が返した画像（同じ帳簿のもののみ）
+
+
+def _img_tag(uid: str) -> str:
+    """パネルで読み取った画像のキーに入れる帳簿ごとの印（他の帳簿の画像を紐付けられないように）。"""
+    import hashlib
+    return hashlib.sha256(("img:" + uid).encode()).hexdigest()[:12]
+
+
+def _new_image_key(uid: str) -> str:
+    import secrets
+    import time
+    return f"receipts/w{_img_tag(uid)}_{int(time.time() * 1000)}_{secrets.token_hex(3)}.jpg"
+
+
+def _image_key_ok(uid: str, key: str) -> bool:
+    return bool(re.fullmatch(rf"receipts/w{_img_tag(uid)}_\d+_[0-9a-f]{{6}}\.jpg", key))
 
 
 @router.get("/entries")
@@ -159,9 +176,12 @@ def create_entry(body: EntryIn, uid: str = Depends(writer_user)):
     if body.invoice_no and not re.fullmatch(r"T\d{13}", body.invoice_no):
         raise HTTPException(400, "invoice_no must be T + 13 digits")
     e = body.model_dump()
+    image_path = e.pop("image_path", "")
+    if image_path and not _image_key_ok(uid, image_path):
+        raise HTTPException(400, "invalid image_path")
     if e["kind"] == "exp":
         _billing_call(billing.check_limit, uid, "receipts")
-    eid = store.add_entry(uid, e, source="WEB")
+    eid = store.add_entry(uid, e, image_path=image_path, source="WEB")
     return {"id": eid, **e}
 
 
@@ -219,9 +239,32 @@ async def receipt_ocr(request: Request, uid: str = Depends(writer_user)):
     ai_usage.current_user.set(uid)
     reader = store.get_receipt_reader(uid)
     result = await (app_mod.ocr_receipt(raw, reader) if reader else app_mod.ocr_receipt(raw))
+    # T-034: 画像を保存（電帳法: 領収書の画像を記録と紐付けて保存）。保存失敗は読み取り結果を妨げない
+    import storage
+    image_path = _new_image_key(uid)
+    try:
+        await storage.put(image_path, raw, "image/jpeg")
+    except Exception as ex:  # noqa: BLE001
+        print("receipt image store error", type(ex).__name__)
+        image_path = ""
     if isinstance(result, dict):
-        return {"ok": False, "error": result.get("error"), "partial": result.get("partial", {}), "entries": []}
-    return {"ok": True, "entries": result}
+        return {"ok": False, "error": result.get("error"), "partial": result.get("partial", {}), "entries": [],
+                "image_path": image_path}
+    return {"ok": True, "entries": result, "image_path": image_path}
+
+
+@router.get("/entries/{entry_id}/image")
+async def entry_image(entry_id: int, uid: str = Depends(current_user)):
+    """記録に紐付いた領収書の画像（LINE・パネルで読み取ったもの）。"""
+    import storage
+    e = store.get_entry(uid, entry_id)
+    if not e or not e.get("image_path"):
+        raise HTTPException(404, "image not found")
+    data = await storage.get(e["image_path"])
+    if not data:
+        raise HTTPException(404, "image not found（保存期間外または移行前の画像）")
+    media = "image/png" if data[:8].startswith(b"\x89PNG") else "image/jpeg"
+    return Response(data, media_type=media, headers={"Cache-Control": "private, max-age=300"})
 
 
 

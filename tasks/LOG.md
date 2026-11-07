@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-056 + T-049 + T-034
+- T-056: Resend (MAIL_PROVIDER=resend, MAIL_API_KEY, MAIL_FROM); hata sessiz, log maskeli. 3 test.
+- T-049: 青色 控除 yıl bazlı (2027+: 75万 eklendi, 55万 kaldırıldı) — income.compute, /tax/income, /reports/blue-return.pdf, PDF dipnotu, panel seçenekleri. docs/DENCHOHO.md (優良 iddia edilmez), T-065 audit log açıldı.
+- T-034: panel OCR görseli kaydediliyor (帳簿ごとの印 + doğrulama), kayda bağlanıyor; GET /entries/{id}/image; giderler listesinde görsel simgesi. 2 test. Toplam 536.
+- Not: geliştirici zamanlanmış görevi 18:41'de ACCESS_DENIED ile başarısız (ürün sahibine bildirildi).
+
 ## 2026-11-07 · developer (oturum) · T-064 birden çok şirket
 - Ürün sahibi isteği: hesap başına sınırsız şirket (fiyat kuralı Q-16'ya bırakıldı). `account_companies` + `line_targets`; companies.py sahiplik yardımcıları; team.resolve/switch/join/list_members, şifre sıfırlama (tüm şirket oturumları), link-line koruması.
 - POST /companies; panel üst menüde 「事業所を追加」 → yeni şirket + /welcome. LINE 「会社」/「şirket」: kayıt yeri seçimi (yalnızca sahip olunan şirketler), cevapta ［şirket adı］.

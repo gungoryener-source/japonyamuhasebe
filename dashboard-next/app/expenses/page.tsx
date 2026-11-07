@@ -2,8 +2,8 @@
 
 /** 経費精算 — 領収書アップロード（OCR）・手入力・電子帳簿保存法の検索・修正/削除 */
 import { useRef, useState } from "react";
-import { Camera, LoaderCircle, Plus, Search, Trash2, Upload } from "lucide-react";
-import { api, CATEGORIES, EXPENSE_CATEGORIES, todayJST, type ApiEntry, type EntryDraft } from "../lib/api";
+import { Camera, Image as ImageIcon, LoaderCircle, Plus, Search, Trash2, Upload } from "lucide-react";
+import { api, CATEGORIES, EXPENSE_CATEGORIES, openBlob, todayJST, type ApiEntry, type EntryDraft } from "../lib/api";
 import { DEMO_ENTRIES } from "../lib/demo";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, creditRatio, cx, Empty, Field, inputCls, ReadOnlyNote, registrationOk, selectCls, Stat, yen } from "../components/ui";
@@ -52,6 +52,15 @@ function Expenses() {
     } catch (e) {
       toast(T("登録に失敗しました: {a}", { a: e instanceof Error ? e.message : e }));
       return false;
+    }
+  };
+
+  const showImage = async (r: ApiEntry) => {
+    if (!live) return toast(T("デモでは画像は表示されません"));
+    try {
+      openBlob(await api.entryImage(r.id));
+    } catch {
+      toast(T("画像が見つかりません（保存期間外、または保存先の設定前の画像です）"));
     }
   };
 
@@ -157,7 +166,12 @@ function Expenses() {
                         : r.invoice_no ? <Badge tone="ok">{T("適格")}</Badge>
                           : <Badge tone="warn">{T("番号なし・控除")}{creditRatio(r.d)}%</Badge>}
                     </td>
-                    <td className="px-2 py-1.5 text-[11px] text-slate-400">{r.source}</td>
+                    <td className="px-2 py-1.5 text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1.5">{r.source}
+                        {r.image_path && <button onClick={() => showImage(r)} title={T("領収書の画像を表示")} aria-label={T("領収書の画像を表示")}
+                          className="text-slate-400 hover:text-navy"><ImageIcon size={13} /></button>}
+                      </span>
+                    </td>
                     <td className="px-4 py-1.5 text-right">
                       {canEdit && <button onClick={() => remove(r)} className="text-slate-300 hover:text-rose-500" aria-label={T("削除")} title={T("削除")}><Trash2 size={14} /></button>}
                     </td>
@@ -238,11 +252,11 @@ function ReceiptUpload({ onSave }: { onSave: (d: EntryDraft) => Promise<boolean>
       }
       const r = await api.ocr(file);
       if (r.ok && r.entries.length) {
-        setDrafts(r.entries);
+        setDrafts(r.entries.map((e) => ({ ...e, image_path: r.image_path ?? "" })));   // T-034: 画像を記録に紐付け
         setMsg(r.entries.length > 1 ? T("税率ごとに{a}件に分けて読み取りました。内容を確認して登録してください", { a: r.entries.length }) : T("読み取りました。内容を確認して登録してください"));
       } else {
         const p = r.partial ?? {};
-        setDrafts([{ ...blank(), date: p.date ?? todayJST(), store: p.store ?? "", invoice_no: p.invoice_no ?? "" }]);
+        setDrafts([{ ...blank(), date: p.date ?? todayJST(), store: p.store ?? "", invoice_no: p.invoice_no ?? "", image_path: r.image_path ?? "" }]);
         setMsg(T("金額を読み取れませんでした（{a}）。読み取れた項目を入れたので、金額を入力してください", { a: r.error ?? T("不明") }));
       }
     } catch (e) {
