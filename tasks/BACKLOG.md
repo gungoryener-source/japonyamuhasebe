@@ -82,7 +82,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-064 | P0 | done | Bir hesapta birden çok şirket: `account_companies`, POST /companies, sahiplik kontrolleri (resolve/switch/join/şifre sıfırlama), LINE 「会社」 kayıt yeri seçimi (yalnızca sahip olunan şirketler) |
 | T-064b | P1 | blocked (Q-16 fiyat) | Şirket bazlı fiyatlandırma (Q-16 cevaplanınca): plan kontrolünü hesap düzeyine taşı veya şirket başına abonelik |
 | T-065 | P1 | done (bu commit; dilim 1: entries + invoices API, panel/bank_tx/slips → T-065b) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
-| T-065b | P1 | todo | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
+| T-065b | P1 | doing (developer, 2026-11-08) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
 
 ---
 
