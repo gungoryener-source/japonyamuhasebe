@@ -9,6 +9,7 @@ sys.path.insert(0, BOT_DIR)
 os.environ.setdefault("LINE_CHANNEL_SECRET", "test-secret")
 os.environ.setdefault("LINE_CHANNEL_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("ADMIN_KEY", "test-admin")
+os.environ.setdefault("RICHMENU_AUTO", "0")  # testlerde LINE API çağrılmasın
 
 
 @pytest.fixture()

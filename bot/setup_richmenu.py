@@ -62,6 +62,18 @@ async def create_and_set(token: str, png: bytes) -> str:
     return rid
 
 
+async def ensure_default(token: str, png: bytes) -> str | None:
+    """Varsayılan menü yoksa kurar (sunucu açılışında). Varsa dokunmaz; kurduysa id döner."""
+    h = {"Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get("https://api.line.me/v2/bot/user/all/richmenu", headers=h)
+    if r.status_code == 200 and r.json().get("richMenuId"):
+        return None
+    if r.status_code not in (200, 404):
+        r.raise_for_status()
+    return await create_and_set(token, png)
+
+
 if __name__ == "__main__":
     import asyncio
     print("Rich menu ready:", asyncio.run(create_and_set(os.environ["LINE_CHANNEL_ACCESS_TOKEN"], make_image())))

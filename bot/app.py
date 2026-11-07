@@ -494,6 +494,26 @@ def health():
             "tesseract": __import__("receipt_ocr").available()}
 
 
+@app.on_event("startup")
+async def _auto_richmenu() -> None:
+    """LINE alt menüsünü (リッチメニュー) açılışta kendiliğinden kur: varsayılan menü yoksa oluşturur.
+    Kapatmak için RICHMENU_AUTO=0. Hata sunucuyu durdurmaz, yalnızca log'a yazılır."""
+    if not CHANNEL_TOKEN or os.environ.get("RICHMENU_AUTO", "1") == "0":
+        return
+    import asyncio
+
+    async def run() -> None:
+        try:
+            from setup_richmenu import ensure_default
+            with open(os.path.join(os.path.dirname(__file__), "richmenu.png"), "rb") as f:
+                rid = await ensure_default(CHANNEL_TOKEN, f.read())
+            print("richmenu:", f"created {rid}" if rid else "already set")
+        except Exception as e:  # noqa: BLE001
+            print("richmenu: auto setup failed:", type(e).__name__, e)
+
+    asyncio.get_running_loop().create_task(run())
+
+
 @app.post("/admin/richmenu")
 async def admin_richmenu(x_admin_key: str = Header(default=""), key: str = ""):
     """Alttaki 3 butonlu menüyü kurar. Render'da kabuk olmadığı için HTTP ile çağrılır:
