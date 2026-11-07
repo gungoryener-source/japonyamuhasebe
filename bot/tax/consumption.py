@@ -93,7 +93,10 @@ def method_ineligible(
     specific_period_sales: int | None = None,
     specific_period_salaries: int | None = None,
 ) -> str | None:
-    """1,000万円要件を満たさない理由（満たす／不明なら None）。2割は基準期間のみ、3割は特定期間も見る。"""
+    """1,000万円要件を満たさない理由（満たす／不明なら None）。2割・3割とも基準期間と特定期間を見る。
+
+    2割特例: NTA インボイスQ&A 問115（特定期間の課税売上高による納税義務の免除の特例 消法9の2① で
+    免税点制度の適用が制限される課税期間は適用不可）。3割特例: TAX_RULES §1。"""
     if base_period_sales is not None and base_period_sales > SMALL_BUSINESS_LIMIT:
         return "base_period"
     if (specific_period_sales is not None and specific_period_sales > SMALL_BUSINESS_LIMIT
@@ -132,7 +135,7 @@ def compute(
 
     base_period_sales（基準期間の課税売上高）/ specific_period_sales（特定期間の課税売上高）/
     specific_period_salaries（特定期間の給与等支払額）は任意。渡された場合のみ 2割・3割特例の
-    1,000万円要件を確認し、満たさなければ ValueError。特定期間は売上高に代えて給与等で判定できるため、
+    1,000万円要件（基準期間・特定期間とも）を確認し、満たさなければ ValueError。特定期間は売上高に代えて給与等で判定できるため、
     売上高が超えていても給与等 ≤ 1,000万なら適用可。省略時は従来どおり確認しない。
     """
     sales = list(sales)
@@ -162,7 +165,7 @@ def compute(
     elif method == "niwari":
         if tax_year is not None and tax_year > 2026:
             raise ValueError("2割特例 is available only through 2026 (令和8年)")
-        _check_small_business("2割特例", base_period_sales)
+        _check_small_business("2割特例", base_period_sales, specific_period_sales, specific_period_salaries)
         input_tax = output * 80 // 100
     elif method == "sanwari":
         if not individual:

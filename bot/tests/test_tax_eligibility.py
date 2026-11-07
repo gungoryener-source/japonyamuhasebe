@@ -23,10 +23,44 @@ def test_niwari_base_period_over_rejected():
         compute(S, method="niwari", tax_year=2026, base_period_sales=10_000_001)
 
 
-def test_niwari_ignores_specific_period():
-    # TAX_RULES §1 の 2割特例 要件は基準期間のみ
-    r = compute(S, method="niwari", tax_year=2026, specific_period_sales=50_000_000)
-    assert r.payable == 20_000
+# ---------------------------------------------------------------- 2割特例: 特定期間 (T-066)
+# NTA インボイスQ&A 問115: 消法9の2①（特定期間）で免税点制度の適用が制限される課税期間は 2割特例不可。
+# 特定期間は課税売上高に代えて給与等支払額で判定できる（どちらかが ≤ 1,000万なら免税判定は可）。
+def _niwari(**kw):
+    return compute(S, method="niwari", tax_year=2026, **kw)
+
+
+@pytest.mark.parametrize("kw", [
+    dict(specific_period_sales=0),
+    dict(specific_period_sales=10_000_000),
+    dict(specific_period_sales=10_000_001, specific_period_salaries=10_000_000),
+    dict(specific_period_sales=50_000_000, specific_period_salaries=0),
+    dict(specific_period_salaries=50_000_000),  # 給与等のみ超過・売上高不明 → 判定しない
+    dict(specific_period_sales=9_000_000, specific_period_salaries=50_000_000),
+])
+def test_niwari_specific_period_ok(kw):
+    assert _niwari(**kw).payable == 20_000
+
+
+@pytest.mark.parametrize("kw", [
+    dict(specific_period_sales=10_000_001),
+    dict(specific_period_sales=50_000_000),
+    dict(specific_period_sales=10_000_001, specific_period_salaries=10_000_001),
+    dict(base_period_sales=10_000_000, specific_period_sales=10_000_001),
+])
+def test_niwari_specific_period_over_rejected(kw):
+    with pytest.raises(ValueError, match="2割特例: 特定期間"):
+        _niwari(**kw)
+
+
+def test_niwari_base_checked_before_specific():
+    with pytest.raises(ValueError, match="基準期間"):
+        _niwari(base_period_sales=10_000_001, specific_period_sales=10_000_001)
+
+
+def test_niwari_honsoku_unaffected_by_specific():
+    # 本則・簡易は 1,000万円要件を見ない
+    assert compute(S, method="honsoku", specific_period_sales=10**10).payable == 100_000
 
 
 # ---------------------------------------------------------------- 3割特例: 基準期間 + 特定期間
@@ -151,6 +185,20 @@ def test_api_eligibility_params(client, auth):
     r = client.get(base + "&base_period_sales=10000001", headers=auth)
     assert r.status_code == 400 and "基準期間" in r.json()["detail"]
     assert client.get(base + "&base_period_sales=-1", headers=auth).status_code == 422
+
+
+@pytest.mark.parametrize("q,status", [
+    ("&specific_period_sales=10000000", 200),
+    ("&specific_period_sales=10000001", 400),
+    ("&specific_period_sales=10000001&specific_period_salaries=10000000", 200),
+    ("&specific_period_sales=10000001&specific_period_salaries=10000001", 400),
+    ("&specific_period_sales=-1", 422),
+])
+def test_api_niwari_specific_period(client, auth, q, status):  # T-066
+    r = client.get("/api/v1/tax/consumption?year=2026&method=niwari" + q, headers=auth)
+    assert r.status_code == status, r.text
+    if status == 400:
+        assert "特定期間" in r.json()["detail"]
 
 
 def test_api_reports_cap_fields(client, auth):

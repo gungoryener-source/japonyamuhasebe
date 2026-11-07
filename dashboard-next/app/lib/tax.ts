@@ -71,7 +71,9 @@ export function methodUnavailable(method: Method, o: Opts = {}): string | null {
   if (method === "kani" && !(o.kaniType != null && o.kaniType in KANI_RATIO)) return "事業区分（第1〜6種）を選択してください";
   if (method === "niwari") {
     if (o.taxYear != null && o.taxYear > 2026) return "2割特例は令和8年（2026年）分までです";
-    if (smallBusinessIneligible({ basePeriodSales: o.basePeriodSales })) return "基準期間の課税売上高が1,000万円を超えるため2割特例は使えません";
+    const why = smallBusinessIneligible(o);
+    if (why === "base_period") return "基準期間の課税売上高が1,000万円を超えるため2割特例は使えません";
+    if (why === "specific_period") return "特定期間の課税売上高（および給与等）が1,000万円を超えるため2割特例は使えません";
   }
   if (method === "sanwari") {
     if (o.individual === false) return "3割特例は個人事業者のみです";

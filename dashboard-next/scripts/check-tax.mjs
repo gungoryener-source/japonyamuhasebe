@@ -36,7 +36,12 @@ assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2028 }), 
 // T-050: 1,000万円要件（test_tax_eligibility.py と同じ境界）
 assert.equal(methodUnavailable("niwari", { taxYear: 2026, basePeriodSales: 10_000_000 }), null);
 assert.ok(methodUnavailable("niwari", { taxYear: 2026, basePeriodSales: 10_000_001 }));
-assert.equal(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 50_000_000 }), null); // 2割は基準期間のみ
+// T-066: 2割も特定期間を見る（NTA Q&A 問115, 消法9の2①）。給与等 ≤ 1,000万なら可
+assert.equal(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 10_000_000 }), null);
+assert.ok(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 10_000_001 })?.includes("特定期間"));
+assert.equal(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 10_000_001, specificPeriodSalaries: 10_000_000 }), null);
+assert.ok(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSales: 10_000_001, specificPeriodSalaries: 10_000_001 }));
+assert.equal(methodUnavailable("niwari", { taxYear: 2026, specificPeriodSalaries: 50_000_000 }), null); // 給与等のみ超過は売上高で可
 assert.equal(methodUnavailable("sanwari", { individual: true, taxYear: 2027, basePeriodSales: 10_000_000, specificPeriodSales: 10_000_000 }), null);
 assert.ok(methodUnavailable("sanwari", { individual: true, taxYear: 2027, basePeriodSales: 10_000_001 }));
 assert.ok(methodUnavailable("sanwari", { individual: true, taxYear: 2027, specificPeriodSales: 10_000_001 }));

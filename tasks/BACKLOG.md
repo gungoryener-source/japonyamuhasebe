@@ -84,7 +84,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-065 | P1 | done (bu commit; dilim 1: entries + invoices API, panel/bank_tx/slips → T-065b) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
 | T-065b | P1 | done (bu commit; slips → T-065c) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
 | T-065c | P2 | blocked (Q-18) | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
-| T-066 | P2 | doing (developer, 2026-11-08) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
+| T-066 | P2 | done (bu commit) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
 
 ---
 
@@ -362,4 +362,5 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-066 · 2割特例 特定期間 şartı (review-fix, P2)
 - `bot/tax/consumption.py` `compute` (niwari dalı, ~satır 165) ve `dashboard-next/app/lib/tax.ts` `methodUnavailable`: 2割特例 için yalnızca `base_period_sales` kontrol ediliyor; `specific_period_sales` bilinçli olarak yok sayılıyor (`test_niwari_ignores_specific_period`).
 - Reviewer notu (2026-11-08): NTA 2割特例 sayfasına göre 特定期間 課税売上高 (veya 給与) 1,000万 aşımıyla 課税事業者 olan (ve 課税期間短縮/高額資産 vb.) durumlar da 2割特例 dışı olabilir. Bu çalışmada birincil kaynak açılamadı → **önce tax-watcher doğrulasın**, TAX_RULES §1 2割 satırını kaynak + tarihle güncellesin.
+- **Doğrulandı (developer, 2026-11-08):** NTA インボイスQ&A 問115 — 消法9の2① (特定期間) ile免税点制度 sınırlanan課税期間 2割特例 dışı; TAX_RULES §1 güncellendi.
 - Doğrulanırsa beklenen: niwari'de `_check_small_business("2割特例", base, specific, salaries)` (3割 ile aynı kural), `tax.ts` parite, `test_niwari_ignores_specific_period` beklentisi tersine çevrilir + sınır testleri (10,000,000 / 10,000,001, 給与 ile kurtarma).

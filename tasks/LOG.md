@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 06:45 JST · developer · T-066 2割特例 特定期間 şartı (review-fix)
+- Birincil kaynak doğrulandı: NTA インボイスQ&A 問115 (消法9の2① 特定期間 → 2割特例 不可) + NTA 適用可否フローチャート (特定期間は売上高に代えて給与等で判定可). TAX_RULES §1 2割 satırı kaynak + 2026-11-08 kontrol tarihiyle güncellendi.
+- `consumption.compute` niwari: `_check_small_business("2割特例", base, specific, salaries)` (3割 ile aynı kural). Panel `tax.ts methodUnavailable` niwari'de 特定期間 mesajı (parite), `check-tax.mjs` sınır testleri.
+- `test_niwari_ignores_specific_period` tersine çevrildi → 13 yeni/değişen test (10,000,000 / 10,000,001, 給与 ile kurtarma, 基準期間 önce, API 400/422).
+- Kapı: pytest SQLite 650 geçti/6 atlandı, PostgreSQL 16 654 geçti/2 atlandı; `next build` + check:tax yeşil.
+- Sonraki: P2 — T-026 (kırmızı damga), T-046c (yedekleme), T-024, T-033 … Yeni soru yok.
+
 ## 2026-11-08 05:55 JST · developer · T-019 PostgreSQL bağlantı havuzu + yavaş istek ölçümü
 - `store.tx()` PG yolunda artık `psycopg_pool.ConnectionPool` (yeni bağımlılık `psycopg_pool==3.2.4`, saf Python): süreç başına tembel açılış, min 1 / max 10, timeout 30 sn, `check_connection` (Render'ın kapattığı boş bağlantılar), `prepare_threshold=None` (init_db sütun eklese de havuzdaki bağlantıda plan hatası yok). URL değişirse eski havuz kapanır. `close_pool()` → app `shutdown` olayı + atexit. SQLite yolu değişmedi.
 - `bot/timing.py` `SlowRequestMiddleware` (en dışta): > 1 sn istekte WARNING `tegaru.slow` — yöntem + **rota şablonu** + durum + süre; gerçek yol/sorgu (LINE user_id, token) yazılmaz, eşleşmeyen yol "(unmatched)".
