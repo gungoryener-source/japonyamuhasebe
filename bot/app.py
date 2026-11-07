@@ -27,8 +27,9 @@ from parser import parse_text
 from security import SecurityHeadersMiddleware, cors_origins
 from tax.consumption import input_credit_ratio
 
-CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
-CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
+# .strip(): panele telefondan yapıştırılan değerin sonundaki boşluk/satır sonu imzayı bozmasın
+CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "").strip()
+CHANNEL_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OCR_MODEL = os.environ.get("OCR_MODEL", "claude-sonnet-5-5")
