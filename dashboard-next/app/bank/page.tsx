@@ -7,6 +7,7 @@ import { api, EXPENSE_CATEGORIES, type ApiBankTx, type ApiSuggestion } from "../
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Empty, Field, inputCls, ReadOnlyNote, selectCls, Stat, yen } from "../components/ui";
 import { useLoad } from "../components/useLoad";
+import { T } from "../lib/i18n";
 
 type BankData = { transactions: ApiBankTx[]; suggestions: ApiSuggestion[] };
 
@@ -45,14 +46,14 @@ function Bank() {
 
   const onFile = async (file?: File | null) => {
     if (!file) return;
-    if (!live) return toast("CSV取込は帳簿に接続すると使えます（デモでは表示のみ）");
+    if (!live) return toast(T("CSV取込は帳簿に接続すると使えます（デモでは表示のみ）"));
     setBusy(true); setResult(null);
     try {
       const r = await api.bankImport(file, account);
       setResult(`${r.parsed}件を読み込み、${r.imported}件を追加しました${r.duplicates ? `（重複 ${r.duplicates}件はスキップ）` : ""}。消込候補 ${r.suggestions.length}件`);
       reload();
     } catch (e) {
-      setResult(`取り込めませんでした: ${e instanceof Error ? e.message : e}`);
+      setResult(T("取り込めませんでした: {a}", { a: e instanceof Error ? e.message : e }));
     } finally {
       setBusy(false);
     }
@@ -64,14 +65,14 @@ function Bank() {
         transactions: d.transactions.map((t) => (t.id === s.tx_id ? { ...t, invoice_no: s.invoice_no } : t)),
         suggestions: d.suggestions.filter((x) => x.tx_id !== s.tx_id),
       }));
-      return toast(`${s.invoice_no} を消込しました（デモ）`);
+      return toast(T("{a} を消込しました（デモ）", { a: s.invoice_no }));
     }
     try {
       await api.bankMatch(s.tx_id, s.invoice_no);
-      toast(`${s.invoice_no} を消込しました（入金日 ${s.date}）`);
+      toast(T("{a} を消込しました（入金日 {b}）", { a: s.invoice_no, b: s.date }));
       reload();
     } catch (e) {
-      toast(`消込に失敗しました: ${e instanceof Error ? e.message : e}`);
+      toast(T("消込に失敗しました: {a}", { a: e instanceof Error ? e.message : e }));
     }
   };
 
@@ -85,42 +86,42 @@ function Bank() {
       toast(`経費に登録しました: ${category} ${yen(-t.amount)}`);
       reload();
     } catch (e) {
-      toast(`登録に失敗しました: ${e instanceof Error ? e.message : e}`);
+      toast(T("登録に失敗しました: {a}", { a: e instanceof Error ? e.message : e }));
     }
   };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="入金合計" value={yen(deposits)} tone="ok" />
-        <Stat label="出金合計" value={yen(withdrawals)} />
-        <Stat label="未処理の明細" value={`${pending.length} 件`} tone={pending.length ? "warn" : "ok"} />
-        <Stat label="消込候補" value={`${data.suggestions.length} 件`} tone={data.suggestions.length ? "warn" : undefined} />
+        <Stat label={T("入金合計")} value={yen(deposits)} tone="ok" />
+        <Stat label={T("出金合計")} value={yen(withdrawals)} />
+        <Stat label={T("未処理の明細")} value={T("{a} 件", { a: pending.length })} tone={pending.length ? "warn" : "ok"} />
+        <Stat label={T("消込候補")} value={T("{a} 件", { a: data.suggestions.length })} tone={data.suggestions.length ? "warn" : undefined} />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="明細CSVを取り込む" en="Import" className="lg:col-span-1">
           {canEdit ? <>
-          <Field label="口座名（任意）">
-            <input id="bank-account" value={account} onChange={(e) => setAccount(e.target.value)} placeholder="三菱UFJ 普通" className={inputCls} />
+          <Field label={T("口座名（任意）")}>
+            <input id="bank-account" value={account} onChange={(e) => setAccount(e.target.value)} placeholder={T("三菱UFJ 普通")} className={inputCls} />
           </Field>
           <button onClick={() => fileRef.current?.click()} disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-5 text-xs text-slate-500 hover:border-mint hover:text-mint-700 disabled:opacity-60">
-            {busy ? <><LoaderCircle size={15} className="animate-spin" />取込中…</> : <><FileUp size={15} />CSVファイルを選ぶ</>}
+            {busy ? <><LoaderCircle size={15} className="animate-spin" />{T("取込中…")}</> : <><FileUp size={15} />{T("CSVファイルを選ぶ")}</>}
           </button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
           {result && <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">{result}</p>}
-          </> : <ReadOnlyNote>閲覧者のため、明細の取込・消込・経費登録はできません。</ReadOnlyNote>}
+          </> : <ReadOnlyNote>{T("閲覧者のため、明細の取込・消込・経費登録はできません。")}</ReadOnlyNote>}
           <p className="text-[11px] leading-relaxed text-slate-400">
-            ネットバンキングの「入出金明細」画面からCSVをダウンロードしてください。Shift_JIS / UTF-8 どちらも対応。同じ明細を何度取り込んでも重複しません。
+            {T("ネットバンキングの「入出金明細」画面からCSVをダウンロードしてください。Shift_JIS / UTF-8 どちらも対応。同じ明細を何度取り込んでも重複しません。")}
           </p>
           <div className="flex flex-wrap gap-1">{BANKS.map((b) => <span key={b} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">{b}</span>)}</div>
         </Card>
 
         <Card title="消込候補" en="Auto Matching" className="lg:col-span-2"
-          right={<span className="text-[11px] text-slate-400">入金額 = 未入金請求書の合計</span>}>
+          right={<span className="text-[11px] text-slate-400">{T("入金額 = 未入金請求書の合計")}</span>}>
           {data.suggestions.length === 0 ? (
-            <Empty>消込候補はありません。入金明細を取り込むと、金額が一致する請求書を自動で探します。</Empty>
+            <Empty>{T("消込候補はありません。入金明細を取り込むと、金額が一致する請求書を自動で探します。")}</Empty>
           ) : (
             <ul className="divide-y divide-slate-100">
               {data.suggestions.map((s) => (
@@ -128,10 +129,10 @@ function Bank() {
                   <ArrowRightLeft size={15} className="text-mint" />
                   <div className="min-w-0 flex-1 text-xs">
                     <p className="font-bold text-navy">{s.client} <span className="font-mono font-normal text-slate-400">{s.invoice_no}</span></p>
-                    <p className="text-[11px] text-slate-400">{s.date.replaceAll("-", "/")} 入金</p>
+                    <p className="text-[11px] text-slate-400">{s.date.replaceAll("-", "/")} {T("入金")}</p>
                   </div>
                   <span className="font-mono text-sm font-semibold text-mint-600 tabular">{yen(s.amount)}</span>
-                  {canEdit && <Btn kind="mint" onClick={() => match(s)}><CircleCheck size={13} />消込する</Btn>}
+                  {canEdit && <Btn kind="mint" onClick={() => match(s)}><CircleCheck size={13} />{T("消込する")}</Btn>}
                 </li>
               ))}
             </ul>
@@ -140,20 +141,20 @@ function Bank() {
       </div>
 
       <Card title="入出金明細" en="Transactions">
-        {loading && <p className="text-xs text-slate-400">読み込み中…</p>}
+        {loading && <p className="text-xs text-slate-400">{T("読み込み中…")}</p>}
         {tx.length === 0 ? (
-          <Empty>まだ明細がありません。上の「CSVファイルを選ぶ」から取り込んでください。</Empty>
+          <Empty>{T("まだ明細がありません。上の「CSVファイルを選ぶ」から取り込んでください。")}</Empty>
         ) : (
           <div className="-mx-4 overflow-x-auto">
             <table className="w-full min-w-[820px] text-xs">
               <thead>
                 <tr className="border-y border-slate-100 bg-slate-50 text-left text-[10px] uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-2 font-medium">日付</th>
-                  <th className="px-2 py-2 font-medium">摘要</th>
-                  <th className="px-2 py-2 text-right font-medium">入金</th>
-                  <th className="px-2 py-2 text-right font-medium">出金</th>
-                  <th className="px-2 py-2 text-right font-medium">残高</th>
-                  <th className="px-4 py-2 font-medium">処理</th>
+                  <th className="px-4 py-2 font-medium">{T("日付")}</th>
+                  <th className="px-2 py-2 font-medium">{T("摘要")}</th>
+                  <th className="px-2 py-2 text-right font-medium">{T("入金")}</th>
+                  <th className="px-2 py-2 text-right font-medium">{T("出金")}</th>
+                  <th className="px-2 py-2 text-right font-medium">{T("残高")}</th>
+                  <th className="px-4 py-2 font-medium">{T("処理")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -165,10 +166,10 @@ function Bank() {
                     <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-navy tabular">{t.amount < 0 ? yen(-t.amount) : ""}</td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-slate-400 tabular">{t.balance != null ? yen(t.balance) : ""}</td>
                     <td className="px-4 py-1.5">
-                      {t.invoice_no ? <Badge tone="ok">消込済 {t.invoice_no}</Badge>
-                        : t.entry_id ? <Badge tone="ok">経費登録済</Badge>
+                      {t.invoice_no ? <Badge tone="ok">{T("消込済")} {t.invoice_no}</Badge>
+                        : t.entry_id ? <Badge tone="ok">{T("経費登録済")}</Badge>
                           : t.amount < 0 && canEdit ? <ExpenseAction desc={t.description} onSave={(c, r) => toEntry(t, c, r)} />
-                            : <Badge tone="muted">未消込</Badge>}
+                            : <Badge tone="muted">{T("未消込")}</Badge>}
                     </td>
                   </tr>
                 ))}
@@ -193,17 +194,17 @@ function ExpenseAction({ desc, onSave }: { desc: string; onSave: (category: stri
   const [open, setOpen] = useState(false);
   const [cat, setCat] = useState(guess(desc));
   const [rate, setRate] = useState(10);
-  if (!open) return <Btn onClick={() => setOpen(true)}>経費に登録</Btn>;
+  if (!open) return <Btn onClick={() => setOpen(true)}>{T("経費に登録")}</Btn>;
   return (
     <span className="flex items-center gap-1">
-      <select value={cat} onChange={(e) => setCat(e.target.value)} className={selectCls + " h-7 w-28"} aria-label="勘定科目">
-        <option value="">科目を選択</option>
+      <select value={cat} onChange={(e) => setCat(e.target.value)} className={selectCls + " h-7 w-28"} aria-label={T("勘定科目")}>
+        <option value="">{T("科目を選択")}</option>
         {EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
       </select>
-      <select value={rate} onChange={(e) => setRate(Number(e.target.value))} className={selectCls + " h-7 w-20"} aria-label="税率">
-        <option value={10}>10%</option><option value={8}>8%</option><option value={0}>対象外</option>
+      <select value={rate} onChange={(e) => setRate(Number(e.target.value))} className={selectCls + " h-7 w-20"} aria-label={T("税率")}>
+        <option value={10}>10%</option><option value={8}>8%</option><option value={0}>{T("対象外")}</option>
       </select>
-      <Btn kind="primary" disabled={!cat} onClick={() => onSave(cat, rate)} className="h-7">登録</Btn>
+      <Btn kind="primary" disabled={!cat} onClick={() => onSave(cat, rate)} className="h-7">{T("登録")}</Btn>
     </span>
   );
 }

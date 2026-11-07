@@ -1,6 +1,7 @@
 /** Yasal sayfalar için ortak görünüm (T-043). Sunucu bileşeni: metin statik HTML'e girer (JS olmadan okunur). */
 import { FileText, TriangleAlert } from "lucide-react";
 import { DRAFT_NOTICE, LEGAL_PAGES, LEGAL_UPDATED, PENDING, SERVICE_NAME, type LegalDoc } from "../lib/legal";
+import { T } from "../lib/i18n";
 
 function Pending() {
   return <span className="ml-1.5 inline-flex shrink-0 items-center rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-700">{PENDING}</span>;
@@ -19,7 +20,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
           <TriangleAlert size={16} className="mt-0.5 shrink-0" />
           <p>
             <strong className="font-bold">{DRAFT_NOTICE}。</strong>
-            内容は専門家による確認前のもので、今後変更される可能性があります。「{PENDING}」と表示された箇所は未確定です。
+            {T("内容は専門家による確認前のもので、今後変更される可能性があります。「")}{PENDING}{T("」と表示された箇所は未確定です。")}
           </p>
         </div>
 
@@ -28,7 +29,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-navy text-mint"><FileText size={18} /></div>
             <div className="min-w-0">
               <h1 className="text-lg font-bold text-navy">{doc.title}</h1>
-              <p className="text-[11px] text-slate-400">{doc.en} ・ 最終更新：{LEGAL_UPDATED}</p>
+              <p className="text-[11px] text-slate-400">{doc.en} {T("・ 最終更新：")}{LEGAL_UPDATED}</p>
             </div>
           </header>
 
@@ -65,12 +66,12 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
           </div>
         </article>
 
-        <nav aria-label="法務ページ" className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+        <nav aria-label={T("法務ページ")} className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
           {LEGAL_PAGES.map((p) => (
             <a key={p.slug} href={p.href} aria-current={p.slug === doc.slug ? "page" : undefined}
               className={p.slug === doc.slug ? "font-bold text-navy" : "hover:text-navy"}>{p.title}</a>
           ))}
-          <a href="/" className="hover:text-navy">ホーム</a>
+          <a href="/" className="hover:text-navy">{T("ホーム")}</a>
         </nav>
       </div>
     </main>
@@ -81,7 +82,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
 export function LegalLinks({ className = "" }: { className?: string }) {
   return (
     <span className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 ${className}`}>
-      {LEGAL_PAGES.map((p) => <a key={p.slug} href={p.href} className="hover:text-navy hover:underline">{p.title}</a>)}
+      {LEGAL_PAGES.map((p) => <a key={p.slug} href={p.href} className="hover:text-navy hover:underline">{T(p.title)}</a>)}
     </span>
   );
 }

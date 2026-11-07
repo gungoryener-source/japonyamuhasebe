@@ -7,11 +7,11 @@
  */
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Languages } from "lucide-react";
-import { LANGS, translate, type Lang } from "../lib/i18n";
+import { LANGS, setCurrentLang, translate, type Lang } from "../lib/i18n";
 
 const KEY = "jsaas.lang";
 
-type LangCtx = { lang: Lang; setLang: (l: Lang) => void; t: (ja: string, vars?: Record<string, string | number>) => string };
+type LangCtx = { lang: Lang; setLang: (l: Lang) => void; t: (ja: string, vars?: Record<string, unknown>) => string };
 const Ctx = createContext<LangCtx>({ lang: "ja", setLang: () => {}, t: (s, v) => translate("ja", s, v) });
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
@@ -31,9 +31,11 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(KEY, l); } catch { /* yok say */ }
   }, []);
 
-  const t = useCallback((ja: string, vars?: Record<string, string | number>) => translate(lang, ja, vars), [lang]);
+  const t = useCallback((ja: string, vars?: Record<string, unknown>) => translate(lang, ja, vars), [lang]);
 
-  return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
+  setCurrentLang(lang);   // T() için; render sırasında ayarlanır ki çocuklar aynı dili görsün
+  // Dil değişince ağaç yeniden kurulur: hook kullanmayan T() çağrıları da güncellenir.
+  return <Ctx.Provider value={{ lang, setLang, t }}><div key={lang} className="contents">{children}</div></Ctx.Provider>;
 }
 
 export const useLang = () => useContext(Ctx);

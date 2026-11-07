@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 · developer (oturum) · T-047b sayfa metinleri
+- Hook gerektirmeyen `T()` (lib/i18n.ts; LangProvider dil değişince ağacı yeniden kurar). Tüm sayfalar (ホーム, 請求書, 経費, 銀行, 税務, 料金, メンバー, login/signup/reset/join/connect) `T()` ile sarıldı; ~430 metin `lib/locales/tr.json` + `en.json`.
+- Veri (勘定科目, mağaza/şirket adları, API'ye giden metin) çevrilmez. Grafik ekseni tr/en'de "M" birimi.
+- `next build` yeşil; 8 sayfa tr ekran görüntüsüyle kontrol edildi, konsol hatası yok.
+
 ## 2026-11-07 · developer (oturum) · T-047c bot dili
 - `bot/i18n.py`: Japonca çekirdek yanıtı parça bazında tr/en'e çevirir; yerel komutlar (Toplam/Geri al/Total/Undo…) Japonca komuta normalize edilir. Veri ve 勘定科目 Japonca kalır.
 - Komut: 「言語」/「dil」/「language」 → seçenekler; 「Türkçe」/「English」/「日本語」/「言語:tr」 → ayarla. Yeni tablo `user_prefs(user_id, lang)`.

@@ -4,6 +4,7 @@
 import { LoaderCircle } from "lucide-react";
 import { ApiError, NETWORK_ERROR } from "../lib/api";
 import { LegalLinks } from "./legal";
+import { T } from "../lib/i18n";
 
 export function AuthCard({ icon, title, sub, children, onSubmit, footer }: {
   icon: React.ReactNode; title: string; sub?: React.ReactNode; children: React.ReactNode;
@@ -14,7 +15,7 @@ export function AuthCard({ icon, title, sub, children, onSubmit, footer }: {
       <div className="w-full max-w-sm space-y-3">
         <a href="/" className="flex items-center justify-center gap-2 text-navy">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-mint text-xs font-black text-navy-900">J</span>
-          <span className="text-sm font-bold">J-SaaS 会計</span>
+          <span className="text-sm font-bold">{T("J-SaaS 会計")}</span>
         </a>
         <form
           noValidate
@@ -32,7 +33,7 @@ export function AuthCard({ icon, title, sub, children, onSubmit, footer }: {
         </form>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
           {footer}
-          <a href="/" className="hover:text-navy">デモデータで見る</a>
+          <a href="/" className="hover:text-navy">{T("デモデータで見る")}</a>
         </div>
         <LegalLinks className="text-[10px] text-slate-400" />
       </div>
@@ -68,7 +69,7 @@ export function Notice({ tone, children }: { tone: "error" | "ok" | "warn"; chil
 
 /** API hatasını kullanıcı metnine çevirir: sunucunun Japonca `detail`'i olduğu gibi, ağ hatasında demo yönlendirmesi. */
 export function errorText(e: unknown): string {
-  if (e instanceof ApiError) return e.status === 0 ? `${NETWORK_ERROR}（デモデータは下のリンクから見られます）` : e.message;
+  if (e instanceof ApiError) return e.status === 0 ? T("{a}（デモデータは下のリンクから見られます）", { a: NETWORK_ERROR }) : e.message;
   return NETWORK_ERROR;
 }
 

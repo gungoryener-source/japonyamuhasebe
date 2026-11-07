@@ -268,10 +268,28 @@ const EN: Dict = {
   "接続コードを入力": "Enter connection code",
 };
 
-export const DICTS: Record<Exclude<Lang, "ja">, Dict> = { tr: TR, en: EN };
+// Sayfa metinleri (T-047b): app/lib/locales/*.json — anahtar yine Japonca kaynak metin.
+import TR_PAGES from "./locales/tr.json";
+import EN_PAGES from "./locales/en.json";
 
-export function translate(lang: Lang, ja: string, vars?: Record<string, string | number>): string {
-  let s = lang === "ja" ? ja : (DICTS[lang][ja] ?? ja);
+export const DICTS: Record<Exclude<Lang, "ja">, Dict> = {
+  tr: { ...(TR_PAGES as Dict), ...TR },
+  en: { ...(EN_PAGES as Dict), ...EN },
+};
+
+export function translate(lang: Lang, ja: string, vars?: Record<string, unknown>): string {
+  let s = lang === "ja" ? ja : (DICTS[lang][ja] || ja);
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
   return s;
+}
+
+/**
+ * Hook gerektirmeyen çeviri: geçerli dil modül düzeyinde tutulur (LangProvider ayarlar).
+ * Dil değişince LangProvider ağacı yeniden kurar (key), böylece T() çağrıları yeni dille çalışır.
+ */
+let current: Lang = "ja";
+export function setCurrentLang(l: Lang) { current = l; }
+export function currentLang(): Lang { return current; }
+export function T(ja: string, vars?: Record<string, unknown>): string {
+  return translate(current, ja, vars);
 }

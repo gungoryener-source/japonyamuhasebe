@@ -6,6 +6,7 @@ import { Check, CircleCheck, CreditCard, Info, LoaderCircle, TriangleAlert, X } 
 import { api, ApiError, type ApiBillingStatus, type ApiPlan } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, cx, yen } from "../components/ui";
+import { currentLang, T } from "../lib/i18n";
 
 export default function BillingPage() {
   return (
@@ -59,12 +60,12 @@ function Billing() {
     if (!live) { setLoading(false); return; }
     Promise.all([api.billingPlans(), api.billingStatus()])
       .then(([p, s]) => { setPlans(p.plans); setSt(s); setError(null); })
-      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? "サーバーが料金プランに未対応です（更新待ち）" : e instanceof Error ? e.message : String(e)))
+      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? T("サーバーが料金プランに未対応です（更新待ち）") : e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
   }, [mode, live]);
 
   const upgrade = async (plan: "personal" | "business") => {
-    if (!live) return toast("デモ表示中です。ログインするとプランを変更できます");
+    if (!live) return toast(T("デモ表示中です。ログインするとプランを変更できます"));
     setBusy(plan);
     try {
       const { url } = await api.checkout(plan);
@@ -76,12 +77,12 @@ function Billing() {
   };
 
   const cancel = async () => {
-    if (!live) return toast("デモ表示中です");
-    if (!confirm("有料プランを解約しますか？\n現在の請求期間の終了まではそのままご利用いただけます。データは削除されません。")) return;
+    if (!live) return toast(T("デモ表示中です"));
+    if (!confirm(T("有料プランを解約しますか？\n現在の請求期間の終了まではそのままご利用いただけます。データは削除されません。"))) return;
     setBusy("cancel");
     try {
       setSt(await api.cancelPlan());
-      toast("解約を受け付けました（期間末に終了）");
+      toast(T("解約を受け付けました（期間末に終了）"));
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e));
     } finally {
@@ -97,41 +98,41 @@ function Billing() {
     <div className="space-y-3">
       {result === "success" && (
         <Banner tone="ok" onClose={() => setResult(null)}>
-          お申し込みありがとうございます。決済の確認後、数分以内にプランが切り替わります。
+          {T("お申し込みありがとうございます。決済の確認後、数分以内にプランが切り替わります。")}
         </Banner>
       )}
       {result === "cancel" && (
-        <Banner tone="warn" onClose={() => setResult(null)}>お手続きはキャンセルされました。料金は発生していません。</Banner>
+        <Banner tone="warn" onClose={() => setResult(null)}>{T("お手続きはキャンセルされました。料金は発生していません。")}</Banner>
       )}
       {!st.payments_enabled && (
         <Banner tone="info">
-          オンライン決済は<strong className="mx-0.5">準備中</strong>です。現在はすべての機能を上限なしでご利用いただけます。
+          {T("オンライン決済は")}<strong className="mx-0.5">{T("準備中")}</strong>{T("です。現在はすべての機能を上限なしでご利用いただけます。")}
         </Banner>
       )}
-      {error && <Banner tone="warn">料金プランを読み込めませんでした（{error}）。</Banner>}
+      {error && <Banner tone="warn">{T("料金プランを読み込めませんでした（")}{error}）。</Banner>}
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="現在のプラン" en="Current Plan" right={<CreditCard size={16} className="text-mint" />}>
           {loading ? (
-            <p className="flex items-center gap-2 text-xs text-slate-400"><LoaderCircle size={14} className="animate-spin" />読み込み中…</p>
+            <p className="flex items-center gap-2 text-xs text-slate-400"><LoaderCircle size={14} className="animate-spin" />{T("読み込み中…")}</p>
           ) : (
             <div className="space-y-2 text-xs">
               <p className="flex items-center gap-2">
-                <span className="text-xl font-bold text-navy">{st.plan_name}</span>
-                {sub && paid && <Badge tone={sub.status === "active" || sub.status === "trialing" ? "ok" : "warn"}>{STATUS_LABEL[sub.status] ?? sub.status}</Badge>}
-                {!live && <Badge tone="muted" icon={false}>デモ</Badge>}
+                <span className="text-xl font-bold text-navy">{T(st.plan_name)}</span>
+                {sub && paid && <Badge tone={sub.status === "active" || sub.status === "trialing" ? "ok" : "warn"}>{T(STATUS_LABEL[sub.status] ?? sub.status)}</Badge>}
+                {!live && <Badge tone="muted" icon={false}>{T("デモ")}</Badge>}
               </p>
               {sub?.current_period_end && paid && (
                 <p className="text-slate-500">
-                  {cancelScheduled ? "ご利用終了日" : "次回更新日"}: <span className="font-mono tabular text-navy">{fmtDate(sub.current_period_end)}</span>
+                  {cancelScheduled ? T("ご利用終了日") : T("次回更新日")}: <span className="font-mono tabular text-navy">{fmtDate(sub.current_period_end)}</span>
                 </p>
               )}
               {cancelScheduled && (
-                <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-amber-800">期間末に解約予定です。終了後はフリープランに戻り、データはそのまま残ります。</p>
+                <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-amber-800">{T("期間末に解約予定です。終了後はフリープランに戻り、データはそのまま残ります。")}</p>
               )}
               {paid && !cancelScheduled && owner && (
                 <Btn kind="danger" onClick={cancel} disabled={busy !== null || !st.payments_enabled}>
-                  {busy === "cancel" ? <LoaderCircle size={13} className="animate-spin" /> : null}解約（期間末）
+                  {busy === "cancel" ? <LoaderCircle size={13} className="animate-spin" /> : null}{T("解約（期間末）")}
                 </Btn>
               )}
             </div>
@@ -139,16 +140,16 @@ function Billing() {
         </Card>
 
         <Card title="今月の利用状況" en="Usage" className="lg:col-span-2"
-          right={<span className="font-mono text-[11px] text-slate-400 tabular">{st.usage.month || "今月"}</span>}>
+          right={<span className="font-mono text-[11px] text-slate-400 tabular">{st.usage.month || T("今月")}</span>}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Meter label="経費（レシート・手入力）" used={st.usage.receipts} limit={st.limits.receipts_per_month} />
-            <Meter label="請求書の発行" used={st.usage.invoices} limit={st.limits.invoices_per_month} />
+            <Meter label={T("経費（レシート・手入力）")} used={st.usage.receipts} limit={st.limits.receipts_per_month} />
+            <Meter label={T("請求書の発行")} used={st.usage.invoices} limit={st.limits.invoices_per_month} />
           </div>
           <p className="flex items-start gap-1.5 text-[11px] text-slate-400">
             <Info size={12} className="mt-0.5 shrink-0" />
             {st.limits_enforced
-              ? "毎月1日（日本時間）にリセットされます。銀行明細の取込と入金の記録は上限に含まれません。"
-              : "上限は決済開始後に適用されます。現在は上限なしでご利用いただけます。"}
+              ? T("毎月1日（日本時間）にリセットされます。銀行明細の取込と入金の記録は上限に含まれません。")
+              : T("上限は決済開始後に適用されます。現在は上限なしでご利用いただけます。")}
           </p>
         </Card>
       </div>
@@ -160,33 +161,33 @@ function Billing() {
             <section key={p.id}
               className={cx("flex flex-col gap-3 rounded-xl border bg-white p-4", current ? "border-mint ring-1 ring-mint" : "border-slate-200")}>
               <header className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-navy">{p.name}プラン</h2>
-                {current && <Badge tone="ok">ご利用中</Badge>}
-                {p.placeholder && p.price_jpy > 0 && <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500" title="正式な価格は決定後に表示されます">仮</span>}
+                <h2 className="text-sm font-bold text-navy">{currentLang() === "ja" ? `${p.name}プラン` : `${T(p.name)} plan`}</h2>
+                {current && <Badge tone="ok">{T("ご利用中")}</Badge>}
+                {p.placeholder && p.price_jpy > 0 && <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500" title={T("正式な価格は決定後に表示されます")}>{T("仮")}</span>}
               </header>
               <p className="font-mono text-2xl font-semibold text-navy tabular">
                 {p.price_jpy === 0 ? "¥0" : yen(p.price_jpy)}
-                <span className="ml-1 font-sans text-[11px] font-normal text-slate-400">/ 月（税抜）</span>
+                <span className="ml-1 font-sans text-[11px] font-normal text-slate-400">{T("/ 月（税抜）")}</span>
               </p>
               <ul className="flex-1 space-y-1 text-xs text-slate-600">
-                <li className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />経費 {p.receipts_per_month == null ? "無制限" : `月${p.receipts_per_month}件まで`}</li>
-                <li className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />請求書 {p.invoices_per_month == null ? "無制限" : `月${p.invoices_per_month}件まで`}</li>
+                <li className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />{T("経費")} {p.receipts_per_month == null ? T("無制限") : T("月{a}件まで", { a: p.receipts_per_month })}</li>
+                <li className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />{T("請求書")} {p.invoices_per_month == null ? T("無制限") : T("月{a}件まで", { a: p.invoices_per_month })}</li>
                 {PLAN_NOTES[p.id]?.map((n) => (
-                  <li key={n} className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />{n}</li>
+                  <li key={n} className="flex gap-1.5"><Check size={13} className="mt-0.5 shrink-0 text-mint" />{T(n)}</li>
                 ))}
               </ul>
               {p.id === "free" ? (
-                <p className="text-center text-[11px] text-slate-400">{current ? "現在のプランです" : "有料プランの解約後はこのプランになります"}</p>
+                <p className="text-center text-[11px] text-slate-400">{current ? T("現在のプランです") : T("有料プランの解約後はこのプランになります")}</p>
               ) : current ? (
-                <Btn kind="ghost" disabled>ご利用中</Btn>
+                <Btn kind="ghost" disabled>{T("ご利用中")}</Btn>
               ) : !owner ? (
-                <Btn kind="ghost" disabled title="プランの変更は帳簿のオーナーのみ行えます">オーナーのみ変更可</Btn>
+                <Btn kind="ghost" disabled title={T("プランの変更は帳簿のオーナーのみ行えます")}>{T("オーナーのみ変更可")}</Btn>
               ) : !st.payments_enabled || !p.available ? (
-                <Btn kind="ghost" disabled title="オンライン決済の開始までお待ちください">準備中</Btn>
+                <Btn kind="ghost" disabled title={T("オンライン決済の開始までお待ちください")}>{T("準備中")}</Btn>
               ) : (
                 <Btn kind="mint" onClick={() => upgrade(p.id as "personal" | "business")} disabled={busy !== null}>
                   {busy === p.id ? <LoaderCircle size={13} className="animate-spin" /> : null}
-                  {paid ? "このプランに変更" : "アップグレード"}
+                  {paid ? T("このプランに変更") : T("アップグレード")}
                 </Btn>
               )}
             </section>
@@ -194,10 +195,10 @@ function Billing() {
         })}
       </div>
       <p className="text-[11px] text-slate-400">
-        価格は仮のものです。お支払いは Stripe（クレジットカード）で安全に処理され、カード情報は当サービスに保存されません。
-        {" "}<a href="/legal/tokushoho/" className="underline-offset-2 hover:text-navy hover:underline">特定商取引法に基づく表記</a>
-        {" "}<a href="/legal/terms/" className="underline-offset-2 hover:text-navy hover:underline">利用規約</a>
-        {" "}<a href="/settings/" className="underline-offset-2 hover:text-navy hover:underline">設定に戻る</a>
+        {T("価格は仮のものです。お支払いは Stripe（クレジットカード）で安全に処理され、カード情報は当サービスに保存されません。")}
+        {" "}<a href="/legal/tokushoho/" className="underline-offset-2 hover:text-navy hover:underline">{T("特定商取引法に基づく表記")}</a>
+        {" "}<a href="/legal/terms/" className="underline-offset-2 hover:text-navy hover:underline">{T("利用規約")}</a>
+        {" "}<a href="/settings/" className="underline-offset-2 hover:text-navy hover:underline">{T("設定に戻る")}</a>
       </p>
     </div>
   );
@@ -212,14 +213,14 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
         <span className="text-slate-600">{label}</span>
         <span className="font-mono tabular text-navy">
           <strong className="text-base">{used.toLocaleString("ja-JP")}</strong>
-          <span className="text-slate-400"> / {limit == null ? "無制限" : `${limit}件`}</span>
+          <span className="text-slate-400"> / {limit == null ? T("無制限") : T("{a}件", { a: limit })}</span>
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label={label}
         aria-valuenow={used} aria-valuemin={0} aria-valuemax={limit ?? undefined}>
         <div className={cx("h-full rounded-full transition-all", tone)} style={{ width: limit == null ? "100%" : `${ratio * 100}%`, opacity: limit == null ? 0.25 : 1 }} />
       </div>
-      {limit != null && used >= limit && <p className="text-[11px] text-rose-600">今月の上限に達しました。アップグレードすると引き続き記録できます。</p>}
+      {limit != null && used >= limit && <p className="text-[11px] text-rose-600">{T("今月の上限に達しました。アップグレードすると引き続き記録できます。")}</p>}
     </div>
   );
 }
@@ -231,7 +232,7 @@ function Banner({ tone, children, onClose }: { tone: "ok" | "warn" | "info"; chi
     <div className={cx("flex items-start gap-2 rounded-lg px-3 py-2 text-xs", cls)} role="status">
       <Icon size={14} className="mt-0.5 shrink-0" />
       <p className="flex-1">{children}</p>
-      {onClose && <button onClick={onClose} aria-label="閉じる" className="opacity-60 hover:opacity-100"><X size={14} /></button>}
+      {onClose && <button onClick={onClose} aria-label={T("閉じる")} className="opacity-60 hover:opacity-100"><X size={14} /></button>}
     </div>
   );
 }

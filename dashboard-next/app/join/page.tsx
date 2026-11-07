@@ -11,6 +11,7 @@ import { LoaderCircle, UserPlus } from "lucide-react";
 import { api, getToken, replaceSession } from "../lib/api";
 import { extractInviteCode, ROLE_HINT, ROLE_LABEL, parseRole } from "../lib/team";
 import { AuthCard, AuthInput, errorText, Notice, pendingInvite, setPendingInvite, SubmitBtn } from "../components/auth";
+import { T } from "../lib/i18n";
 
 type Session = { state: "loading" } | { state: "none" } | { state: "account"; email: string };
 
@@ -40,7 +41,7 @@ export default function JoinPage() {
 
   const submit = async () => {
     const code = extractInviteCode(value);
-    if (!code) { setError("招待コードは「iv_」で始まります。オーナーから届いたコードまたはリンクを貼り付けてください。"); return; }
+    if (!code) { setError(T("招待コードは「iv_」で始まります。オーナーから届いたコードまたはリンクを貼り付けてください。")); return; }
     if (session.state !== "account") { setPendingInvite(code); location.href = "/login/?next=/join/"; return; }
     setBusy(true);
     setError(null);
@@ -67,30 +68,30 @@ export default function JoinPage() {
   return (
     <AuthCard
       icon={<UserPlus size={18} />}
-      title="招待された帳簿に参加"
+      title={T("招待された帳簿に参加")}
       sub="Join a team ledger"
       onSubmit={submit}
       footer={account
-        ? <a href="/" className="font-bold text-navy hover:underline">ホームに戻る</a>
-        : <><a href="/login/?next=/join/" className="font-bold text-navy hover:underline">ログイン</a><a href="/signup/" className="hover:text-navy">新規登録</a></>}
+        ? <a href="/" className="font-bold text-navy hover:underline">{T("ホームに戻る")}</a>
+        : <><a href="/login/?next=/join/" className="font-bold text-navy hover:underline">{T("ログイン")}</a><a href="/signup/" className="hover:text-navy">{T("新規登録")}</a></>}
     >
       {account ? (
         <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-          ログイン中：<span className="font-bold text-navy">{session.email}</span><br />
-          参加後は上部メニューから、ご自身の帳簿と参加した帳簿を切り替えられます。
+          {T("ログイン中：")}<span className="font-bold text-navy">{session.email}</span><br />
+          {T("参加後は上部メニューから、ご自身の帳簿と参加した帳簿を切り替えられます。")}
         </p>
       ) : (
-        <Notice tone="warn">招待に参加するには、メールアドレスでログイン（またはアカウント登録）してください。コードはこのタブに保存され、ログイン後に自動で入力されます。</Notice>
+        <Notice tone="warn">{T("招待に参加するには、メールアドレスでログイン（またはアカウント登録）してください。コードはこのタブに保存され、ログイン後に自動で入力されます。")}</Notice>
       )}
-      <AuthInput label="招待コード" value={value} onChange={(e) => setValue(e.target.value)} placeholder="iv_..." autoComplete="off" spellCheck={false}
+      <AuthInput label={T("招待コード")} value={value} onChange={(e) => setValue(e.target.value)} placeholder="iv_..." autoComplete="off" spellCheck={false}
         className="font-mono" />
       <ul className="space-y-0.5 text-[10px] text-slate-400">
         <li><span className="font-bold text-slate-500">{ROLE_LABEL.accountant}</span>：{ROLE_HINT.accountant}</li>
         <li><span className="font-bold text-slate-500">{ROLE_LABEL.viewer}</span>：{ROLE_HINT.viewer}</li>
       </ul>
       {error && <Notice tone="error">{error}</Notice>}
-      {joined && <Notice tone="ok">{joined}として参加しました。帳簿を開いています…</Notice>}
-      <SubmitBtn busy={busy || !!joined}>{account ? "参加する" : "ログインして参加"}</SubmitBtn>
+      {joined && <Notice tone="ok">{joined}{T("として参加しました。帳簿を開いています…")}</Notice>}
+      <SubmitBtn busy={busy || !!joined}>{account ? T("参加する") : T("ログインして参加")}</SubmitBtn>
     </AuthCard>
   );
 }

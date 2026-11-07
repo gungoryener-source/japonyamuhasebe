@@ -9,6 +9,7 @@ import TAX_EXAMPLE from "../lib/tax-example.json";
 import { estimateIncomeTax } from "../lib/income";
 import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, cx, Field, inputCls, selectCls, Stat, yen } from "../components/ui";
+import { T } from "../lib/i18n";
 
 const DEMO_PL: ApiPL = {
   year: 2025, revenue: 8_000_000,
@@ -58,7 +59,7 @@ function Tax() {
   // 損益
   useEffect(() => {
     if (!live) { setPl({ ...DEMO_PL, year }); return; }
-    api.pl(year).then(setPl).catch((e) => toast(`損益を取得できませんでした: ${e instanceof Error ? e.message : e}`));
+    api.pl(year).then(setPl).catch((e) => toast(T("損益を取得できませんでした: {a}", { a: e instanceof Error ? e.message : e })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live, year]);
 
@@ -68,12 +69,12 @@ function Tax() {
     if (!live) {
       const r = estimateIncomeTax(pl.revenue, pl.expenses_total, year, blue, s, o);
       setIt(r);
-      setItMsg(r ? null : `${year}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。`);
+      setItMsg(r ? null : T("{a}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。", { a: year }));
       return;
     }
     api.incomeTax(year, { blue, social_insurance: s, other_deductions: o })
       .then((r) => { setIt(r); setItMsg(null); })
-      .catch((e) => { setIt(null); setItMsg(e instanceof ApiError && e.status === 409 ? `${year}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。` : `計算できませんでした: ${e instanceof Error ? e.message : e}`); });
+      .catch((e) => { setIt(null); setItMsg(e instanceof ApiError && e.status === 409 ? T("{a}年分の基礎控除は税制改正の内容を確認中のため、計算できません（対応: 2025〜2027年分）。", { a: year }) : T("計算できませんでした: {a}", { a: e instanceof Error ? e.message : e })); });
   }, [live, year, blue, social, other, pl.revenue, pl.expenses_total]);
 
   // 消費税
@@ -82,7 +83,7 @@ function Tax() {
     if (unavailable) { setCt(null); setCtMsg(unavailable); return; }
     if (!live) {
       const r = compute(EX.sales, EX.purchases, method, { individual: true, taxYear: 2026, kaniType: kani });
-      setCt(r); setCtMsg("デモ: 2026年分の例");
+      setCt(r); setCtMsg(T("デモ: 2026年分の例"));
       return;
     }
     api.consumption(year, method, method === "kani" ? kani : undefined)
@@ -91,11 +92,11 @@ function Tax() {
   }, [live, year, method, kani]);
 
   const exportCsv = async (fmt: "freee" | "mf" | "yayoi") => {
-    if (!live) return toast("CSV出力は帳簿に接続すると使えます");
+    if (!live) return toast(T("CSV出力は帳簿に接続すると使えます"));
     try {
       saveBlob(await api.exportCsv(fmt, year), `tegaru_${fmt}_${year}.csv`);
     } catch (e) {
-      toast(`出力に失敗しました: ${e instanceof Error ? e.message : e}`);
+      toast(T("出力に失敗しました: {a}", { a: e instanceof Error ? e.message : e }));
     }
   };
 
@@ -106,74 +107,74 @@ function Tax() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-slate-600">対象年分</span>
+        <span className="text-xs font-bold text-slate-600">{T("対象年分")}</span>
         {years.map((y) => (
           <button key={y} onClick={() => setYear(y)} aria-pressed={year === y}
             className={cx("rounded-full px-3 py-1 text-xs ring-1 ring-inset", year === y ? "bg-navy text-white ring-navy" : "text-slate-500 ring-slate-200 hover:bg-slate-50")}>
-            {y}年分
+            {y}{T("年分")}
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="売上（収入）金額" value={yen(pl.revenue)} tone="ok" />
-        <Stat label="経費合計" value={yen(pl.expenses_total)} />
-        <Stat label="所得金額（青色控除前）" value={yen(income)} />
-        <Stat label="納める所得税（概算）" value={it ? yen(it.total) : "—"} tone="warn" />
+        <Stat label={T("売上（収入）金額")} value={yen(pl.revenue)} tone="ok" />
+        <Stat label={T("経費合計")} value={yen(pl.expenses_total)} />
+        <Stat label={T("所得金額（青色控除前）")} value={yen(income)} />
+        <Stat label={T("納める所得税（概算）")} value={it ? yen(it.total) : "—"} tone="warn" />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-12">
         <Card title="青色申告決算書（損益計算書）" en="P/L" className="lg:col-span-5">
           <table className="w-full text-xs">
             <tbody className="divide-y divide-slate-100">
-              <tr><td className="py-1.5 font-bold">① 売上（収入）金額</td><td className="py-1.5 text-right font-mono tabular">{yen(pl.revenue)}</td></tr>
+              <tr><td className="py-1.5 font-bold">{T("① 売上（収入）金額")}</td><td className="py-1.5 text-right font-mono tabular">{yen(pl.revenue)}</td></tr>
               {pl.expenses.map((e) => (
                 <tr key={e.category}><td className="py-1 pl-4 text-slate-600">{e.category}</td><td className="py-1 text-right font-mono text-slate-600 tabular">{yen(e.amount)}</td></tr>
               ))}
-              <tr><td className="py-1.5 font-bold">㉜ 経費計</td><td className="py-1.5 text-right font-mono font-bold tabular">{yen(pl.expenses_total)}</td></tr>
-              <tr><td className="py-1.5 font-bold text-navy">㊸ 所得金額（青色申告特別控除前）</td><td className="py-1.5 text-right font-mono font-bold text-navy tabular">{yen(income)}</td></tr>
+              <tr><td className="py-1.5 font-bold">{T("㉜ 経費計")}</td><td className="py-1.5 text-right font-mono font-bold tabular">{yen(pl.expenses_total)}</td></tr>
+              <tr><td className="py-1.5 font-bold text-navy">{T("㊸ 所得金額（青色申告特別控除前）")}</td><td className="py-1.5 text-right font-mono font-bold text-navy tabular">{yen(income)}</td></tr>
             </tbody>
           </table>
-          <p className="text-[10px] text-slate-400">{pl.note}</p>
+          <p className="text-[10px] text-slate-400">{T(pl.note)}</p>
         </Card>
 
         <Card title="所得税の概算" en="Income Tax" className="lg:col-span-4">
           <div className="grid grid-cols-2 gap-2">
-            <Field label="青色申告特別控除" className="col-span-2">
+            <Field label={T("青色申告特別控除")} className="col-span-2">
               <select id="tx-blue" value={blue} onChange={(e) => setBlue(Number(e.target.value))} className={selectCls}>
-                <option value={650_000}>65万円（e-Tax＋複式簿記）</option>
-                <option value={550_000}>55万円</option>
-                <option value={100_000}>10万円（簡易簿記）</option>
-                <option value={0}>白色申告</option>
+                <option value={650_000}>{T("65万円（e-Tax＋複式簿記）")}</option>
+                <option value={550_000}>{T("55万円")}</option>
+                <option value={100_000}>{T("10万円（簡易簿記）")}</option>
+                <option value={0}>{T("白色申告")}</option>
               </select>
             </Field>
-            <Field label="社会保険料控除"><input id="tx-social" value={social} onChange={(e) => setSocial(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>
-            <Field label="その他の所得控除"><input id="tx-other" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>
+            <Field label={T("社会保険料控除")}><input id="tx-social" value={social} onChange={(e) => setSocial(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>
+            <Field label={T("その他の所得控除")}><input id="tx-other" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className={inputCls + " text-right font-mono"} /></Field>
           </div>
           {it ? (
             <dl className="space-y-1 border-t border-slate-100 pt-2 text-xs">
-              <Row k="青色申告特別控除" v={-it.blue_deduction} />
-              <Row k="事業所得" v={it.business_income} />
-              <Row k="基礎控除" v={-it.basic_deduction} />
-              <Row k="課税所得金額" v={it.taxable} bold />
-              <Row k="所得税" v={it.base_tax} />
-              <Row k="復興特別所得税（2.1%）" v={it.reconstruction} />
-              <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-navy"><dt>納める所得税</dt><dd className="font-mono tabular">{yen(it.total)}</dd></div>
+              <Row k={T("青色申告特別控除")} v={-it.blue_deduction} />
+              <Row k={T("事業所得")} v={it.business_income} />
+              <Row k={T("基礎控除")} v={-it.basic_deduction} />
+              <Row k={T("課税所得金額")} v={it.taxable} bold />
+              <Row k={T("所得税")} v={it.base_tax} />
+              <Row k={T("復興特別所得税（2.1%）")} v={it.reconstruction} />
+              <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-navy"><dt>{T("納める所得税")}</dt><dd className="font-mono tabular">{yen(it.total)}</dd></div>
             </dl>
           ) : (
             <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-800"><TriangleAlert size={13} className="mt-0.5 shrink-0" />{itMsg}</p>
           )}
-          <p className="text-[10px] text-slate-400">概算です。源泉徴収税額・予定納税・医療費控除などは含みません。</p>
+          <p className="text-[10px] text-slate-400">{T("概算です。源泉徴収税額・予定納税・医療費控除などは含みません。")}</p>
         </Card>
 
         <Card title="消費税" en="Consumption Tax" className="lg:col-span-3">
-          <Field label="課税方式">
+          <Field label={T("課税方式")}>
             <select id="tx-method" value={method} onChange={(e) => setMethod(e.target.value as Method)} className={selectCls}>
-              {(Object.keys(METHOD_LABEL) as Method[]).map((m) => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
+              {(Object.keys(METHOD_LABEL) as Method[]).map((m) => <option key={m} value={m}>{T(METHOD_LABEL[m])}</option>)}
             </select>
           </Field>
           {method === "kani" && (
-            <Field label="事業区分">
+            <Field label={T("事業区分")}>
               <select id="tx-kani" value={kani} onChange={(e) => setKani(Number(e.target.value))} className={selectCls}>
                 {Object.entries(KANI_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -181,23 +182,23 @@ function Tax() {
           )}
           {ct ? (
             <dl className="space-y-1 text-xs">
-              <Row k="売上税額" v={ct.output} />
-              <Row k="控除税額" v={-ct.input} />
-              <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-navy"><dt>納付税額（概算）</dt><dd className="font-mono tabular">{yen(ct.payable)}</dd></div>
+              <Row k={T("売上税額")} v={ct.output} />
+              <Row k={T("控除税額")} v={-ct.input} />
+              <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-navy"><dt>{T("納付税額（概算）")}</dt><dd className="font-mono tabular">{yen(ct.payable)}</dd></div>
             </dl>
           ) : null}
           {ctMsg && <p className="text-[11px] text-slate-500">{ctMsg}</p>}
-          <p className="text-[10px] text-slate-400">登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）。</p>
+          <p className="text-[10px] text-slate-400">{T("登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）。")}</p>
         </Card>
 
         <Card title="会計ソフト用CSV" en="Export" className="lg:col-span-6">
-          <p className="text-xs text-slate-500">{year}年分の取引を、各会計ソフトの取込形式（Shift_JIS）で出力します。税理士への提出にも使えます。</p>
+          <p className="text-xs text-slate-500">{year}{T("年分の取引を、各会計ソフトの取込形式（Shift_JIS）で出力します。税理士への提出にも使えます。")}</p>
           <div className="flex flex-wrap gap-2">
             <Btn onClick={() => exportCsv("freee")}><Download size={13} />freee</Btn>
-            <Btn onClick={() => exportCsv("mf")}><Download size={13} />マネーフォワード</Btn>
-            <Btn onClick={() => exportCsv("yayoi")}><Download size={13} />弥生会計</Btn>
+            <Btn onClick={() => exportCsv("mf")}><Download size={13} />{T("マネーフォワード")}</Btn>
+            <Btn onClick={() => exportCsv("yayoi")}><Download size={13} />{T("弥生会計")}</Btn>
           </div>
-          <p className="text-[10px] text-slate-400">e-Tax 用の申告データ（xtx）出力は今後対応予定です。</p>
+          <p className="text-[10px] text-slate-400">{T("e-Tax 用の申告データ（xtx）出力は今後対応予定です。")}</p>
         </Card>
 
         <Card title="税務カレンダー" en="Filing Schedule" className="lg:col-span-6">
@@ -208,8 +209,8 @@ function Tax() {
                 <li key={c.d + c.t} className={cx("flex items-center gap-3 py-1.5", days < 0 && "text-slate-300 line-through")}>
                   <CalendarClock size={13} className="shrink-0 text-slate-400" />
                   <span className="w-20 font-mono tabular">{c.d.slice(5).replace("-", "/")}</span>
-                  <span className="flex-1">{c.t}</span>
-                  {days >= 0 && <Badge tone={days <= 7 ? "bad" : days <= 30 ? "warn" : "info"} icon={false}>あと{days}日</Badge>}
+                  <span className="flex-1">{T(c.t)}</span>
+                  {days >= 0 && <Badge tone={days <= 7 ? "bad" : days <= 30 ? "warn" : "info"} icon={false}>{T("あと")}{days}{T("日")}</Badge>}
                 </li>
               );
             })}
