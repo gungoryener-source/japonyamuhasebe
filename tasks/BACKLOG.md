@@ -53,7 +53,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-046b | P1 | todo | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
 | T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
 | T-047 | P0 | done (dilim 1: altyapı + seçici + kabuk + 設定 + tüm kart başlıkları) | **Dil seçeneği (ürün sahibi isteği 2026-11-07):** 日本語 / Türkçe / English |
-| T-047b | P0 | todo | Dil dilim 2: ホーム gövdesi, 請求書, 経費, 銀行, 税務, 料金プラン, メンバー kartı, login/signup/reset/join/connect metinleri `t()` ile; sözlüğe tr+en ekle |
+| T-047b | P0 | doing (developer, 2026-11-07) | Dil dilim 2: ホーム gövdesi, 請求書, 経費, 銀行, 税務, 料金プラン, メンバー kartı, login/signup/reset/join/connect metinleri `t()` ile; sözlüğe tr+en ekle |
 | T-047c | P0 | done | Bot dili (`user_prefs` tablosu, `profiles`'a dokunulmadı): `言語`/`dil`/`language` komutu + hızlı yanıt, `bot/i18n.py` ja/tr/en, testler |
 | T-048 | P1 | done (bu commit) | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
 | T-048b | P1 | todo | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
