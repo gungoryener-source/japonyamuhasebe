@@ -58,3 +58,7 @@ Zorunlu: 販売業者名, 運営責任者, 所在地, 電話番号, メールア
 ## Q-13 · E-posta gönderim servisi (açık)
 Şifre sıfırlama ve bildirimler için: Resend / SendGrid / Amazon SES. Seçilen servisin anahtarı Render'a `MAIL_PROVIDER` + `MAIL_API_KEY` olarak girilmeli; o zamana kadar e-postalar yalnızca sunucu log'una yazılır. (2026-11-07 developer: iki değişken `render.yaml`'a `sync: false` ile eklendi — **değer girilmeli**; T-040 parola sıfırlama e-postası şu an yalnızca log'a düşüyor.)
 **Cevap:**
+
+## Q-14 · Fiş görselleri için kalıcı depolama (açık — planner, 2026-11-07)
+Fiş görselleri şu an sunucu konteynerinin diskine (`receipts/`) yazılıyor. Render'da bu servise disk bağlı değil ve `main` her birleştirmede yeniden yayınlandığı için **görseller her deploy'da siliniyor** (gizlilik politikası ve 電帳法 saklama beklentisiyle çelişir). T-011 depolama soyutlamasını yazacak. Karar: (a) S3 uyumlu nesne depolama — Cloudflare R2 (çıkış ücreti yok, önerilen) / AWS S3 Tokyo / başka; hesap açılıp `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` Render'a **değer girilmeli** (T-011 sonrası), veya (b) Render Persistent Disk (ücretli plan gerektirir). Cevap gelene kadar davranış değişmez (yerel disk).
+**Cevap:**

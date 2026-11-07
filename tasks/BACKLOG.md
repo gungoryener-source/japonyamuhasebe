@@ -2,6 +2,8 @@
 
 Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her görevin kabul ölçütü vardır; tek çalışmada bitmeyecekse önce böl.
 
+**Önerilen sıra (planner, 2026-11-07):** P0 bitti. Sprint sonuna kadar (2026-11-09 00:00 JST): review-fix → T-021 → T-048 → T-048b → T-046 → T-046b → T-045 → T-044 → T-044b → T-011 → T-049. Sonra P2.
+
 | ID | Öncelik | Durum | Görev |
 |---|---|---|---|
 | T-001 | P0 | done (bu commit) | Prototiplerde 令和8年度 経過措置 düzeltmesi |
@@ -15,7 +17,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-008 | P1 | done | 適格請求書 oluşturma API + PDF |
 | T-009 | P1 | done | LINE: son kaydı düzenleme (勘定科目 / 税率 hızlı yanıtla) |
 | T-010 | P2 | todo | 登録番号 doğrulama (国税庁 Web-API, mock'lu testler) |
-| T-011 | P2 | todo | Fiş görsellerini nesne depolamaya taşıma (arama uç noktası ✅ `/api/v1/entries`) |
+| T-011 | P1 | todo | Fiş görselleri için depolama soyutlaması (yerel / S3 uyumlu); Render diski kalıcı değil → her deploy'da `receipts/` siliniyor (Q-14) |
 | T-012 | P2 | done (T-012b doğrulama) | CSV dışa aktarma (freee / MF / 弥生 formatları) |
 | T-013 | P2 | done (canlı: Q-06) | WhatsApp Business webhook kanalı (parser paylaşımlı) |
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
@@ -43,15 +45,20 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
-| T-044 | P1 | todo | Tanıtım sayfası (/lp), kayıt akışı ve ilk kurulum sihirbazı (事業者情報 → LINE bağlantısı → ilk fiş) |
-| T-045 | P1 | todo | 確定申告 çıktıları: 青色申告決算書 (損益計算書) PDF, 申告書 alan numaralarıyla özet; e-Tax xtx araştırma notu (docs/ETAX.md) |
-| T-046 | P1 | todo | Veri dışa aktarma (tüm veri ZIP: CSV + fatura PDF), hesap silme talebi, PostgreSQL yedekleme betiği ve belge |
+| T-044 | P1 | todo | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
+| T-044b | P1 | todo | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
+| T-045 | P1 | todo | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
+| T-045b | P2 | todo | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
+| T-046 | P1 | todo | Tüm veri dışa aktarma: `GET /api/v1/export/all.zip` (kayıtlar CSV + faturalar CSV/PDF) + 設定'te indirme düğmesi |
+| T-046b | P1 | todo | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
+| T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` |
 | T-047 | P2 | todo | Panel metinlerini `app/lib/i18n.ts`'de topla (ja varsayılan, en), anadil kontrolü için tek liste |
-| T-048 | P1 | todo | Güvenlik: giriş/OCR için hız sınırı, CORS'u PANEL_URL ile kısıtla, güvenlik başlıkları, parola politikası |
+| T-048 | P1 | todo | Güvenlik: bellek içi hız sınırı (login / signup / password-reset / OCR) → 429 |
+| T-048b | P1 | todo | Güvenlik: CORS `*` yerine PANEL_URL (+ localhost geliştirme) ve güvenlik başlıkları (nosniff, Referrer-Policy, HSTS, frame-ancestors) |
 | T-017 | P2 | todo | `KANI_RATIO` testleri — みなし仕入率 TAX_RULES'ta ✅ (tax-watcher 2026-11-06, NTA No.6505); yalnızca test eklenecek |
 | T-049 | P1 | todo | 所得税: 青色申告特別控除 令和9年分以後 (75万 kademesi, 55万 kaldırılır, 簡易簿記 10万→0 şartı) — yıl parametreli |
 | T-050 | P2 | todo | 消費税: 2割/3割特例 uygunluk şartları (基準期間・特定期間 ≤1,000万) uyarısı + 経過措置 tek satıcı 1億円 üst sınırı uyarısı |
-| T-021 | P2 | todo | CI: `dashboard` işini Node 22'ye al ve `npm run check:tax` adımını ekle (TS ile Python 消費税 eşleşmesi) |
+| T-021 | P1 | todo | CI: dashboard işi (Node 22, `npm ci`, `next build`, `check:tax`, `check:legal`, `check:team`) — panel kontrolleri şu an CI'da yok |
 | T-027 | P1 | done (bu commit) | Yıllık 消費税/損益/CSV toplamları 5000 kayıtta sessizce kesiliyor |
 | T-028 | P2 | done (bu commit) | `/admin/richmenu` ADMIN_KEY'i URL sorgusunda alıyor (log sızıntısı) |
 | T-029 | P2 | done (bu commit) | Fatura kalemlerinde qty/unit_price üst sınırı yok (PostgreSQL bigint taşması → 500) |
@@ -109,8 +116,10 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - `bot/nta.py`: 国税庁 Web-API istemcisi, `NTA_APP_ID` yoksa yalnızca format kontrolü. Sonuç önbelleği.
 - Kabul: httpx mock ile testler.
 
-## T-011 · Görsel saklama + 電帳法 arama
-- Depolama soyutlaması (yerel / S3 uyumlu), `entries` için tarih-tutar-karşı taraf arama uç noktası.
+## T-011 · Görsel saklama (P1, planner 2026-11-07 yükseltti)
+- Sorun: `app.process_image` görseli konteyner diskine (`receipts/`) yazıyor; render.yaml'da disk yok ve `main` saatte bir yayınlanıyor → her deploy'da görseller kayboluyor (gizlilik politikası ve 電帳法 saklama iddiasıyla çelişir). Arama uç noktası (`/api/v1/entries`) zaten ✅.
+- Yap: `bot/storage.py` (`put(key, bytes)`, `get(key)`), sürücü `STORAGE_BACKEND=local|s3`; s3 için S3 uyumlu (R2/S3) imzalı istek — yeni paket gerekiyorsa sürümü sabitle. Değişkenler render.yaml'a `sync: false` (`STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`); değer Q-14. Anahtar yoksa yerel (bugünkü davranış) + başlangıçta uyarı log'u.
+- Kabul: `process_image` ve `image_path` storage üzerinden; yerel sürücü testleri + s3 sürücüsü httpx MockTransport ile (imza başlığı var, PUT/GET yolu doğru); mevcut testler yeşil.
 
 ## T-012 · CSV dışa aktarma
 - freee, マネーフォワード, 弥生 içe aktarma formatları; her biri için örnek dosya testi.
@@ -155,20 +164,23 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Kabul: 基準期間 10,000,000 → 2割 OK, 10,000,001 → reddedilir; tek satıcı 100,000,000 / 100,000,001 sınır testi; parametre verilmezse mevcut davranış değişmez.
 - Kaynak: [NTA 3割特例](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/invoice-review/pdf/0026004-099-01-2.pdf), [NTA インボイスQ&A 経過措置](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/qa/01-15.pdf), TAX_RULES §1.
 
-## T-012b · CSV şablon doğrulaması
-- `bot/export.py` başlıkları ve 税区分 metinleri her yazılımın resmi şablon sayfasıyla karşılaştırılsın (kaynak URL'leri `docs/` altına). Fark varsa düzelt + test.
+## T-012b · CSV şablon doğrulaması (P2)
+- `bot/export.py` başlıkları ve 税区分 metinleri her yazılımın resmi şablon sayfasıyla karşılaştırılsın (kaynak URL + kontrol tarihi `docs/EXPORT.md`). Fark varsa düzelt + test.
+- Kabul: 3 yazılımın her biri için kaynaklı başlık listesi; örnek CSV testi başlıkları birebir karşılaştırır; doğrulanamayan alan `docs/EXPORT.md`'de ⚠️.
 
 ## T-018 · Token yönetimi
 - Token iptali uç noktası; kullanıcı başına en fazla 5 token (en eskisi silinir — token tablosunda silme serbest, kişisel muhasebe verisi değil). Testler.
 
-## T-021 · CI'da TS vergi eşleşme kontrolü
-- `.github/workflows/ci.yml` dashboard işi: `node-version: "22"` + `npm run check:tax`. Kabul: CI yeşil, kontrol adımı görünür.
+## T-021 · CI'da panel işi (P1)
+- `.github/workflows/ci.yml`'a `dashboard` işi: `actions/setup-node` `node-version: "22"`, `working-directory: dashboard-next`, `npm ci`, `npx next build`, `npm run check:tax`, `npm run check:legal`, `npm run check:team`.
+- Kabul: push sonrası Actions'ta iş yeşil ve 3 kontrol adımı görünür (GitHub MCP `actions_list` ile doğrula, LOG'a run numarası). Kırmızıysa aynı çalışmada düzelt.
 
 ## T-023 · Gerçek fişlerle OCR doğruluğu
 - Ürün sahibinden veya kamuya açık olmayan örnekler gerekiyorsa QUESTIONS'a yaz; kişisel bilgi içeren fişleri depoya koyma (maskele).
 - `receipt_parser.py` kurallarını gerçek hatalara göre geliştir; her düzeltme için metin tabanlı test ekle.
 
-## T-024 · Düşük güvenli OCR sonucu onayı
+## T-024 · Düşük güvenli OCR sonucu onayı (P2)
+- Kabul: tarih bulunamayan sahte OCR → yanıtta 「日付を確認してください」 + hızlı yanıt; oran kırılımı tahmini → uyarı; güvenli sonuçta mevcut yanıt değişmez (webhook testleri).
 - `parse_receipt` güven bayrakları döndürsün (date_found, rate_breakdown_found); eksikse LINE yanıtında "日付を確認してください" vb. ve hızlı düzeltme butonları.
 
 ## T-027 · Yıllık toplamlarda 5000 satır kesmesi (review-fix, P1)
@@ -224,19 +236,64 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Privacy: 利用目的, 第三者提供, 外国にある第三者への提供 (Render/Google Cloud bölgesi), 保存期間 (電帳法 7年), 開示請求 窓口.
 - ✅ Yapıldı: `app/lib/legal.ts` (saf TS şablon; satıcı bilgisi `NEXT_PUBLIC_LEGAL_*` → yoksa 「要確認」), `components/legal.tsx` (sunucu bileşeni, JS'siz okunur; ドラフト bandı, 「要確認」 rozetleri), üç sayfa; bağlantılar: kayıt formu (同意文), giriş kartları altı, kenar menü altı, 料金プラン. 保存期間 TAX_RULES'ta ⚠️ olduğu için sayı yazılmadı (要確認). Kontrol: `npm run check:legal` (şablon + `out/legal` HTML). CI'a ekleme T-021 ile.
 
-## T-044 · Tanıtım + kayıt + sihirbaz (P1)
-- `/lp` (ürün, LINE ile kayıt, fiyat tablosu Q-11'den, SSS), `/signup` sonrası 3 adımlı sihirbaz. Mobil uyumlu.
+## T-044 · Tanıtım sayfası (P1)
+- `dashboard-next/app/lp/page.tsx` (sunucu bileşeni, JS'siz okunur): kahraman bölümü (LINE'a fiş at → 帳簿・インボイス・確定申告), 3 özellik kartı, fiyat tablosu (`/billing/plans` yer tutucu fiyatlar 「仮」; API yoksa statik yedek), SSS (≥5 soru, vergi danışmanlığı değildir notu), 「無料で始める」 → `/signup/`, alt bilgide yasal sayfa bağlantıları.
+- Kabul: `next build` geçer; 375px'te yatay taşma yok (Playwright notu LOG'a); metinler Japonca, uydurma rakam/iddia yok (ör. "電帳法対応" yalnızca T-011/T-034 bitince).
 
-## T-045 · 確定申告 çıktıları (P1)
-- `GET /api/v1/reports/blue-return.pdf?year=` (損益計算書 alan numaralarıyla), panelde indirme. e-Tax xtx için resmi şema araştırması `docs/ETAX.md` (kaynaklı); uygulama ayrı görev.
+## T-044b · Kurulum sihirbazı (P1)
+- `/welcome`: kayıt sonrası yönlendirme; adım 1 事業者情報 (mevcut settings API), adım 2 LINE bağlantısı (`/connect` akışı veya 「あとで」), adım 3 ilk fiş (経費 sayfasına yükleme veya LINE). İlerleme adım göstergesi; atlanabilir; tamamlanınca ホーム.
+- Kabul: `next build` geçer; signup → /welcome yönlendirmesi; demo modunda statik; viewer/üye katılımında sihirbaz gösterilmez.
 
-## T-046 · Veri dışa aktarma / silme / yedek (P1)
-- `GET /api/v1/export/all.zip`; `POST /api/v1/account/delete-request` (hemen silmez, QUESTIONS'a değil `deletion_requests` tablosuna yazar); `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md`.
+## T-045 · 青色申告決算書 PDF (P1)
+- `GET /api/v1/reports/blue-return.pdf?year=` — mevcut `/api/v1/pl` verisinden 損益計算書 (売上 ①, 売上原価, 経費 科目別, 差引金額, 青色申告特別控除前の所得). Alan numaraları yalnızca NTA 様式 kaynağıyla (`docs/TAX_RULES.md`'ye URL + tarih); emin olunmayan numara yazılmaz, ad ile gösterilir. 「参考資料（提出用ではありません）」 notu. PDF üretimi mevcut fatura PDF altyapısı + `bot/fonts`.
+- Panel `/tax`: 「決算書PDF」 indirme düğmesi (viewer da indirebilir).
+- Kabul: yetkisiz 401, başka defter erişilemez, PDF metninde toplamlar `/pl` ile aynı (test), kayıt yokken boş tablo; `next build` geçer.
 
-## T-047 · Metinler (P2) — `app/lib/i18n.ts`, sayfalar buradan okur; `docs/JA_REVIEW.md` anadil kontrol listesi.
+## T-045b · e-Tax araştırması (P2)
+- `docs/ETAX.md`: e-Tax 仕様書 (XML/xtx, 帳票 ID'leri, 青色申告決算書・確定申告書B/第一表), 個人向け 外部ソフト連携 seçenekleri, kaynak URL + kontrol tarihi. Kod yok. Kabul: her iddia kaynaklı; uygulama için 2–3 alt görev önerisi BACKLOG'a.
 
-## T-048 · Güvenlik (P1)
-- Basit bellek içi hız sınırı (IP + uç nokta), CORS `PANEL_URL`, `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security`; testler.
+## T-046 · Tüm veri ZIP (P1)
+- `GET /api/v1/export/all.zip`: `entries.csv` (mevcut export biçimi, tüm yıllar), `invoices.csv`, `invoices/<番号>.pdf`, `README.txt` (Japonca, oluşturma zamanı JST). Bellekte (`zipfile`), sınırsız satır (T-027 dersi). Viewer dahil okuma yetkisi olan herkes.
+- Panel 設定: 「全データをダウンロード」.
+- Kabul: 401/başka defter testleri, ZIP içindeki dosya listesi ve satır sayısı testi (>5000 kayıt dahil), `next build` geçer.
+
+## T-046b · Hesap silme talebi (P1)
+- `deletion_requests(id, user_id, account_id, requested_at, status)` (ekleyici). `POST /api/v1/account/delete-request` yalnızca owner; tekrar talep idempotent; `GET` durum. Veri silinmez (CLAUDE.md: veri silme yok) — işlem insan adımı, `docs/OPERATIONS.md`'ye not. Panel 設定: 2 adımlı onay + 「申請済み」 durumu; ödeme aktifse önce 解約 uyarısı.
+- Kabul: owner 202, accountant/viewer 403, idempotent test; `next build` geçer.
+
+## T-046c · Yedekleme (P2)
+- `scripts/backup.sh` (`pg_dump "$DATABASE_URL" | gzip`, tarih adlı dosya, sır yazmaz) + `docs/OPERATIONS.md` (geri yükleme adımları, Render free DB 30 gün sınırı — Q-07). Kabul: `bash -n` + shellcheck temiz (varsa); belge geri yükleme komutunu içerir.
+
+## T-047 · Metinler (P2)
+- `app/lib/i18n.ts` (ja varsayılan); önce ホーム + 経費 + 設定 sayfaları taşınır (diğerleri T-047b). `docs/JA_REVIEW.md` anadil kontrol listesi (sayfa, anahtar, metin).
+- Kabul: `next build` geçer; taşınan sayfalarda sabit Japonca dize kalmaz (grep notu LOG'a); görünüm değişmez.
+
+## T-019 · PostgreSQL bağlantı havuzu (P2)
+- `psycopg_pool` (sürüm sabit) yalnızca `DATABASE_URL` varken; istek süresi > 1 sn ise WARNING log (yol + süre, kişisel veri yok).
+- Kabul: SQLite testleri değişmeden yeşil; CI bot-postgres işi yeşil; havuz kapanışı uygulama kapanışında.
+
+## T-026 · OCR kırmızı damga bastırma (P2)
+- `receipt_ocr` ön işleme: HSV kırmızı aralığı → beyaz (Pillow ile; yeni paket yok). Kabul: `docs/OCR.md` ölçüm betiğiyle önce/sonra doğruluk (toplam alanı düşmemeli), damgalı sentetik görsel testi.
+
+## T-033 · Banka CSV gerçek başlıkları (P2)
+- Her banka için kamuya açık örnek/yardım sayfasındaki başlık satırı (kaynak URL `docs/BANK_CSV.md`), kişisel veri içermeyen sentetik fixture + `bank_csv.parse` testi. Doğrulanamayan banka ⚠️ ile listelenir.
+- Kabul: ≥5 banka testli; mevcut testler yeşil.
+
+## T-034 · Panelde fiş görseli (P2, T-011'den sonra)
+- `GET /api/v1/entries/{id}/image` (yetki kontrollü, storage üzerinden) + 経費 listesinde küçük önizleme / büyütme. `/receipts/ocr` → 「画像も保存」 seçeneği.
+- Kabul: başka defterin görseli 404; görselsiz kayıt 404; `next build` geçer.
+
+## T-035 · Panel e2e (P2, T-021'den sonra)
+- Playwright betiği (`dashboard-next/e2e/`) demo modunda tüm menüler açılır, konsol hatası yok; CI dashboard işine adım. Canlı mod sahte API ile (route mock).
+- Kabul: CI'da e2e adımı yeşil; süre < 3 dk.
+
+## T-048 · Hız sınırı (P1)
+- `bot/ratelimit.py`: bellek içi kayan pencere (IP + uç nokta; `X-Forwarded-For` ilk değeri Render arkasında). Sınırlar (yapılandırılabilir): login 10/dk, signup 5/dk, password-reset/request 5/dk, `/receipts/ocr` 20/dk → 429 + `Retry-After`, Japonca `detail`. LINE `/callback` ve `/` etkilenmez.
+- Kabul: sınırda N geçer, N+1 → 429; pencere sonrası tekrar 200 (saat monkeypatch); farklı IP bağımsız. Parola politikası zaten var (`accounts.PASSWORD_MIN`) — değiştirme.
+
+## T-048b · CORS + güvenlik başlıkları (P1)
+- `app.py` CORS: `CORS_ORIGINS` boş veya `*` ise `PANEL_URL` (+ `http://localhost:3000`) kullan; render.yaml'daki `CORS_ORIGINS: "*"` değerini değiştirmeden kodda ele al (değişken adı aynı kalır). Middleware: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=31536000`, `X-Frame-Options: DENY`.
+- Kabul: izinli origin → `Access-Control-Allow-Origin` döner, yabancı origin dönmez; başlıklar `/` ve `/api/v1/*` yanıtlarında; `/callback` LINE imza testleri yeşil.
 
 ## T-051 · Banka CSV çoklu 摘要 sütunu (review-fix, P2)
 - `bot/bank_csv.py` `parse()` (~satır 360–367): `desc` anahtarı ilk eşleşen sütuna atanıyor. MUFG/ゆうちょ biçiminde 「摘要」=振込/口座振替, karşı taraf 「摘要内容」'nde → `description` = 「口座振替」; `/bank/{id}/entry` ile oluşan 経費'in `store` alanı anlamsız, 消込 önerisinde müşteri ayırt edilemiyor.

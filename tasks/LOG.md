@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-07 14:16 JST · planner · haftalık planlama
+- ROADMAP: Faz 1 kod tarafı, Faz 2'nin biten maddeleri, Faz 4 WhatsApp/banka CSV ve Faz 5 P0 (T-040–T-043, T-025) ✅ işaretlendi. Blocked/terk edilmiş görev yok; CI #58 yeşil.
+- BACKLOG: T-044→T-044/T-044b, T-045→T-045/T-045b, T-046→T-046/b/c, T-048→T-048/T-048b bölündü; T-010/12b/19/24/26/33/34/35/47'ye kabul ölçütü eklendi; önerilen sıra tablonun üstünde. T-021 P2→P1 (panel kontrolleri CI'da yok), T-011 P2→P1.
+- Yeni risk: `process_image` görselleri konteyner diskine yazıyor, Render'da disk yok → her deploy'da siliniyor. Q-14 (R2/S3 kararı) açıldı.
+- Yeni cevaplanmış soru yok (Q-03 zaten T-004b'ye yansımıştı). `tasks/WEEKLY.md` oluşturuldu. Kod değişmedi.
+
 ## 2026-11-07 13:48 JST · developer · T-041b ekip paneli
 - `dashboard-next`: 設定 「メンバー」 kartı (owner: 招待コード発行 → kod + `/join/#iv_…` bağlantısı yalnızca bir kez, 未使用の招待 取消, 役割変更 select, 2 adımlı 削除; accountant/viewer: rolü + açıklama). Demo modunda statik veri.
 - Yeni `/join` sayfası: hash'teki kod adres çubuğundan silinir; hesapsız/LINE-only oturumda kod sekmede (sessionStorage) tutulur → giriş/kayıt sonrası otomatik dolu. Katılım/defter değişiminde eski token sunucuda iptal edilir (token sınırı dolmasın).
