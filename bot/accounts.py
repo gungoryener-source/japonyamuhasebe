@@ -191,15 +191,41 @@ def link_ledger(current_user_id: str, code: str) -> tuple[dict, str]:
 
 
 # ---------------------------------------------------------------- parola sıfırlama
-def send_mail(to: str, subject: str, body: str) -> None:
-    """E-posta gönderimi soyutlaması. Sağlayıcı seçilene kadar (Q-13) yalnızca log."""
-    provider = os.environ.get("MAIL_PROVIDER", "")
+RESEND_URL = "https://api.resend.com/emails"
+
+
+def send_mail(to: str, subject: str, body: str) -> bool:
+    """E-posta gönderimi (T-056). MAIL_PROVIDER=resend + MAIL_API_KEY ile Resend API; yoksa yalnızca log.
+
+    Hata kullanıcıya yansımaz (parola sıfırlamada hesap var/yok farkı sızmasın); log'a maskeli adres yazılır.
+    Gönderen: MAIL_FROM (ör. 「てがる会計 <no-reply@alanadiniz.jp>」, Resend'de doğrulanmış alan adı gerekir).
+    Varsayılan onboarding@resend.dev yalnızca Resend hesabının kendi adresine teslim eder (test).
+    """
+    provider = os.environ.get("MAIL_PROVIDER", "").strip().lower()
     if not provider:
         # Gövde (sıfırlama bağlantısı = parola ele geçirme anahtarı) ve tam adres üretim log'una yazılmaz.
         log.warning("MAIL_PROVIDER not set; mail to %s not sent: %s", mask_email(to), subject)
         log.debug("mail body (dev only): %s", body)
-        return
-    log.warning("MAIL_PROVIDER=%s is not implemented yet (Q-13); mail to %s not sent", provider, mask_email(to))
+        return False
+    if provider != "resend":
+        log.warning("MAIL_PROVIDER=%s is not supported (use 'resend'); mail to %s not sent", provider, mask_email(to))
+        return False
+    key = os.environ.get("MAIL_API_KEY", "").strip()
+    if not key:
+        log.warning("MAIL_API_KEY not set; mail to %s not sent", mask_email(to))
+        return False
+    sender = os.environ.get("MAIL_FROM", "").strip() or "てがる会計 <onboarding@resend.dev>"
+    import httpx
+    try:
+        r = httpx.post(RESEND_URL, headers={"Authorization": f"Bearer {key}"}, timeout=15,
+                       json={"from": sender, "to": [to], "subject": subject, "text": body})
+    except httpx.HTTPError as ex:
+        log.warning("mail to %s failed: %s", mask_email(to), type(ex).__name__)
+        return False
+    if r.status_code >= 300:
+        log.warning("mail to %s rejected by resend: HTTP %s", mask_email(to), r.status_code)
+        return False
+    return True
 
 
 def mask_email(email: str) -> str:

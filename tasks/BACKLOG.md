@@ -70,7 +70,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-053 | P2 | done (c5108d7) | Eşzamanlı aynı e-postayla kayıt → UNIQUE ihlali 500 (409 olmalı) |
 | T-054 | P2 | done (bu commit) | Çok oranlı fiş plan sınırını aşıyor / iki kota yiyor |
 | T-055 | P0 | done (bu commit) | Fiyatlar kesinleşti (Q-11): `billing.PLANS` Free/個人¥980/法人¥2,980 `placeholder=False`; panel 料金プラン ve tanıtım metinlerinden 「仮」 ifadelerini kaldır; testler |
-| T-056 | P1 | doing (developer-oturum, 2026-11-07) | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
+| T-056 | P1 | done | E-posta: `MAIL_PROVIDER=resend` uygulaması (`httpx` POST https://api.resend.com/emails, `MAIL_FROM` env `sync: false`); anahtar yoksa log'a yaz (mevcut davranış); mock'lu testler (Q-13) |
 | T-057 | P1 | done | OCR varsayılanı yapay zekâsız (Q-02): render.yaml `OCR_ENGINE` değeri `tesseract`; panel 設定 metni buna göre; testler |
 | T-058 | P1 | done (bu commit) | Hız sınırı `X-Forwarded-For` ilk değerini kullanıyor (varsayılan `RATE_LIMIT_PROXY_HOPS=0`) → saldırgan her istekte farklı XFF göndererek login/signup sınırını tamamen atlatabilir |
 | T-059 | P2 | done (bu commit) | CSV formül enjeksiyonu: `/export.csv` (freee/mf/yayoi) ve ZIP `entries.csv` 取引先/摘要 alanları `=`/`+`/`-`/`@` ile başlarsa Excel'de formül olarak çalışır (ZIP `invoices.csv` reviewer tarafından düzeltildi) |
