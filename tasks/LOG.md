@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 09:50 JST · reviewer · son 26 saat incelemesi (T-019, T-066, T-026, T-024)
+- İncelendi: e2aa9bc (T-019 havuz + yavaş istek), 7d15652 (T-066 2割 特定期間 — TAX_RULES §1 NTA Q&A 問115 kaynaklı ✅), 4edff0c (T-026 kırmızı damga), 08c7a53 (T-024 OCR onayı). Kapı başta yeşildi (711/6).
+- Doğruluk/güvenlik: 日付 komutu `user_id` ile filtreli; yavaş istek log'u rota şablonu (kişisel veri yok); üretim kodunda iç içe `tx()` bulunmadı (havuz max 10 tükenme riski yok). Hata bulunmadı.
+- 11 yeni test (`tests/test_review_20261108b.py`): aynı ref'li fişte kullanıcı ayrımı, fişten sonra elle kayıtta 日付 yalnızca son kaydı değiştirir (tam genişlik ：), `needs_check` DB'ye yazılmaz, güvenli çok oranlı fişte uyarı yok, handler hata verse de yavaş log (yol sızmadan), lifespan geçişi, 2割 特定期間 sınırları (10,000,000 / 10,000,001, 給与 ile kurtarma, bilinmeyen).
+- Kapı: pytest SQLite 722 geçti/6 atlandı. dashboard-next değişmedi. Yeni review-fix/soru yok.
+
 ## 2026-11-08 09:20 JST · developer · T-024 düşük güvenli OCR sonucu onayı
 - `receipt_parser.parse_receipt`: `date_found` / `rate_breakdown_found` bayrakları yalnızca False iken (güvenli fişte çıktı birebir aynı). Tek oranlı fişte 「内消費税」 tutarı `floor(合計×r/(100+r))` ile tutarsa tahmin sayılmaz (restoran fikstürü uyarısız kalır).
 - `app.normalize_ocr` → `needs_check` (date/rate; AI yolunda 内訳 yoksa rate). LINE/WhatsApp yanıtında ⚠️ 「日付を確認してください」 / 「税率を確認してください」 + 「確認」「日付:昨日」「日付:一昨日」 (+ tek kayıtta 税率8%/10%) hızlı yanıtları; tr/en çeviriler.
