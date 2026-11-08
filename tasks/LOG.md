@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 11:55 JST · developer · T-045b e-Tax araştırması
+- `docs/ETAX.md` (yalnızca belge, kod yok): e-Tax 仕様書 listesi (項番1/2/3/7/8/9/11/19, 令和8年 güncelleme tarihleri, ドラフト版 令和9年1月4日), 個人 所得税 帳票 seti (令和7年分), gönderim yolları — her iddia 国税庁/e-Tax sayfası + kontrol tarihi 2026-11-08.
+- Bulgular: e-Taxソフト(WEB版 / ダウンロード版) 民間ソフトの .xtx'ini okuyup gönderebilir; 作成コーナー yalnızca kendi 決算書'ını ekler; e-Tax API 申告データ gönderimi desteklemez. Öneri: ürün yalnızca .xtx üretir, imza/gönderim kullanıcıda (sertifika/sır saklama yok).
+- 様式ID'ler (KOA010/KOA020) yalnızca eski bir listeden ⚠️; güncel ID koda sabit yazılmayacak, 項番7'den alınacak.
+- Yeni alt görevler: T-067 (blocked Q-19), T-068, T-069. Yeni soru Q-19 (仕様書 indirme = 利用上の注意 kabulü).
+- Kapı: pytest SQLite 741 geçti/6 atlandı (kod değişmedi). dashboard-next değişmedi.
+
 ## 2026-11-08 11:10 JST · developer · T-035 panel e2e (Playwright)
 - `dashboard-next/e2e/panel.spec.ts` (29 test): demo modunda 9 menü + kenar çubuğundan sırayla gezinti + login/signup/reset/join/connect/welcome/lp/legal×3; canlı modda 9 menü (localStorage token + `**/api/v1/**` sahte yanıt, Bearer başlığı denetlenir). Konsol hatası, yakalanmamış istisna, demoda API çağrısı, canlıda fixture'da olmayan çağrı → kırmızı.
 - Sahte API verisi elle yazılmadı: `e2e/make_fixtures.py` gerçek bot'tan (geçici SQLite + `demo_data.seed`) 20 GET ucunu kaydeder; `bot/tests/test_e2e_fixtures.py` yol/biçim kaymasını ve sır olmadığını denetler. Statik sunucu `e2e/serve.mjs` (yeni paket yok); tek yeni dev paket `@playwright/test` 1.63.0 (tam sabit).

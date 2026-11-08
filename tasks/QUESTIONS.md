@@ -86,3 +86,7 @@ Bir hesaba sınırsız şirket (事業所) eklenebiliyor; her şirket ayrı deft
 ## Q-18 · 仕切書 (slips) değişiklik geçmişi — T-060 dosyalarına dokunma izni (açık — developer, 2026-11-08, T-065b)
 entries / invoices / bank_tx değişiklikleri artık `audit_log`'a yazılıyor ve panel 経費精算'te 「履歴」 ile görünüyor. 仕切書'nin onay/red/düzeltmeleri `bot/slips*.py` içinde; bu dosyalara ajanların dokunmaması istendiği için eklenmedi (onaylanan 仕切書'nin oluşturduğu 売上 kaydı zaten entries geçmişinde var). Karar: (a) ajan `slips.py`'de update/approve/reject çağrılarına `store._audit(..., "slip", ...)` eklesin (öneri; küçük, davranış değişmez), (b) ürün sahibi kendisi ekler, (c) gerek yok. Görev: T-065c (blocked).
 **Cevap:**
+
+## Q-19 · e-Tax 仕様書 indirme — 利用上の注意 kabulü (açık — developer, 2026-11-08, T-045b/T-067)
+e-Tax .xtx üretimi (T-067/T-068) için 国税庁'nin 仕様書'si (項番7 手続一覧, 9 所得税, 19 XMLスキーマ; CAB arşivi) gerekiyor. Sayfa: indirme, 「利用上の注意」'yi kabul etmek sayılır — ajan bunu ürün sahibi adına kabul etmemeli. Seçenekler: (a) ürün sahibi https://www.e-tax.nta.go.jp/shiyo/ksk2/ksk2_shiyo3.htm 'deki 利用上の注意'yi okuyup ajanın indirmesine izin verir (öneri), (b) ürün sahibi dosyaları kendisi indirip depoya değil özel bir yere koyar, (c) e-Tax çıktısı şimdilik yapılmaz (PDF + elle giriş yeter). Ayrıntı: `docs/ETAX.md`.
+**Cevap:**

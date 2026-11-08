@@ -49,7 +49,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-044 | P1 | done (bu commit; LINE URL Q-16) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
 | T-044b | P1 | done (bu commit) | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | done | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
-| T-045b | P2 | doing (developer, 2026-11-08) | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
+| T-045b | P2 | done (bu commit; uygulama → T-067/068/069) | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
 | T-046 | P1 | done (bu commit) | Tüm veri dışa aktarma: `GET /api/v1/export/all.zip` (kayıtlar CSV + faturalar CSV/PDF) + 設定'te indirme düğmesi |
 | T-046b | P1 | done (bu commit; silme işlemi Q-15) | Hesap silme talebi: `POST /api/v1/account/delete-request` → `deletion_requests` tablosu (hemen silmez) + 設定'te onaylı düğme |
 | T-046c | P2 | todo | PostgreSQL yedekleme betiği `scripts/backup.sh` (pg_dump) + `docs/OPERATIONS.md` (dosya T-046b ile oluştu; bölüm ekle) |
@@ -86,6 +86,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-065b | P1 | done (bu commit; slips → T-065c) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
 | T-065c | P2 | blocked (Q-18) | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
 | T-066 | P2 | done (bu commit) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
+| T-067 | P2 | blocked (Q-19) | e-Tax 仕様書 (項番7 手続一覧, 9 所得税, 19 XMLスキーマ) → 青色申告決算書(一般用) 様式ID/sürüm + alan ↔ `/api/v1/pl` 科目 eşleme tablosu `docs/ETAX_MAPPING.md` (kod yok) |
+| T-068 | P2 | todo (T-067'den sonra) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |
+| T-069 | P2 | todo (T-068'den sonra) | Panel 確定申告: 「e-Tax用データ(.xtx)」 indirme + Japonca adım kılavuzu (e-Taxソフト(WEB版) → 署名 → 送信) |
 
 ---
 
@@ -274,6 +277,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 
 ## T-045b · e-Tax araştırması (P2)
 - `docs/ETAX.md`: e-Tax 仕様書 (XML/xtx, 帳票 ID'leri, 青色申告決算書・確定申告書B/第一表), 個人向け 外部ソフト連携 seçenekleri, kaynak URL + kontrol tarihi. Kod yok. Kabul: her iddia kaynaklı; uygulama için 2–3 alt görev önerisi BACKLOG'a.
+- ✅ Yapıldı (2026-11-08): `docs/ETAX.md` — 仕様書 listesi (令和8年 güncelleme tarihleri), 帳票 seti, gönderim yolları (WEB版/ダウンロード版 .xtx okur; 作成コーナー harici 決算書 kabul etmez; e-Tax API gönderim yapmaz). Öneri: yalnızca .xtx üret, imza/gönderim kullanıcıda. Alt görevler T-067 (Q-19), T-068, T-069.
 
 ## T-046 · Tüm veri ZIP (P1)
 - `GET /api/v1/export/all.zip`: `entries.csv` (mevcut export biçimi, tüm yıllar), `invoices.csv`, `invoices/<番号>.pdf`, `README.txt` (Japonca, oluşturma zamanı JST). Bellekte (`zipfile`), sınırsız satır (T-027 dersi). Viewer dahil okuma yetkisi olan herkes.

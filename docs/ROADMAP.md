@@ -35,7 +35,7 @@
 - [x] 利用規約 / プライバシーポリシー / 特定商取引法に基づく表記 — ドラフト (T-043; satıcı bilgisi + hukuk kontrolü Q-12)
 - [x] LINE OCR uzun sürerse 「読み取り中…」 + push (T-025)
 - [ ] Tanıtım sayfası (T-044), ilk kurulum sihirbazı (T-044b)
-- [ ] 確定申告 çıktıları: 青色申告決算書 PDF (T-045) + e-Tax araştırması (T-045b)
+- [x] 確定申告 çıktıları: 青色申告決算書 PDF (T-045) + e-Tax araştırması (T-045b → docs/ETAX.md; xtx: T-067…069)
 - [ ] Veri dışa aktarma (T-046) / hesap silme talebi (T-046b) / yedekleme (T-046c)
 - [ ] Güvenlik: hız sınırı (T-048), CORS + başlıklar (T-048b); CI'da panel kontrolleri (T-021)
 - [ ] Metinlerin tek dosyada toplanması (T-047)
