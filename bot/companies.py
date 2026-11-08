@@ -66,6 +66,14 @@ def create(account_id: int, business_name: str) -> dict:
         n = con.execute("SELECT COUNT(*) AS n FROM account_companies WHERE account_id=?", (account_id,)).fetchone()["n"]
         if n + 1 >= max_companies():
             raise CompanyError("追加できる事業所の上限に達しました。", 409)
+        primary = con.execute("SELECT user_id FROM account_ledgers WHERE account_id=?", (account_id,)).fetchone()
+    # Q-16: fiyat ayarı açıksa plana dahil sayıyı aşan şirket (ek ücret 0 iken) eklenemez
+    import billing
+    import pricing
+    st = pricing.company_status(billing.current_plan(primary["user_id"]) if primary else "free", n + 1)
+    if not st["can_add"]:
+        raise CompanyError(f"現在のプランで追加できる事業所は {st['included']} 社までです。プランを変更してください。", 402)
+    with tx() as con:
         con.execute("INSERT INTO account_companies(account_id,user_id,created_at) VALUES(?,?,?)",
                     (account_id, ledger, store.now()))
     store.save_profile(ledger, business_name=name)

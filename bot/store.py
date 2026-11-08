@@ -21,6 +21,12 @@ from datetime import date, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 SCHEMA = [
+    # Q-16: fiyatlandırma ayarları (yönetici ekranı; varsayılan ücretsiz)
+    """CREATE TABLE IF NOT EXISTS pricing_settings(
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )""",
     # T-065: 訂正・削除の履歴 (電帳法). Satırlar yalnızca eklenir; güncellenmez/silinmez.
     """CREATE TABLE IF NOT EXISTS audit_log(
         id INTEGER PRIMARY KEY AUTOINCREMENT,

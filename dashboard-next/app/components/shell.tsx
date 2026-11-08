@@ -180,6 +180,11 @@ export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = fa
     }
   };
   const [newCo, setNewCo] = useState<string | null>(null);   // null = form kapalı
+  const [coPrice, setCoPrice] = useState<{ can_add: boolean; next_price_jpy: number; included: number | null } | null>(null);
+  const openNewCo = async () => {
+    setNewCo("");
+    try { const p = await api.companyPricing(); setCoPrice(p); } catch { setCoPrice(null); }
+  };
   const createCompany = async () => {
     const name = (newCo ?? "").trim();
     if (!name || switching) return;
@@ -324,16 +329,20 @@ export function Topbar({ onMenu, onSearch, company, setCompany, toast, live = fa
                     <p className="flex items-center gap-2 px-3 py-2 text-[11px] text-slate-400"><LoaderCircle size={12} className="animate-spin" />{t("読み込み中…")}</p>
                   )}
                   {account && (newCo === null ? (
-                    <button onClick={() => setNewCo("")} className="mt-1 flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-[11px] font-bold text-navy hover:bg-slate-50">
+                    <button onClick={openNewCo} className="mt-1 flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-[11px] font-bold text-navy hover:bg-slate-50">
                       <Plus size={13} />{t("事業所を追加")}
                     </button>
                   ) : (
                     <form onSubmit={(e) => { e.preventDefault(); createCompany(); }} className="mt-1 flex flex-col gap-1.5 border-t border-slate-100 px-3 py-2">
+                      <p className={"text-[10px] " + (coPrice && !coPrice.can_add ? "text-red-600" : "text-slate-400")}>
+                        {!coPrice ? "" : !coPrice.can_add ? t("現在のプランで追加できる事業所は {n} 社までです", { n: coPrice.included ?? "" })
+                          : coPrice.next_price_jpy ? t("追加料金: 月額 ¥{p}（税抜）", { p: coPrice.next_price_jpy.toLocaleString("ja-JP") }) : t("追加料金はかかりません")}
+                      </p>
                       <input autoFocus maxLength={100} value={newCo} onChange={(e) => setNewCo(e.target.value)} placeholder={t("事業者名（屋号・会社名）")}
                         className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-mint" />
                       <div className="flex justify-end gap-1.5">
                         <button type="button" onClick={() => setNewCo(null)} className="rounded-md px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-100">{t("キャンセル")}</button>
-                        <button type="submit" disabled={!newCo.trim() || !!switching} className="flex items-center gap-1 rounded-md bg-navy px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-50">
+                        <button type="submit" disabled={!newCo.trim() || !!switching || (coPrice !== null && !coPrice.can_add)} className="flex items-center gap-1 rounded-md bg-navy px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-50">
                           {switching === "new" && <LoaderCircle size={11} className="animate-spin" />}{t("追加して切り替え")}
                         </button>
                       </div>

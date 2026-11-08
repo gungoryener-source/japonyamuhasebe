@@ -1,6 +1,11 @@
 # Ajan çalışma günlüğü (en yeni üstte)
 
-Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
+Biçim: `## 2026-11-08 09:15 — oturum (ürün sahibiyle)
+- T-064b: Q-16 şirket fiyat ayarı ekranı (`/admin/pricing`, ADMIN_KEY ile). Varsayılan kapalı = ücretsiz/sınırsız. `bot/pricing.py`, `/api/v1/admin/pricing`, `/companies/pricing`, şirket ekleme 402 kontrolü.
+- CORS'a `X-Admin-Key` eklendi (tarayıcıdan yönetici ekranı çalışsın); testler eklendi.
+- Q-18/Q-19 onaylandı (T-065c, T-067 açık). Q-21 cevabı yazıldı.
+
+## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
 ## 2026-11-08 14:55 JST · developer · T-078 canlıya alma kontrolü
 - `GET /admin/config-check` (`bot/config_check.py` + `app.py`): yalnızca `X-Admin-Key` başlığı (sorgu dizesi yok, yoksa/yanlışsa 401, `Cache-Control: no-store`). Yanıt: 23 değişken için `set` (bool, boşluk = yok) + Q numarası + düzey (required/recommended/optional), `ready`, `missing_required`, `open_questions`; `runtime`: db (sqlite/postgres), storage (local/s3), tesseract, `mail_provider_supported`. Değer/uzunluk/önek dönmez (Stripe test/live türü de önekten türediği için bilinçli olarak eklenmedi).

@@ -81,7 +81,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-063 | P1 | done | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
 | T-012c | P2 | done (bu commit) | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
 | T-064 | P0 | done | Bir hesapta birden çok şirket: `account_companies`, POST /companies, sahiplik kontrolleri (resolve/switch/join/şifre sıfırlama), LINE 「会社」 kayıt yeri seçimi (yalnızca sahip olunan şirketler) |
-| T-064b | P1 | doing (developer-oturum, 2026-11-08) | Fiyatlandırma ayarları ekranı (Q-16): yönetici `/admin/pricing` (plan başına dahil şirket sayısı, ek şirket ücreti, açık/kapalı; varsayılan ücretsiz). Kod sabit kural içermez, ayar tablosundan okur |
+| T-064b | P1 | done (fiyat ayar ekranı) | Fiyatlandırma ayarları ekranı (Q-16): yönetici `/admin/pricing` (plan başına dahil şirket sayısı, ek şirket ücreti, açık/kapalı; varsayılan ücretsiz). Kod sabit kural içermez, ayar tablosundan okur |
 | T-065 | P1 | done (bu commit; dilim 1: entries + invoices API, panel/bank_tx/slips → T-065b) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
 | T-065b | P1 | done (bu commit; slips → T-065c) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
 | T-065c | P2 | todo | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |

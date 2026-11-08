@@ -18,6 +18,7 @@ import archive
 import bank_csv
 import billing
 import companies
+import pricing
 import counterparties as cpmod
 import deletion
 import export
@@ -1241,6 +1242,39 @@ async def billing_webhook(request: Request, stripe_signature: str = Header(defau
 class TokenIn(BaseModel):
     user_id: str = Field(min_length=1, max_length=100)
     label: str = ""
+
+
+class PricingIn(BaseModel):
+    enabled: bool
+    included: dict[str, int]
+    extra_price_jpy: int = Field(0, ge=0, le=1_000_000)
+
+
+@router.get("/admin/pricing")
+def admin_pricing(x_admin_key: str = Header(default="")):
+    """Q-16: şirket fiyatlandırma ayarları (yönetici)."""
+    if not _admin_ok(x_admin_key):
+        raise HTTPException(401, "admin key required")
+    return {"companies": pricing.get(), "plans": billing.public_plans()}
+
+
+@router.put("/admin/pricing")
+def admin_pricing_put(body: PricingIn, x_admin_key: str = Header(default="")):
+    if not _admin_ok(x_admin_key):
+        raise HTTPException(401, "admin key required")
+    try:
+        return {"companies": pricing.put(body.model_dump())}
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+@router.get("/companies/pricing")
+def companies_pricing(p: dict = Depends(current_principal)):
+    """Kullanıcı için: kaç şirket var, plana dahil olan, ek ücret (fiyat ayarı kapalıysa ücretsiz)."""
+    with store.tx() as con:
+        owned = companies.owned_ledgers(con, p["account_id"]) if p["account_id"] else [p["user_id"]]
+    primary = owned[0] if owned else p["user_id"]
+    return pricing.company_status(billing.current_plan(primary), len(owned))
 
 
 @router.post("/admin/tokens", status_code=201)
