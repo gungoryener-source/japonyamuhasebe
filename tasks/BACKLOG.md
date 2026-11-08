@@ -38,7 +38,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-033 | P2 | done (e418cb2; ⚠️ MUFG/SMBC/みずほ/SBI/GMO → T-033b) | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
 | T-034 | P1 | done | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
 | T-033b | P2 | todo | Banka CSV: ⚠️ bankalar (MUFG, SMBC, みずほ, 住信SBI, GMOあおぞら, 楽天 güncel) için gerçek başlık satırı — ürün sahibinden anonim örnek veya erişilebilir resmî kaynak gelince fixture + test (docs/BANK_CSV.md) |
-| T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
+| T-035 | P2 | doing (developer, 2026-11-08) | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
 | T-041 | P1 | done (bu commit; panel → T-041b) | Ekip üyeleri: bir işletmeye çok kullanıcı (owner / accountant / viewer), davet kodu, yetki kontrolü |
