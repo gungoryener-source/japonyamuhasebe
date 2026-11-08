@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 18:50 JST · developer · T-075 /assets 固定資産 sayfası
+- `app/assets/page.tsx` (台帳 + 減価償却費の計算 tablosu, ekle/sil, demo + canlı), menü girişi, `api.ts` tipleri, ja/tr/en çeviri; e2e fixture'a `/assets` ve `/assets/schedule?year=2026`.
+- Kapı: pytest yeşil, next build, check:* ve Playwright 31/31.
+- PDF'teki 減価償却費の計算 tablosu T-075b'ye ayrıldı. Sonraki: T-076 (家事按分), 申告前チェックリスト.
+
 ## 2026-11-08 18:10 JST · developer · T-073/T-074 減価償却 + 固定資産台帳
 - TAX_RULES'a 減価償却 bölümü; `tax/params/depreciation.toml` (+`load_static`); `tax/depreciation.py` (定額法 月割, 備忘価額1円, 一括償却, 少額特例 30万→40万 sınırı 2026-04-01, 300万 üst sınır uyarısı). 償却率 kuralı ve 10万/20万 eşikleri `verified=false` (別表第八 birincil kaynak doğrulanamadı).
 - `fixed_assets` tablosu (yalnızca ekleme, audit `asset`), `/assets` CRUD + `/assets/schedule`, `/pl` 減価償却費 otomatik (varlık yoksa /pl değişmez).

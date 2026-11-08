@@ -18,6 +18,7 @@ const MENU: { href: string; label: string }[] = [
   { href: "/slips/", label: "仕切書の確認" },
   { href: "/passbook/", label: "通帳の確認" },
   { href: "/bank/", label: "銀行連携" },
+  { href: "/assets/", label: "固定資産" },
   { href: "/tax/", label: "確定申告 / 税務" },
   { href: "/billing/", label: "料金プラン" },
   { href: "/settings/", label: "設定" },
