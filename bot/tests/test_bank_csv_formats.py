@@ -128,3 +128,35 @@ def client_auth(bot):
     tok = client.post("/api/v1/admin/tokens", json={"user_id": "BK33"},
                       headers={"X-Admin-Key": "test-admin"}).json()["token"]
     return client, {"Authorization": f"Bearer {tok}"}
+
+
+# --- review (2026-11-08): T-033 kenar durumları ---
+
+def test_direction_empty_value_row_skipped():
+    # 入出金区分 boşsa yön bilinmez → satır atlanır (işaretsiz tutar gelir sayılmaz)
+    raw = "取引日,入出金区分,摘要,取引金額\n2026/11/01,,x,500\n2026/11/02, 受入 ,y,700\n".encode()
+    assert [(r["d"], r["amount"]) for r in bank_csv.parse(raw)] == [("2026-11-02", 700)]
+
+
+def test_direction_zero_or_blank_amount_skipped():
+    raw = "取引日,入出金区分,摘要,取引金額\n2026/11/01,払出,x,0\n2026/11/02,受入,y,\n".encode()
+    assert bank_csv.parse(raw) == []
+
+
+def test_split_date_fullwidth_parens_and_invalid_day_skipped():
+    raw = ("操作日（年）,操作日（月）,操作日（日）,摘要,お支払金額,お預り金額,残高\n"
+           "2026,2,30,x,100,,900\n"          # 存在しない日付 → atlanır
+           "2026,3,1,y,,250,1150\n").encode("cp932")
+    assert _short(bank_csv.parse(raw)) == [("2026-03-01", 250, 1150)]
+
+
+def test_split_date_needs_all_three_parts():
+    # yalnızca 年/月 sütunu varsa tarih başlığı sayılmaz → başlık bulunamaz
+    raw = "操作日(年),操作日(月),摘要,お支払金額\n2026,11,x,100\n".encode()
+    with pytest.raises(ValueError):
+        bank_csv.parse(raw)
+
+
+def test_balance_genzaidaka_variant():
+    raw = "取引日,摘要,出金,入金,現在高\n2026/11/01,x,300,,9700\n".encode()
+    assert _short(bank_csv.parse(raw)) == [("2026-11-01", -300, 9700)]

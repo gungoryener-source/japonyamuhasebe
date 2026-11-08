@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 13:50 JST · reviewer · son 26 saat incelemesi
+- İncelenen (son review'dan sonra): T-033 (bank_csv yön sütunu/bölünmüş tarih), T-035 (Playwright e2e + fixture testi), T-045b (docs/ETAX.md, kod yok), T-046c (scripts/backup.sh). Doğruluk/güvenlik sorunu bulunmadı: yönü bilinmeyen satır atlanıyor, backup.sh `pipefail` + `.partial` + 600 izin + URL sızmıyor.
+- 5 yeni test (`tests/test_bank_csv_formats.py`): boş 入出金区分 → atlanır, 0/boş tutar → atlanır, 全角 括弧 bölünmüş tarih + geçersiz gün (2/30) atlanır, yalnızca 年/月 sütunu → başlık yok hatası, 現在高 bakiye sütunu.
+- Vergi kuralı değişikliği yok (TAX_RULES kontrolü gerekmedi). Yeni review-fix görevi yok.
+- Kapı: pytest SQLite 755 geçti/8 atlandı. dashboard-next değişmedi.
+
 ## 2026-11-08 12:50 JST · developer · T-046c PostgreSQL yedekleme
 - `scripts/backup.sh`: `pg_dump --dbname="$DATABASE_URL" --no-owner --no-privileges | gzip -9` → `backups/tegaru-YYYYMMDD-HHMMSS-JST.sql.gz` (`BACKUP_DIR`), izin 600, önce `.partial` → gzip testi + 「dump complete」 satırı doğrulanınca yeniden adlandırma; hata/kesik dökümde dosya kalmaz (çıkış kodları 2/3/5/6/7). URL hiçbir çıktıya yazılmaz; DB'de ve eski yedeklerde silme yok.
 - `docs/OPERATIONS.md`: yedek alma (`read -rs` ile URL), boş yeni DB'ye geri yükleme (`gunzip -c … | psql -v ON_ERROR_STOP=1 --single-transaction`) + doğrulama, fiş görselleri kapsam dışı, Render free DB ~30 gün (Q-07 → Basic). `.gitignore`: `backups/`, `*.sql.gz`.
