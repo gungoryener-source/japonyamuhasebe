@@ -86,3 +86,13 @@ jobs:
         run: npm run check:lp
       - name: check:welcome (初期設定ウィザード)
         run: npm run check:welcome
+      - name: e2e (Playwright, T-035) — demo + canlı mod (sahte API)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: dashboard-next/test-results/
+          retention-days: 7

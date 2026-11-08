@@ -11,7 +11,8 @@
     "check:legal": "node --experimental-strip-types --no-warnings scripts/check-legal.mjs",
     "check:team": "node --experimental-strip-types --no-warnings scripts/check-team.mjs",
     "check:lp": "node --experimental-strip-types --no-warnings scripts/check-lp.mjs",
-    "check:welcome": "node --experimental-strip-types --no-warnings scripts/check-welcome.mjs"
+    "check:welcome": "node --experimental-strip-types --no-warnings scripts/check-welcome.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "lucide-react": "0.468.0",
@@ -20,6 +21,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "22.10.5",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",

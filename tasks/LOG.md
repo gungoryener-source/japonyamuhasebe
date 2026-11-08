@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 11:10 JST · developer · T-035 panel e2e (Playwright)
+- `dashboard-next/e2e/panel.spec.ts` (29 test): demo modunda 9 menü + kenar çubuğundan sırayla gezinti + login/signup/reset/join/connect/welcome/lp/legal×3; canlı modda 9 menü (localStorage token + `**/api/v1/**` sahte yanıt, Bearer başlığı denetlenir). Konsol hatası, yakalanmamış istisna, demoda API çağrısı, canlıda fixture'da olmayan çağrı → kırmızı.
+- Sahte API verisi elle yazılmadı: `e2e/make_fixtures.py` gerçek bot'tan (geçici SQLite + `demo_data.seed`) 20 GET ucunu kaydeder; `bot/tests/test_e2e_fixtures.py` yol/biçim kaymasını ve sır olmadığını denetler. Statik sunucu `e2e/serve.mjs` (yeni paket yok); tek yeni dev paket `@playwright/test` 1.63.0 (tam sabit).
+- Testin gerçekten yakaladığı doğrulandı: /summary silinip /invoices bozulunca canlı ホーム ve 請求書 testleri kırmızı.
+- CI: dashboard işine `playwright install --with-deps chromium` + `npm run e2e`, başarısızlıkta trace artifact. Kapı: pytest SQLite 741 geçti/6 atlandı, PostgreSQL 16 745/2; next build + check:* yeşil; e2e 29/29 (~18 sn).
+- Sonraki: P2 — T-045b, T-046c, T-012c (T-033b örnek CSV bekliyor). Yeni soru yok.
+
 ## 2026-11-08 10:20 JST · developer · T-033 banka CSV başlıkları
 - `docs/BANK_CSV.md`: banka başına başlık satırı + kaynak + seviye (✅ ゆうちょBizダイレクト 操作説明書 18.4, 京都銀行 ANSER CSV; 🟡 felica2money wiki: 楽天(旧イーバンク), PayPay(旧JNB), ソニー円; ⚠️ MUFG, SMBC, みずほ, 住信SBI, GMO — kamuya açık CSV başlığı bulunamadı → T-033b).
 - Bulunan hata: ゆうちょBiz CSV'de 「入出金区分」 tutar sütunu sanılıyordu → hiçbir satır alınmıyordu. `bank_csv`: yön sütunu (受入/入金/1 → +, 払出/出金/2 → −, tanınmayan → satır atlanır), 「操作日(年/月/日)」 bölünmüş tarih, 「番号」「口数」 sütunları atlanır (受入明細番号 ≠ 入金), 送金人名/依頼人名 摘要'ye eklenir, 「お取り引き日」「お預け入れ額」「お引き出し額」「現在（貸付）高」. Daha önce çalışan biçimlerin çıktısı değişmedi.

@@ -1,0 +1,1254 @@
+{
+ "/account/delete-request": {
+  "billing_active": false,
+  "request": null
+ },
+ "/auth/me": {
+  "account": null,
+  "role": "owner",
+  "user_id": "E2E"
+ },
+ "/bank/review": {
+  "ai_enabled": false,
+  "counts": {
+   "balance_errors": 0,
+   "open": 0,
+   "total": 0,
+   "unknown": 0
+  },
+  "nta_enabled": false,
+  "rows": []
+ },
+ "/bank/transactions": {
+  "suggestions": [],
+  "transactions": []
+ },
+ "/billing/plans": {
+  "payments_enabled": false,
+  "plans": [
+   {
+    "available": true,
+    "id": "free",
+    "interval": "month",
+    "invoices_per_month": 3,
+    "name": "フリー",
+    "placeholder": false,
+    "price_jpy": 0,
+    "receipts_per_month": 30,
+    "tax_excluded": true
+   },
+   {
+    "available": false,
+    "id": "personal",
+    "interval": "month",
+    "invoices_per_month": null,
+    "name": "個人",
+    "placeholder": false,
+    "price_jpy": 980,
+    "receipts_per_month": null,
+    "tax_excluded": true
+   },
+   {
+    "available": false,
+    "id": "business",
+    "interval": "month",
+    "invoices_per_month": null,
+    "name": "法人",
+    "placeholder": false,
+    "price_jpy": 2980,
+    "receipts_per_month": null,
+    "tax_excluded": true
+   }
+  ]
+ },
+ "/billing/status": {
+  "limits": {
+   "invoices_per_month": 3,
+   "receipts_per_month": 30
+  },
+  "limits_enforced": false,
+  "payments_enabled": false,
+  "plan": "free",
+  "plan_name": "フリー",
+  "subscription": null,
+  "usage": {
+   "invoices": 4,
+   "month": "2026-11",
+   "receipts": 0
+  }
+ },
+ "/cashflow": [
+  {
+   "expense": 1950000,
+   "income": 3880000,
+   "month": "2026-06",
+   "net": 1930000
+  },
+  {
+   "expense": 1790000,
+   "income": 3560000,
+   "month": "2026-07",
+   "net": 1770000
+  },
+  {
+   "expense": 1840000,
+   "income": 3210000,
+   "month": "2026-08",
+   "net": 1370000
+  },
+  {
+   "expense": 1876000,
+   "income": 3795000,
+   "month": "2026-09",
+   "net": 1919000
+  },
+  {
+   "expense": 1820000,
+   "income": 4250000,
+   "month": "2026-10",
+   "net": 2430000
+  },
+  {
+   "expense": 0,
+   "income": 0,
+   "month": "2026-11",
+   "net": 0
+  }
+ ],
+ "/channels": {
+  "categories": [
+   "売上高",
+   "旅費交通費",
+   "消耗品費",
+   "会議費",
+   "接待交際費",
+   "通信費",
+   "地代家賃",
+   "水道光熱費",
+   "外注工賃",
+   "新聞図書費",
+   "広告宣伝費",
+   "支払手数料",
+   "雑費"
+  ],
+  "line": {
+   "configured": true,
+   "linked": true,
+   "webhook": "/callback"
+  },
+  "ocr": {
+   "ai_fallback": false,
+   "engine": "tesseract",
+   "tesseract": true
+  },
+  "whatsapp": {
+   "configured": false,
+   "webhook": "/whatsapp"
+  }
+ },
+ "/counterparties": {
+  "counterparties": [],
+  "nta_enabled": false
+ },
+ "/entries": [
+  {
+   "amount": 513000,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-05",
+   "id": 4,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 684000,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-08",
+   "id": 5,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 136800,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-11",
+   "id": 6,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 85500,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-14",
+   "id": 7,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 34200,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-17",
+   "id": 8,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 119700,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-20",
+   "id": 9,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 136800,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-23",
+   "id": 10,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1539000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-25",
+   "id": 1,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1197000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-26",
+   "id": 2,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 684000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-05-27",
+   "id": 3,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 585000,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-05",
+   "id": 14,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 780000,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-08",
+   "id": 15,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 156000,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-11",
+   "id": 16,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 97500,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-14",
+   "id": 17,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 39000,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-17",
+   "id": 18,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 136500,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-20",
+   "id": 19,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 156000,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-23",
+   "id": 20,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1746000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-25",
+   "id": 11,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1358000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-26",
+   "id": 12,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 776000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-06-27",
+   "id": 13,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 537000,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-05",
+   "id": 24,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 716000,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-08",
+   "id": 25,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 143200,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-11",
+   "id": 26,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 89500,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-14",
+   "id": 27,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 35800,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-17",
+   "id": 28,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 125300,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-20",
+   "id": 29,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 143200,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-23",
+   "id": 30,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1602000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-25",
+   "id": 21,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1246000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-26",
+   "id": 22,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 712000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-07-27",
+   "id": 23,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 552000,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-05",
+   "id": 34,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 736000,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-08",
+   "id": 35,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 147200,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-11",
+   "id": 36,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 92000,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-14",
+   "id": 37,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 36800,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-17",
+   "id": 38,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 128800,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-20",
+   "id": 39,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 147200,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-23",
+   "id": 40,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1444500,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-25",
+   "id": 31,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1123500,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-26",
+   "id": 32,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 642000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-08-27",
+   "id": 33,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 562800,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-05",
+   "id": 44,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 750400,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-08",
+   "id": 45,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 150080,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-11",
+   "id": 46,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 93800,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-14",
+   "id": 47,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 37520,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-17",
+   "id": 48,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 131320,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-20",
+   "id": 49,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 150080,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-23",
+   "id": 50,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1707750,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-25",
+   "id": 41,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1328250,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-26",
+   "id": 42,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 759000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-09-27",
+   "id": 43,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 546000,
+   "category": "地代家賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-05",
+   "id": 54,
+   "image_path": "",
+   "invoice_no": "T9010001444444",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "東京シェアオフィス",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 728000,
+   "category": "外注工賃",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-08",
+   "id": 55,
+   "image_path": "",
+   "invoice_no": "T1011101555555",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社クラウドワン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 145600,
+   "category": "旅費交通費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-11",
+   "id": 56,
+   "image_path": "",
+   "invoice_no": "T7011001666666",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "JR東日本",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 91000,
+   "category": "通信費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-14",
+   "id": 57,
+   "image_path": "",
+   "invoice_no": "T9010001888888",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "楽天モバイル",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 36400,
+   "category": "会議費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-17",
+   "id": 58,
+   "image_path": "",
+   "invoice_no": "T3011001000001",
+   "kind": "exp",
+   "rate": 8,
+   "source": "DEMO",
+   "store": "ローソン",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 127400,
+   "category": "接待交際費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-20",
+   "id": 59,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "居酒屋たぬき",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 145600,
+   "category": "消耗品費",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-23",
+   "id": 60,
+   "image_path": "",
+   "invoice_no": "T1011101555556",
+   "kind": "exp",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "ヨドバシカメラ",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1912500,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-25",
+   "id": 51,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社サクラ製作所",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 1487500,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-26",
+   "id": 52,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "株式会社アオイ商事",
+   "user_id": "E2E"
+  },
+  {
+   "amount": 850000,
+   "category": "売上高",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "d": "2026-10-27",
+   "id": 53,
+   "image_path": "",
+   "invoice_no": "",
+   "kind": "inc",
+   "rate": 10,
+   "source": "DEMO",
+   "store": "合同会社ヒカリデザイン",
+   "user_id": "E2E"
+  }
+ ],
+ "/invoices": [
+  {
+   "client": "株式会社アオイ商事",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "due": "2026-11-30",
+   "id": 2,
+   "issued": "2026-10-31",
+   "items": [
+    {
+     "amount": 900000,
+     "name": "Webサイト改修",
+     "qty": 1,
+     "rate": 10,
+     "unit_price": 900000
+    }
+   ],
+   "no": "INV-2026-0002",
+   "overdue": false,
+   "paid_on": "",
+   "status": "unpaid",
+   "subtotal10": 900000,
+   "subtotal8": 0,
+   "tax10": 90000,
+   "tax8": 0,
+   "total": 990000,
+   "user_id": "E2E"
+  },
+  {
+   "client": "株式会社サクラ製作所",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "due": "2026-11-30",
+   "id": 1,
+   "issued": "2026-10-31",
+   "items": [
+    {
+     "amount": 1200000,
+     "name": "業務システム保守（10月分）",
+     "qty": 1,
+     "rate": 10,
+     "unit_price": 1200000
+    }
+   ],
+   "no": "INV-2026-0001",
+   "overdue": false,
+   "paid_on": "",
+   "status": "unpaid",
+   "subtotal10": 1200000,
+   "subtotal8": 0,
+   "tax10": 120000,
+   "tax8": 0,
+   "total": 1320000,
+   "user_id": "E2E"
+  },
+  {
+   "client": "合同会社ヒカリデザイン",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "due": "2026-10-31",
+   "id": 4,
+   "issued": "2026-09-30",
+   "items": [
+    {
+     "amount": 500000,
+     "name": "デザイン監修",
+     "qty": 1,
+     "rate": 10,
+     "unit_price": 500000
+    }
+   ],
+   "no": "INV-2026-0004",
+   "overdue": false,
+   "paid_on": "2026-10-30",
+   "status": "paid",
+   "subtotal10": 500000,
+   "subtotal8": 0,
+   "tax10": 50000,
+   "tax8": 0,
+   "total": 550000,
+   "user_id": "E2E"
+  },
+  {
+   "client": "有限会社カエデフーズ",
+   "created_at": "2026-11-08T10:45:57+09:00",
+   "due": "2026-10-31",
+   "id": 3,
+   "issued": "2026-09-30",
+   "items": [
+    {
+     "amount": 400000,
+     "name": "試食会 弁当",
+     "qty": 100,
+     "rate": 8,
+     "unit_price": 4000
+    }
+   ],
+   "no": "INV-2026-0003",
+   "overdue": true,
+   "paid_on": "",
+   "status": "unpaid",
+   "subtotal10": 0,
+   "subtotal8": 400000,
+   "tax10": 0,
+   "tax8": 32000,
+   "total": 432000,
+   "user_id": "E2E"
+  }
+ ],
+ "/pl": {
+  "expenses": [
+   {
+    "amount": 4394400,
+    "category": "外注工賃"
+   },
+   {
+    "amount": 3295800,
+    "category": "地代家賃"
+   },
+   {
+    "amount": 878880,
+    "category": "旅費交通費"
+   },
+   {
+    "amount": 878880,
+    "category": "消耗品費"
+   },
+   {
+    "amount": 769020,
+    "category": "接待交際費"
+   },
+   {
+    "amount": 549300,
+    "category": "通信費"
+   },
+   {
+    "amount": 219720,
+    "category": "会議費"
+   }
+  ],
+  "expenses_total": 10986000,
+  "income_before_blue": 11129000,
+  "note": "税込経理（消費税込みの金額）で集計しています。",
+  "revenue": 22115000,
+  "year": 2026
+ },
+ "/profile": {
+  "business_name": "合同会社ミナト",
+  "individual": 0,
+  "registration_no": "T3010001222222",
+  "updated_at": "2026-11-08T10:45:57+09:00",
+  "user_id": "E2E"
+ },
+ "/settings/ai": {
+  "ai_available": false,
+  "month": {
+   "by_kind": {},
+   "total_jpy": 0
+  },
+  "per_unit": {
+   "passbook": {
+    "basis": "estimate",
+    "jpy": 2.7,
+    "samples": 0
+   },
+   "receipt": {
+    "basis": "estimate",
+    "jpy": 1.3,
+    "samples": 0
+   },
+   "slip": {
+    "basis": "estimate",
+    "jpy": 2.3,
+    "samples": 0
+   }
+  },
+  "prices": {
+   "input_usd_per_mtok": 2.0,
+   "model": "claude-sonnet-5-5",
+   "output_usd_per_mtok": 10.0,
+   "usd_jpy": 155.0
+  },
+  "receipt_reader": "",
+  "server_default": "tesseract"
+ },
+ "/slips": {
+  "ai_enabled": false,
+  "counts": {
+   "approved": 0,
+   "pending": 0,
+   "rejected": 0
+  },
+  "slips": []
+ },
+ "/summary": {
+  "expenses": 0,
+  "expenses_change_pct": -100.0,
+  "expenses_without_invoice_no": 0,
+  "month": "2026-11",
+  "profit": 0,
+  "profit_change_pct": -100.0,
+  "receivables": 2742000,
+  "revenue": 0,
+  "revenue_change_pct": -100.0,
+  "unpaid_invoices": 3
+ },
+ "/tax/consumption": {
+  "by_rate": {
+   "10": {
+    "input": 963592,
+    "output": 2010454,
+    "sales": 22115000
+   },
+   "8": {
+    "input": 16272,
+    "output": 0,
+    "sales": 0
+   }
+  },
+  "input_tax": 979864,
+  "method": "honsoku",
+  "output_tax": 2010454,
+  "payable": 1030500,
+  "transitional_cap": 1000000000,
+  "transitional_over_cap": [],
+  "unqualified": [
+   {
+    "credited": 46660,
+    "gross": 641620,
+    "ratio": 80,
+    "tax": 58327
+   },
+   {
+    "credited": 8106,
+    "gross": 127400,
+    "ratio": 70,
+    "tax": 11581
+   }
+  ],
+  "year": 2026
+ },
+ "/tax/income": {
+  "base_tax": 1717470,
+  "basic_deduction": 620000,
+  "blue_deduction": 650000,
+  "business_income": 10479000,
+  "disclaimer": "概算です。源泉徴収税額・予定納税・他の所得控除は含みません。",
+  "expenses": 10986000,
+  "reconstruction": 36066,
+  "revenue": 22115000,
+  "taxable": 9859000,
+  "total": 1753500,
+  "year": 2026
+ },
+ "/team/ledgers": {
+  "current": "E2E",
+  "ledgers": []
+ },
+ "/team/members": {
+  "invites": [],
+  "members": []
+ }
+}
