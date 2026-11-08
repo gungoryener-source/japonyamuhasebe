@@ -81,15 +81,15 @@ Banka defterindeki firma adlarını resmi kayıttan bulmak için. Başvuru ücre
 
 ## Q-16 · Birden çok şirket — fiyatlandırma (açık — ürün sahibi, sonraya bırakıldı 2026-11-07)
 Bir hesaba sınırsız şirket (事業所) eklenebiliyor; her şirket ayrı defter ve şimdilik kendi planı (Free). Seçenekler: (a) her şirket ayrı abonelik, (b) 法人 planında N şirkete kadar dahil + ek şirket başına ücret, (c) şirket sayısına göre kademeli plan. Koruma sınırı: `MAX_COMPANIES_PER_ACCOUNT` (varsayılan 100).
-**Cevap:**
+**Cevap:** (ürün sahibi 2026-11-08) **Şimdilik ücretsiz.** Fiyatlandırma kuralı kodda sabit olmasın: yönetici için bir **fiyatlandırma ayarları ekranı** olsun (plan başına dahil şirket sayısı, ek şirket ücreti, açık/kapalı); gerektiğinde oradan değiştirilir. Varsayılan: ek şirket ücretsiz, sınırsız (MAX_COMPANIES_PER_ACCOUNT koruması kalır). → T-064b
 
 ## Q-18 · 仕切書 (slips) değişiklik geçmişi — T-060 dosyalarına dokunma izni (açık — developer, 2026-11-08, T-065b)
 entries / invoices / bank_tx değişiklikleri artık `audit_log`'a yazılıyor ve panel 経費精算'te 「履歴」 ile görünüyor. 仕切書'nin onay/red/düzeltmeleri `bot/slips*.py` içinde; bu dosyalara ajanların dokunmaması istendiği için eklenmedi (onaylanan 仕切書'nin oluşturduğu 売上 kaydı zaten entries geçmişinde var). Karar: (a) ajan `slips.py`'de update/approve/reject çağrılarına `store._audit(..., "slip", ...)` eklesin (öneri; küçük, davranış değişmez), (b) ürün sahibi kendisi ekler, (c) gerek yok. Görev: T-065c (blocked).
-**Cevap:**
+**Cevap:** (ürün sahibi 2026-11-08) **Onay.** Ajanlar `bot/slips*.py` ve `dashboard-next/app/slips/` dosyalarına audit için dokunabilir. → T-065c todo
 
 ## Q-19 · e-Tax 仕様書 indirme — 利用上の注意 kabulü (açık — developer, 2026-11-08, T-045b/T-067)
 e-Tax .xtx üretimi (T-067/T-068) için 国税庁'nin 仕様書'si (項番7 手続一覧, 9 所得税, 19 XMLスキーマ; CAB arşivi) gerekiyor. Sayfa: indirme, 「利用上の注意」'yi kabul etmek sayılır — ajan bunu ürün sahibi adına kabul etmemeli. Seçenekler: (a) ürün sahibi https://www.e-tax.nta.go.jp/shiyo/ksk2/ksk2_shiyo3.htm 'deki 利用上の注意'yi okuyup ajanın indirmesine izin verir (öneri), (b) ürün sahibi dosyaları kendisi indirip depoya değil özel bir yere koyar, (c) e-Tax çıktısı şimdilik yapılmaz (PDF + elle giriş yeter). Ayrıntı: `docs/ETAX.md`.
-**Cevap:**
+**Cevap:** (ürün sahibi 2026-11-08) **Onay.** e-Tax 仕様書 indirilebilir (利用上の注意 kabul). → T-067 todo
 
 ## Q-22 · Banka CSV örnekleri — MUFG / SMBC / みずほ / 住信SBI / GMOあおぞら / 楽天 (açık — planner, 2026-11-08, T-033b)
 Bu bankaların CSV başlık satırı kamuya açık resmî kaynakta bulunamadı (`docs/BANK_CSV.md` ⚠️). Ajanlar başlık uyduramaz. İstenen: her bankadan internet bankacılığı CSV'sinin **yalnızca başlık satırı + 1–2 satır anonim örnek** (tutarlar/adlar değiştirilmiş). Gelene kadar genel sütun eşleştirme çalışıyor; tanınmayan biçimde panel hata mesajı gösterir.
