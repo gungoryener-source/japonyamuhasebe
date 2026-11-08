@@ -100,6 +100,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-076 | P1 | done (2026-11-08) | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
 | T-077 | P2 | done (2026-11-08; 未払金 karşı hesabı → T-077b, şema kararı) | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
 | T-077b | P3 | todo | Kart gideri için karşı hesap 未払金: `entries`'e `counter_account` sütunu (yalnızca ekleme) + 「経費に登録」de kart kaynağı için varsayılan; ürün sahibi onayı gerekir |
+| T-082 | P1 | done (2026-11-08) | 国税庁 ile otomatik firma adı + 登録番号 kontrolü (`/bank/review/enrich`); canlı kullanım Q-20 (NTA_APP_ID) bekler. Fiş (slip) ve CSV yüklemesine otomatik bağlama → T-082b |
+| T-082b | P2 | todo | enrich'i 銀行CSV/カードCSV içe aktarma sonrası ve 仕切書 (slips) okumasında da otomatik çağır |
 | T-081 | P1 | done (2026-11-08) | 申告前チェックリスト: `bot/tax/precheck.py` + `GET /tax/precheck` + /tax kartı (kullanıcı isteğiyle eklendi) |
 | T-078 | P1 | done | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 | T-079 | P1 | blocked (法案成立待ち — tax-watcher izler) | 飲食料品 消費税率 1% (国税0.78%+地方0.22%, 2027-04-01〜2029-03-31; 2026-09-15 閣議決定, TAX_RULES §1 ⚠️): yasa çıkınca TAX_RULES ✅ → `RATES`/parser/OCR/CSV 税区分/申告書 付表/簡易課税 特例 için alt görevler |

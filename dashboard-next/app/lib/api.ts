@@ -297,6 +297,7 @@ export const api = {
   aiSettings: () => call<ApiAiSettings>("/settings/ai"),
   aiSettingsPut: (receipt_reader: "" | "ocr" | "ai" | "auto") => call<ApiAiSettings>("/settings/ai", { method: "PUT", body: JSON.stringify({ receipt_reader }) }),
   counterpartyVerify: () => call<{ checked: number; online: boolean; valid: number; expired: number; notfound: number; format_ng: number; unchecked: number }>("/counterparties/verify", { method: "POST" }),
+  bankEnrich: () => call<{ checked: number; saved: { name: string; registration_no: string }[]; suggestions: { key: string; candidates: { name: string; registration_no: string; invoice_status: string }[] }[]; failed: number; remaining: number }>("/bank/review/enrich", { method: "POST" }),
   counterpartyImport: (file: Blob) => call<{ imported: number }>("/counterparties/import", { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
   counterpartyLookup: (desc: string) =>
     call<{ results: { name: string; furigana: string; corporate_number: string; address: string; registration_no_guess: string }[] }>(`/counterparties/lookup${qs({ desc })}`),

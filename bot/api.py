@@ -589,6 +589,46 @@ def _review_rows(uid: str, date_from: str = "", date_to: str = "") -> list[dict]
     return out
 
 
+@router.post("/bank/review/enrich")
+async def bank_review_enrich(date_from: str = "", date_to: str = "", uid: str = Depends(writer_user)):
+    """未確認の明細ごとに国税庁で取引先名・登録番号を自動で調べる。
+
+    候補が1件だけで、公表サイトで登録中（valid）と確認できたときだけ取引先として保存する（source=nta）。
+    複数候補・失効・未登録は書き込まず、候補として返す。NTA_APP_ID が必要。1回あたり最大30社。"""
+    app_id = os.environ.get("NTA_APP_ID", "")
+    if not app_id:
+        raise HTTPException(503, "国税庁 Web-API のアプリケーションID（NTA_APP_ID）が未設定です")
+    rows = [r for r in _review_rows(uid, date_from and _valid_date(date_from, "date_from"), date_to and _valid_date(date_to, "date_to"))
+            if not r["status"] and not r["counterparty"] and r["match"] == "" and r["amount"] < 0]
+    seen: dict[str, list[int]] = {}
+    for r in rows:
+        k = cpmod.key_from_description(r["description"])
+        if len(k) >= 2:
+            seen.setdefault(k, []).append(r["id"])
+    saved, suggestions, failed = [], [], 0
+    for key, ids in list(seen.items())[:30]:
+        desc = next(r["description"] for r in rows if r["id"] == ids[0])
+        try:
+            found = await cpmod.nta_search(app_id, desc)
+            regs = {f["corporate_number"]: "T" + f["corporate_number"] for f in found}
+            online = await cpmod.invoice_lookup(app_id, sorted(regs.values())) if regs else {}
+        except Exception:  # noqa: BLE001  接続エラーはその会社だけ飛ばす
+            failed += 1
+            continue
+        cands = [{"name": f["name"], "corporate_number": f["corporate_number"], "registration_no": regs[f["corporate_number"]],
+                  "invoice_status": online.get(regs[f["corporate_number"]], {}).get("status", "")} for f in found]
+        if len(cands) == 1 and cands[0]["invoice_status"] == "valid":
+            c = cands[0]
+            cp = cpmod.upsert(uid, name=c["name"], key=key, corporate_number=c["corporate_number"],
+                              registration_no=c["registration_no"], source="nta")
+            cpmod.save_invoice_status(uid, cp["id"], "valid", c["name"])
+            saved.append({"key": key, "name": c["name"], "registration_no": c["registration_no"], "rows": ids})
+        elif cands:
+            suggestions.append({"key": key, "rows": ids, "candidates": cands})
+    return {"checked": min(len(seen), 30), "saved": saved, "suggestions": suggestions, "failed": failed,
+            "remaining": max(0, len(seen) - 30)}
+
+
 @router.get("/bank/review")
 def bank_review(date_from: str = "", date_to: str = "", uid: str = Depends(current_user)):
     rows = _review_rows(uid, date_from and _valid_date(date_from, "date_from"), date_to and _valid_date(date_to, "date_to"))

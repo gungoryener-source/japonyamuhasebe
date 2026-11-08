@@ -62,6 +62,7 @@ export default function PassbookPage() {
       + (r.balance_errors ? " ・ " + T("残高が合わない行 {a}件", { a: r.balance_errors }) : ""));
     if (pbRef.current) pbRef.current.value = "";
     await reload();
+    if (data.nta_enabled) await enrich(true);
   });
   const importExcel = (f?: File) => f && run("xl", async () => {
     const r = await api.counterpartyImport(f);
@@ -98,6 +99,12 @@ export default function PassbookPage() {
       : T("登録番号 {a}件の形式を確認: 形式誤り {b}件（国税庁での確認は NTA_APP_ID の設定後）", { a: r.checked, b: r.format_ng }));
     await reload();
   });
+  const enrich = (auto = false) => run("en", async () => {
+    const r = await api.bankEnrich();
+    toast(T("国税庁で {a}社を確認: 自動で登録 {b}社・候補あり {c}社", { a: r.checked, b: r.saved.length, c: r.suggestions.length })
+      + (r.remaining ? " ・ " + T("残り {a}社", { a: r.remaining }) : "") + (r.failed ? " ・ " + T("接続失敗 {a}社", { a: r.failed }) : ""));
+    if (!auto || r.saved.length) await reload();
+  });
   const xlsx = () => run("dl", async () => saveBlob(await api.bankXlsx(from, to), `通帳整理表_${from}_${to}.xlsx`));
 
   return (
@@ -128,6 +135,7 @@ export default function PassbookPage() {
           <Field label={T("開始日")}><input type="date" className={inputCls} value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
           <Field label={T("終了日")}><input type="date" className={inputCls} value={to} onChange={(e) => setTo(e.target.value)} /></Field>
           <label className="flex items-center gap-1.5 pb-2"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />{T("未確認のみ")}</label>
+          {canEdit && data.nta_enabled && <Btn onClick={() => enrich()} disabled={!!busy}>{busy === "en" ? <LoaderCircle size={13} className="animate-spin" /> : <Search size={13} />}{T("国税庁で一括確認")}</Btn>}
           {canEdit && <Btn onClick={verify} disabled={!!busy}>{busy === "vf" ? <LoaderCircle size={13} className="animate-spin" /> : <BadgeCheck size={13} />}{T("登録番号を確認")}</Btn>}
           <Btn onClick={xlsx} disabled={!!busy}><Download size={13} />{T("Excel 出力")}</Btn>
           {canEdit && <Btn kind="primary" onClick={confirmAll} disabled={!!busy || !autoIds.length}>

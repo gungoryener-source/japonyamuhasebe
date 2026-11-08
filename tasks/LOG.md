@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 22:10 JST · developer · 国税庁 otomatik firma/登録番号 kontrolü (T-082)
+- `POST /bank/review/enrich`: eşleşmemiş harcama satırları için 法人番号 Web-API + インボイス公表サイト; tek aday ve valid ise `source=nta` ile 取引先 kaydı, aksi halde yalnızca öneri. `NTA_APP_ID` yoksa 503. 通帳 sayfasında 「国税庁で一括確認」 düğmesi; 通帳 yüklemesinden sonra otomatik.
+- Sunucu tarafı çağrı: geliştirme oturumunun tarayıcı/ağ erişimine bağlı değil. Canlıda Q-20 (NTA_APP_ID) girilmeden çalışmaz.
+- Kapı: pytest, next build, check:*, Playwright.
+
 ## 2026-11-08 21:20 JST · developer · T-077 クレジットカード明細 CSV
 - `bot/card_csv.py` (sütun eşlemesi sözcüklerle; 返金 → giriş, 合計/分割・リボ notları atlanır, 支払区分/支払日 摘要'ye), `POST /card/import` → mevcut bank_tx hattı (`src=card`, 未確認). `docs/CARD_CSV.md`: şirket CSV başlıkları için birincil kaynak bulunamadı → ⚠️, başlık uydurulmadı.
 - 未払金 karşı hesabı `entries` şemasında olmadığı için yapılmadı (T-077b). Panel sekmesi eklenmedi (BACKLOG: isteğe bağlı).
