@@ -90,7 +90,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-068 | P2 | blocked (T-067) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |
 | T-069 | P2 | blocked (T-068) | Panel 確定申告: 「e-Tax用データ(.xtx)」 indirme + Japonca adım kılavuzu (e-Taxソフト(WEB版) → 署名 → 送信) |
 | T-070 | P1 | done (bu commit) | TAX_RULES §1'e 消費税申告書 hesap adımları (課税標準額 千円未満切捨, 国税 7.8/6.24, 地方 22/78, 百円未満切捨, 積上げ/割戻し; 簡易・2割・3割'nın 申告書 satırları) — yalnızca belge, kaynak + tarih |
-| T-071 | P1 | todo | `bot/tax/consumption_return.py`: 消費税申告書 第一表/第二表 相当 alanlar (本則/簡易/2割/3割) + sınır testleri; `GET /api/v1/tax/consumption/return?year=` |
+| T-071 | P1 | done (bu commit; params → T-080) | `bot/tax/consumption_return.py`: 消費税申告書 第一表/第二表 相当 alanlar (本則/簡易/2割/3割) + sınır testleri; `GET /api/v1/tax/consumption/return?year=` |
 | T-072 | P2 | todo (T-071'den sonra) | 消費税申告書 参考 PDF `GET /api/v1/reports/consumption-return.pdf?year=` + panel 税務 indirme düğmesi |
 | T-073 | P1 | todo | TAX_RULES'a 減価償却 bölümü (個人 定額法, 償却率, 月割, 10万未満 / 一括償却資産 / 少額減価償却資産特例 eşik ve yıllık üst sınır, başlıca 耐用年数) — yalnızca belge, kaynak + tarih |
 | T-074 | P1 | todo (T-073'ten sonra) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
@@ -99,6 +99,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
 | T-078 | P1 | done | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 | T-079 | P1 | blocked (法案成立待ち — tax-watcher izler) | 飲食料品 消費税率 1% (国税0.78%+地方0.22%, 2027-04-01〜2029-03-31; 2026-09-15 閣議決定, TAX_RULES §1 ⚠️): yasa çıkınca TAX_RULES ✅ → `RATES`/parser/OCR/CSV 税区分/申告書 付表/簡易課税 特例 için alt görevler |
+| T-080 | P1 | todo | Vergi parametrelerini yıl dosyalarına taşıma (vergi motoru kuralı: kodda oran yok): `consumption.py` (`RATES`, `TRANSITIONAL_CREDIT`, `KANI_RATIO`, `SMALL_BUSINESS_LIMIT`, `TRANSITIONAL_CAP`) ve `income.py` tabloları → `bot/tax/params/<yıl>.toml` (tarih bazlı tablolar ayrı dosya); fonksiyon imzası/çıktısı birebir aynı (mevcut testler kanıt) + parametre şema testi |
 
 ---
 

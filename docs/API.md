@@ -14,6 +14,7 @@ Canlıya alma kontrolü: `GET /admin/config-check` (kökte, `/api/v1` değil; ya
 | GET | `/entries?date_from&date_to&q&amount_min&amount_max&kind` | 電子帳簿保存法 arama (tarih/tutar/karşı taraf) |
 | POST | `/entries` | Web'den kayıt `{date, kind, store, amount, category, rate, invoice_no}` |
 | GET | `/tax/consumption?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=` | 消費税 hesabı (`bot/tax/consumption.py`). Yanıtta `unqualified`: 登録番号なし仕入の控除割合別内訳 `[{ratio, gross, tax, credited}]` |
+| GET | `/tax/consumption/return?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=&purchase_calc=warimodoshi|ledger` | 消費税申告書 相当 (T-071, `bot/tax/consumption_return.py`): 国税/地方 ayrı; `output_tax`, `credit`, `national_payable`/`national_refund`, `local_payable`/`local_refund`, `total_payable`; `lines[]` = her rakamın izi `{key, label, value, formula, rule, verified, inputs}`; `warnings[]` (日本語, 最後は 税理士 確認); `unverified[]` (TODO(verify) parametre). Yıl parametresi yoksa 409 |
 | GET/PUT | `/profile` | 事業者名, 登録番号, 個人/法人 |
 | GET | `/invoices?status=paid|unpaid` | Faturalar (+ `overdue` bayrağı) |
 | POST | `/invoices` | 適格請求書 oluştur `{client, issued?, due, items:[{name, qty, unit_price(税抜), rate}]}` |

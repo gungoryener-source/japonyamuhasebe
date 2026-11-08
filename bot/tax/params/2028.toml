@@ -1,0 +1,128 @@
+# 令和10年分 (2028) 消費税及び地方消費税 申告書 計算パラメータ
+# 正本: docs/TAX_RULES.md §1 「消費税申告書の計算手順」（各値の出典 URL・確認日はそちら）。
+# 分数は [分子, 分母] の整数（float 禁止）。verified = false の値は TODO(verify)。
+tax_year = 2028
+
+[consumption.base_ratio.standard]
+value = [100, 110]
+verified = true
+source = "NTA No.6371"
+rule = "申告書#1"
+checked = "2026-11-08"
+
+[consumption.base_ratio.reduced]
+value = [100, 108]
+verified = true
+source = "NTA No.6371"
+rule = "申告書#1"
+checked = "2026-11-08"
+
+[consumption.base_round]
+value = 1000
+verified = true
+source = "NTA No.6371"
+rule = "申告書#1"
+checked = "2026-11-08"
+note = "課税標準額 千円未満切捨て"
+
+[consumption.national_rate.standard]
+value = [78, 1000]
+verified = true
+source = "NTA No.6371 / No.6383"
+rule = "申告書#2"
+checked = "2026-11-08"
+note = "7.8%"
+
+[consumption.national_rate.reduced]
+value = [624, 10000]
+verified = true
+source = "NTA No.6371 / No.6383"
+rule = "申告書#2"
+checked = "2026-11-08"
+note = "6.24%"
+
+[consumption.input_ratio.standard]
+value = [78, 1100]
+verified = true
+source = "NTA No.6351 / No.6371"
+rule = "申告書#5"
+checked = "2026-11-08"
+note = "7.8/110"
+
+[consumption.input_ratio.reduced]
+value = [624, 10800]
+verified = true
+source = "NTA No.6351 / No.6371"
+rule = "申告書#5"
+checked = "2026-11-08"
+note = "6.24/108"
+
+[consumption.ledger_tax.standard]
+value = [10, 110]
+verified = true
+source = "NTA No.6351"
+rule = "申告書#4"
+checked = "2026-11-08"
+note = "帳簿積上げ 仮払消費税 10/110"
+
+[consumption.ledger_tax.reduced]
+value = [8, 108]
+verified = true
+source = "NTA No.6351"
+rule = "申告書#4"
+checked = "2026-11-08"
+note = "帳簿積上げ 仮払消費税 8/108"
+
+[consumption.tsumiage_ratio]
+value = [78, 100]
+verified = true
+source = "NTA No.6351 / No.6383"
+rule = "申告書#3-4"
+checked = "2026-11-08"
+
+[consumption.payable_round]
+value = 100
+verified = true
+source = "NTA No.6371 / 申告書の書き方"
+rule = "申告書#8-9"
+checked = "2026-11-08"
+note = "差引税額・譲渡割額 百円未満切捨て"
+
+[consumption.local_ratio]
+value = [22, 78]
+verified = true
+source = "NTA 確定申告の手引き step.17 / 軽減税率制度 税率表"
+rule = "申告書#9"
+checked = "2026-11-08"
+
+[consumption.kani_ratio]
+value = { "1" = 90, "2" = 80, "3" = 70, "4" = 60, "5" = 50, "6" = 40 }
+verified = true
+source = "NTA No.6505 / No.6509"
+rule = "§1 簡易課税"
+checked = "2026-11-06"
+note = "単一事業区分のみ対応"
+
+[consumption.special_credit.sanwari]
+value = [70, 100]
+verified = true
+source = "NTA 3割特例 リーフレット"
+rule = "申告書#13"
+checked = "2026-11-08"
+note = "個人事業者のみ・令和9年分/令和10年分"
+
+[consumption.sanwari_forms_final]
+value = false
+verified = false
+source = "NTA 申告書様式 ドラフト版 (R9.4.1以後終了課税期間用)"
+rule = "申告書#13"
+checked = "2026-11-08"
+note = "TODO(verify): 令和9年分 申告書・付表の確定版が出たら行番号を確認"
+
+[consumption.reduced_rate_change_pending]
+value = true
+verified = false
+source = "閣議決定 大綱 2026-09-15 (法案成立前)"
+rule = "§1 飲食料品 1%"
+checked = "2026-11-08"
+note = "TODO(verify): 令和9年4月1日以後の飲食料品 1% は未反映（T-079）"

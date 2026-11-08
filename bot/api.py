@@ -865,6 +865,36 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
             "transitional_over_cap": ct.transitional_cap_warnings(purchases, date(year, 1, 1))}
 
 
+@router.get("/tax/consumption/return")
+def consumption_return(year: int = Query(..., ge=2023, le=2035), method: str = "honsoku",
+                       kani_type: int | None = None,
+                       purchase_calc: str = Query("warimodoshi", pattern="^(warimodoshi|ledger)$"),
+                       base_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                       specific_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                       specific_period_salaries: int | None = Query(None, ge=0, lt=10**13),
+                       uid: str = Depends(current_user)):
+    """消費税申告書（第一表・第二表相当）の計算結果と各数値の根拠（T-071, TAX_RULES §1 申告書の計算手順）。"""
+    from tax import consumption_return as cr, params as tax_params
+    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
+    sales = [ct.Sale(r["amount"], r["rate"]) for r in rows if r["kind"] == "inc"]
+    purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]), r["store"])
+                 for r in rows if r["kind"] == "exp"]
+    prof = store.get_profile(uid)
+    try:
+        res = cr.compute_return(year, sales, purchases, method,  # type: ignore[arg-type]
+                                kani_type=kani_type, individual=bool(prof["individual"]),
+                                purchase_calc=purchase_calc,  # type: ignore[arg-type]
+                                base_period_sales=base_period_sales, specific_period_sales=specific_period_sales,
+                                specific_period_salaries=specific_period_salaries)
+    except tax_params.ParamsNotAvailable as ex:
+        raise HTTPException(409, str(ex))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    out = res.to_dict()
+    out["transitional_over_cap"] = ct.transitional_cap_warnings(purchases, date(year, 1, 1))
+    return out
+
+
 # ---------------------------------------------------------------- 確定申告 (individual)
 @router.get("/pl")
 def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):

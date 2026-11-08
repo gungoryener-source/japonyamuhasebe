@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 16:20 JST · developer · T-071 消費税申告書 hesap motoru
+- `bot/tax/params/` (yeni, paket yok: stdlib `tomllib`): yıl dosyaları 2024–2028.toml, her değer `{value, verified, source, rule, checked}`, kesirler `[pay, payda]` tamsayı. `params.unverified(yıl)` = TODO(verify) raporu (2027/2028: 3割 様式 ドラフト, 飲食料品 1% beklemede).
+- `bot/tax/consumption_return.py` `compute_return`: TAX_RULES §1 申告書#1–13 — 課税標準額 千円未満切捨て, 7.8/6.24%, 仕入 割戻し / 帳簿積上げ, 経過措置 oranı税率ごと sonda, 差引 百円未満, 地方 22/78, 還付, 簡易 (tek 区分)/2割/3割. Her satırda formül + girdi + kural + verified; Japonca uyarılar (未反映項目, 税理士 確認). Saf fonksiyon.
+- `GET /api/v1/tax/consumption/return` (yıl parametresi yok → 409). `docs/API.md` satırı. Eski `/tax/consumption` değişmedi.
+- 25 yeni test (`tests/test_consumption_return.py`): NTA 設例 231,200 → 65,200, 千円/百円 sınırları, 割戻し vs 帳簿積上げ farkı, 70/80% sınır günleri, 還付, 2割/3割 yıl/法人/1,000万 sınırları, şema, saflık, API.
+- Kapı: aşağıda. Sonraki: T-080 (eski sabitleri params'a taşıma), T-072 (PDF).
+
 ## 2026-11-08 15:40 JST · developer · T-070 消費税申告書 hesap adımları (belge)
 - `docs/TAX_RULES.md` §1'e 「消費税申告書の計算手順」 tablosu (14 adım): 課税標準額 千円未満切捨て, 7.8/6.24%, 積上げ 78/100, 仕入 割戻し 7.8/110·6.24/108 (yalnızca satış da 割戻し iken), 経過措置 oranı税率ごと en sonda, 差引税額 百円未満切捨て, 地方 22/78 百円未満切捨て (NTA 設例 test vektörü 231,200 → 65,200), 2割 80/100 (手引き 〈令和8年11月版〉), 3割 70/100 ⚠️ (様式 ドラフト), 簡易 tek 事業区分 ⚠️, 期限. Kaynaklar NTA No.6371/6383/6351/6505 + 手引き/書き方, kontrol 2026-11-08.
 - Yeni bulgu: 飲食料品 1% (2027-04-01〜2029-03-31, 2026-09-15 閣議決定 大綱) ⚠️ 法案成立前 → kod değişmedi, T-079 (tax-watcher) açıldı.
