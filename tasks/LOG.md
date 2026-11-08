@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 20:10 JST · developer · 申告前チェックリスト (T-081)
+- `bot/tax/precheck.py` (saf fonksiyon) + `GET /tax/precheck`: eksik profil, 登録番号なし 課税仕入, 経過措置 üst sınır, fatura numarası boşlukları, eşleşmemiş banka kayıtları, 家事按分 ayarsız, varlık uyarıları, doğrulanmamış parametreler. Vergi hükmü vermez; sonda 税理士 uyarısı.
+- /tax sayfasına `Precheck.tsx` kartı, tr/en, e2e fixture.
+- Kapı: pytest, next build, check:*, Playwright 31/31.
+- OCR onay maddesi eklenmedi (entries'te onay bayrağı yok). Sonraki: T-075b, T-080.
+
 ## 2026-11-08 19:30 JST · developer · T-076 家事按分
 - `apportionments` tablosu (科目ごと 0–100, 100 = yok), `GET/PUT /settings/apportionment`; /pl (科目合計に bir kez floor), 決算書 PDF (pl üzerinden) ve 消費税 本則 仕入税額 (仕訳ごと floor) uygular; ham kayıt/CSV değişmez. Oran kullanıcı girdisi, varsayılan yok. Hukuki dayanak ⚠️ (TAX_RULES, birincil kaynak doğrulanmadı).
 - 設定'e 「家事按分」 kartı (ja/tr/en), e2e fixture.

@@ -11,6 +11,7 @@ import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, cx, Field, inputCls, selectCls, Stat, yen } from "../components/ui";
 import { T } from "../lib/i18n";
 import ConsumptionReturn from "./ConsumptionReturn";
+import Precheck from "./Precheck";
 
 const DEMO_PL: ApiPL = {
   year: 2025, revenue: 8_000_000,
@@ -207,6 +208,7 @@ function Tax() {
           <p className="text-[10px] text-slate-400">{T("登録番号のない仕入は 2026/10〜2028/9 の間 70% 控除（令和8年度改正）。")}</p>
         </Card>
 
+        <Precheck year={year} live={live} />
         <ConsumptionReturn year={year} method={method} kani={kani} live={live} />
 
         <Card title="会計ソフト用CSV" en="Export" className="lg:col-span-6">

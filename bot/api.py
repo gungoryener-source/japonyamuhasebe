@@ -867,6 +867,24 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
             "transitional_over_cap": ct.transitional_cap_warnings(purchases, date(year, 1, 1))}
 
 
+@router.get("/tax/precheck")
+def tax_precheck(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
+    """申告前チェックリスト (T-081): 帳簿から機械的に拾える抜け漏れ。税額の判断はしない。"""
+    from tax import params as tax_params, precheck
+    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
+    purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]), r["store"])
+                 for r in rows if r["kind"] == "exp"]
+    sched = dep.schedule(_assets_of(uid), year)
+    avail = year in tax_params.years()
+    unv = [p.key for p in tax_params.unverified(year)] if avail else []
+    items = precheck.run(
+        year=year, entries=rows, invoices=store.list_invoices(uid), bank=store.list_bank_tx(uid, 5000),
+        profile=store.get_profile(uid), transitional_over=ct.transitional_cap_warnings(purchases, date(year, 1, 1)),
+        apportioned=store.get_apportionments(uid), asset_warnings=sched.warnings, unverified_keys=unv, params_available=avail)
+    return {"year": year, "items": [i.to_dict() for i in items],
+            "warn_count": sum(i.level == "warn" for i in items)}
+
+
 @router.get("/tax/consumption/return")
 def consumption_return(year: int = Query(..., ge=2023, le=2035), method: str = "honsoku",
                        kani_type: int | None = None,

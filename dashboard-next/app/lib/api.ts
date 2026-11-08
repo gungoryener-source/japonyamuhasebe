@@ -226,6 +226,10 @@ const qs = (o: Record<string, string | number | undefined | null>) => {
   return p.length ? "?" + p.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&") : "";
 };
 
+/** T-081: 申告前チェックリスト */
+export type ApiPrecheckItem = { key: string; level: "ok" | "warn" | "info"; message: string; count: number; link: string };
+export type ApiPrecheck = { year: number; items: ApiPrecheckItem[]; warn_count: number };
+
 /** T-074/T-075: 固定資産台帳・減価償却 */
 export type ApiAsset = { id: number; name: string; acquired: string; in_service: string; cost: number; life: number; method: "straight" | "lump" | "small"; business_pct: number };
 export type ApiAssetRow = { asset_id: number; name: string; method: string; cost: number; life: number | null; rate_permille: number | null; months: number; ordinary: number; business_pct: number; expense: number; book_end: number };
@@ -268,6 +272,7 @@ export const api = {
   consumption: (year: number, method = "honsoku", kani_type?: number) => call<ApiTax>(`/tax/consumption${qs({ year, method, kani_type })}`),
   consumptionReturn: (year: number, method = "honsoku", kani_type?: number, purchase_calc = "warimodoshi") =>
     call<ApiConsumptionReturn>(`/tax/consumption/return${qs({ year, method, kani_type, purchase_calc })}`),
+  precheck: (year: number) => call<ApiPrecheck>(`/tax/precheck${qs({ year })}`),
   assets: () => call<ApiAsset[]>("/assets"),
   assetSchedule: (year: number) => call<ApiAssetSchedule>(`/assets/schedule${qs({ year })}`),
   createAsset: (b: AssetDraft) => call<ApiAsset & { warnings: string[] }>("/assets", { method: "POST", body: JSON.stringify(b) }),
