@@ -241,6 +241,14 @@ SCHEMA = [
         created_at TEXT NOT NULL
     )""",
     "CREATE INDEX IF NOT EXISTS ix_assets_user ON fixed_assets(user_id)",
+    # T-076 家事按分: 勘定科目ごとの事業割合 (0–100)。設定値の上書き（100 = 按分なし）。生の仕訳は変更しない
+    """CREATE TABLE IF NOT EXISTS apportionments(
+        user_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        pct INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY(user_id, category)
+    )""",
     # T-046b hesap silme talebi (deletion.py) — yalnızca kayıt; veri silinmez (işlem insan adımı)
     """CREATE TABLE IF NOT EXISTS deletion_requests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -796,6 +804,23 @@ def get_entry(user_id: str, entry_id: int) -> dict | None:
 def _asset_snapshot(con: "_Conn", user_id: str, asset_id: int) -> dict | None:
     r = con.execute("SELECT * FROM fixed_assets WHERE id=? AND user_id=?", (asset_id, user_id)).fetchone()
     return dict(r) if r else None
+
+
+def get_apportionments(user_id: str) -> dict[str, int]:
+    """T-076: {勘定科目: 事業割合}。100 の科目は含めない（按分なし）。"""
+    with tx() as con:
+        rows = con.execute("SELECT category, pct FROM apportionments WHERE user_id=?", (user_id,)).fetchall()
+    return {r["category"]: int(r["pct"]) for r in rows if int(r["pct"]) != 100}
+
+
+def set_apportionments(user_id: str, items: dict[str, int]) -> None:
+    now = today().isoformat()
+    with tx() as con:
+        for cat, pct in items.items():
+            if con.execute("SELECT 1 FROM apportionments WHERE user_id=? AND category=?", (user_id, cat)).fetchone():
+                con.execute("UPDATE apportionments SET pct=?, updated_at=? WHERE user_id=? AND category=?", (int(pct), now, user_id, cat))
+            else:
+                con.execute("INSERT INTO apportionments(user_id,category,pct,updated_at) VALUES(?,?,?,?)", (user_id, cat, int(pct), now))
 
 
 def list_assets(user_id: str) -> list[dict]:

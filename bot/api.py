@@ -38,6 +38,7 @@ router = APIRouter(prefix="/api/v1", tags=["api"])
 
 YM = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+APPORTIONABLE = ("地代家賃", "水道光熱費", "通信費", "消耗品費", "旅費交通費", "接待交際費", "雑費")
 CATEGORIES = ["売上高", "旅費交通費", "消耗品費", "会議費", "接待交際費", "通信費", "地代家賃", "水道光熱費",
               "外注工賃", "新聞図書費", "広告宣伝費", "支払手数料", "雑費"]
 
@@ -846,7 +847,7 @@ def consumption_tax(year: int = Query(..., ge=2023, le=2035), method: str = "hon
                     specific_period_sales: int | None = Query(None, ge=0, lt=10**13),
                     specific_period_salaries: int | None = Query(None, ge=0, lt=10**13),
                     uid: str = Depends(current_user)):
-    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
+    rows = _apportioned_exp(uid, store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31"))
     sales = [ct.Sale(r["amount"], r["rate"]) for r in rows if r["kind"] == "inc"]
     purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]), r["store"])
                  for r in rows if r["kind"] == "exp"]
@@ -876,7 +877,7 @@ def consumption_return(year: int = Query(..., ge=2023, le=2035), method: str = "
                        uid: str = Depends(current_user)):
     """消費税申告書（第一表・第二表相当）の計算結果と各数値の根拠（T-071, TAX_RULES §1 申告書の計算手順）。"""
     from tax import consumption_return as cr, params as tax_params
-    rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
+    rows = _apportioned_exp(uid, store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31"))
     sales = [ct.Sale(r["amount"], r["rate"]) for r in rows if r["kind"] == "inc"]
     purchases = [ct.Purchase(r["amount"], r["rate"], date.fromisoformat(r["d"]), bool(r["invoice_no"]), r["store"])
                  for r in rows if r["kind"] == "exp"]
@@ -897,6 +898,39 @@ def consumption_return(year: int = Query(..., ge=2023, le=2035), method: str = "
 
 
 # ---------------------------------------------------------------- 確定申告 (individual)
+# ---------------------------------------------------------------- 家事按分 (T-076)
+def _apportioned_exp(uid: str, rows: list[dict]) -> list[dict]:
+    """経費の仕訳を事業割合で按分した写しを返す（元の行は変更しない）。仕入税額用: 仕訳ごとに floor(amount × pct / 100)。"""
+    ap = store.get_apportionments(uid)
+    if not ap:
+        return rows
+    return [{**r, "amount": r["amount"] * ap[r["category"]] // 100} if r["kind"] == "exp" and r["category"] in ap else r
+            for r in rows]
+
+
+class ApportionmentIn(BaseModel):
+    items: list[dict] = Field(..., max_length=50)
+
+
+@router.get("/settings/apportionment")
+def apportionment_get(uid: str = Depends(current_user)):
+    return {"items": [{"category": c, "pct": store.get_apportionments(uid).get(c, 100)} for c in APPORTIONABLE]}
+
+
+@router.put("/settings/apportionment")
+def apportionment_put(body: ApportionmentIn, uid: str = Depends(writer_user)):
+    out: dict[str, int] = {}
+    for it in body.items:
+        c, p = it.get("category"), it.get("pct")
+        if c not in APPORTIONABLE:
+            raise HTTPException(400, f"按分できない勘定科目です: {c}")
+        if isinstance(p, bool) or not isinstance(p, int) or not 0 <= p <= 100:
+            raise HTTPException(400, "事業割合は 0〜100 の整数で指定してください")
+        out[c] = p
+    store.set_apportionments(uid, out)
+    return apportionment_get(uid)
+
+
 @router.get("/pl")
 def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
     """青色申告決算書（損益計算書）の簡易版: 売上・勘定科目別経費・所得金額。"""
@@ -906,6 +940,10 @@ def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends
     for r in rows:
         if r["kind"] == "exp":
             by_cat[r["category"]] = by_cat.get(r["category"], 0) + r["amount"]
+    # T-076: 家事按分 — 勘定科目の合計に一度だけ floor(合計 × 事業割合 / 100)
+    for c, pct in store.get_apportionments(uid).items():
+        if c in by_cat:
+            by_cat[c] = by_cat[c] * pct // 100
     # T-074: 固定資産台帳の減価償却費（必要経費算入額）を ⑱ 減価償却費 として加える
     dep_total = dep.schedule(_assets_of(uid), year).total_expense
     if dep_total:

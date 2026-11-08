@@ -23,7 +23,7 @@ PATHS = [
     "/auth/me", "/profile", "/summary", "/cashflow?months=6", "/entries", "/invoices",
     "/tax/consumption?year=2026", "/tax/consumption/return?year=2026", "/pl?year=2026", "/tax/income?year=2026",
     "/assets", "/assets/schedule?year=2026", "/bank/transactions", "/bank/review", "/counterparties", "/slips",
-    "/settings/ai", "/channels", "/account/delete-request",
+    "/settings/ai", "/settings/apportionment", "/channels", "/account/delete-request",
     "/team/members", "/team/ledgers", "/billing/plans", "/billing/status",
 ]
 USER = "E2E"

@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 19:30 JST · developer · T-076 家事按分
+- `apportionments` tablosu (科目ごと 0–100, 100 = yok), `GET/PUT /settings/apportionment`; /pl (科目合計に bir kez floor), 決算書 PDF (pl üzerinden) ve 消費税 本則 仕入税額 (仕訳ごと floor) uygular; ham kayıt/CSV değişmez. Oran kullanıcı girdisi, varsayılan yok. Hukuki dayanak ⚠️ (TAX_RULES, birincil kaynak doğrulanmadı).
+- 設定'e 「家事按分」 kartı (ja/tr/en), e2e fixture.
+- Kapı: pytest, next build, check:*, Playwright 31/31.
+- Sonraki: 申告前チェックリスト, T-075b, T-080.
+
 ## 2026-11-08 18:50 JST · developer · T-075 /assets 固定資産 sayfası
 - `app/assets/page.tsx` (台帳 + 減価償却費の計算 tablosu, ekle/sil, demo + canlı), menü girişi, `api.ts` tipleri, ja/tr/en çeviri; e2e fixture'a `/assets` ve `/assets/schedule?year=2026`.
 - Kapı: pytest yeşil, next build, check:* ve Playwright 31/31.

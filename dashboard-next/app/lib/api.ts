@@ -286,6 +286,9 @@ export const api = {
     call<unknown>(`/bank/${id}`, { method: "PATCH", body: JSON.stringify({ amount, balance }) }),
   bankConfirmMatched: (ids: number[]) => call<{ confirmed: number; skipped: number }>("/bank/confirm-matched", { method: "POST", body: JSON.stringify({ ids }) }),
   counterparties: () => call<{ counterparties: ApiCounterparty[]; nta_enabled: boolean }>("/counterparties"),
+  apportionment: () => call<{ items: { category: string; pct: number }[] }>("/settings/apportionment"),
+  apportionmentPut: (items: { category: string; pct: number }[]) =>
+    call<{ items: { category: string; pct: number }[] }>("/settings/apportionment", { method: "PUT", body: JSON.stringify({ items }) }),
   aiSettings: () => call<ApiAiSettings>("/settings/ai"),
   aiSettingsPut: (receipt_reader: "" | "ocr" | "ai" | "auto") => call<ApiAiSettings>("/settings/ai", { method: "PUT", body: JSON.stringify({ receipt_reader }) }),
   counterpartyVerify: () => call<{ checked: number; online: boolean; valid: number; expired: number; notfound: number; format_ng: number; unchecked: number }>("/counterparties/verify", { method: "POST" }),

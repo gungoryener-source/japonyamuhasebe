@@ -16,6 +16,7 @@ Canlıya alma kontrolü: `GET /admin/config-check` (kökte, `/api/v1` değil; ya
 | GET | `/tax/consumption?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=` | 消費税 hesabı (`bot/tax/consumption.py`). Yanıtta `unqualified`: 登録番号なし仕入の控除割合別内訳 `[{ratio, gross, tax, credited}]` |
 | GET | `/tax/consumption/return?year=2026&method=honsoku|kani|niwari|sanwari&kani_type=&purchase_calc=warimodoshi|ledger` | 消費税申告書 相当 (T-071, `bot/tax/consumption_return.py`): 国税/地方 ayrı; `output_tax`, `credit`, `national_payable`/`national_refund`, `local_payable`/`local_refund`, `total_payable`; `lines[]` = her rakamın izi `{key, label, value, formula, rule, verified, inputs}`; `warnings[]` (日本語, 最後は 税理士 確認); `unverified[]` (TODO(verify) parametre). Yıl parametresi yoksa 409 |
 | GET/POST/DELETE | `/assets`, `/assets/{id}`, `/assets/schedule?year=` | 固定資産台帳 (T-074, `bot/tax/depreciation.py`): POST `{name, acquired, in_service, cost, life, method: straight|lump|small, business_pct}` → 201 (+`warnings`), doğrulama hatası 400 (日本語); DELETE 204/404; schedule = yıllık 減価償却 tablosu (`rows`, `total_expense`, `warnings`, `unverified`). `/pl` 減価償却費 kalemini otomatik ekler |
+| GET/PUT | `/settings/apportionment` | 家事按分 (T-076): `{items:[{category, pct 0–100}]}`; 按分可能科目のみ (400)、100 = 按分なし。`/pl`・決算書 PDF・`/tax/consumption`(本則 仕入税額) に反映、元の仕訳/CSV は不変 |
 | GET/PUT | `/profile` | 事業者名, 登録番号, 個人/法人 |
 | GET | `/invoices?status=paid|unpaid` | Faturalar (+ `overdue` bayrağı) |
 | POST | `/invoices` | 適格請求書 oluştur `{client, issued?, due, items:[{name, qty, unit_price(税抜), rate}]}` |

@@ -8,6 +8,7 @@ import { AppShell, useShell } from "../components/shell";
 import { Badge, Btn, Card, Field, inputCls, ReadOnlyNote, registrationOk } from "../components/ui";
 import { MembersCard } from "./members";
 import { AiReadingCard } from "./ai-reading";
+import { ApportionmentCard } from "./apportionment";
 import { DeleteRequestCard } from "./delete-request";
 import { LangSwitcher, useT } from "../components/lang";
 
@@ -149,6 +150,8 @@ function Settings() {
       <AiReadingCard />
 
       <MembersCard />
+
+      <ApportionmentCard />
 
       <Card title="料金プラン" en="Billing" right={<CreditCard size={16} className="text-mint" />} className="lg:col-span-2">
         <div className="flex flex-wrap items-center gap-3 text-xs">

@@ -97,7 +97,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-074 | P1 | done (2026-11-08) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
 | T-075 | P2 | done (2026-11-08; PDF tablosu → T-075b) | Panel `/assets` 固定資産 sayfası (ja/tr/en) + 青色申告決算書 PDF'e 減価償却費の計算 tablosu; e2e fixture güncellemesi |
 | T-075b | P2 | todo | 青色申告決算書 PDF'e 「減価償却費の計算」 tablosu (`/assets/schedule` verisinden) + pytest PDF testi |
-| T-076 | P1 | todo | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
+| T-076 | P1 | done (2026-11-08) | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
 | T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
 | T-078 | P1 | done | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 | T-079 | P1 | blocked (法案成立待ち — tax-watcher izler) | 飲食料品 消費税率 1% (国税0.78%+地方0.22%, 2027-04-01〜2029-03-31; 2026-09-15 閣議決定, TAX_RULES §1 ⚠️): yasa çıkınca TAX_RULES ✅ → `RATES`/parser/OCR/CSV 税区分/申告書 付表/簡易課税 特例 için alt görevler |
