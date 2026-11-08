@@ -23,7 +23,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-014 | P2 | done | OCR: çok oranlı (8%+10%) fişleri satır bazında ayırma |
 | T-015 | P1 | done | dashboard-next: 請求書管理 sayfası (liste, filtre, 消込) |
 | T-016 | P1 | done (743716d) | dashboard-next: vergi kartını `bot/tax` kurallarıyla hizala (経過措置 satırı, 2割/3割/簡易 seçimi) |
-| T-012b | P1 | done (弥生 25項目 + freee 公式列; MF → T-012c) | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
+| T-012b | P1 | done (弥生 25項目 + freee 公式列; MF → T-012c ✅) | CSV formatlarını freee / MF / 弥生'nin güncel içe aktarma şablonlarıyla doğrula (sütun adları, 税区分 metinleri) |
 | T-018 | P1 | done | Sahte/zayıf token'a karşı: token iptali (`DELETE /api/v1/tokens/current`), LINE 「パネル」 en fazla 5 aktif token |
 | T-019 | P2 | done (bu commit) | PostgreSQL bağlantı havuzu (`psycopg_pool`) ve yavaş istek ölçümü |
 | T-020 | P1 | done | dashboard-next: 確定申告 önizleme sayfası (`/api/v1/pl`, `/api/v1/tax/income`) |
@@ -79,7 +79,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-061 | P0 | done | 取引先マスタ + 摘要照合 + Excel 取込 + 国税庁 Web-API 検索 (NTA_APP_ID) |
 | T-062 | P0 | done | 通帳取込 (AI, PDF/写真, 残高チェック) + 確認画面 /passbook + 通帳整理表 Excel |
 | T-063 | P1 | done | インボイス公表サイト Web-API で登録番号の有効性確認 (登録日・失効), 確認画面にバッジ; キーは NTA_APP_ID と別なら QUESTIONS'a |
-| T-012c | P2 | doing (developer, 2026-11-08) | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
+| T-012c | P2 | done (bu commit) | マネーフォワード 仕訳帳インポート CSV の公式列（借方取引先・借方インボイス等）を確認して `export.py` mf を合わせる; 公式ページ URL を docstring に |
 | T-064 | P0 | done | Bir hesapta birden çok şirket: `account_companies`, POST /companies, sahiplik kontrolleri (resolve/switch/join/şifre sıfırlama), LINE 「会社」 kayıt yeri seçimi (yalnızca sahip olunan şirketler) |
 | T-064b | P1 | blocked (Q-16 fiyat) | Şirket bazlı fiyatlandırma (Q-16 cevaplanınca): plan kontrolünü hesap düzeyine taşı veya şirket başına abonelik |
 | T-065 | P1 | done (bu commit; dilim 1: entries + invoices API, panel/bank_tx/slips → T-065b) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |

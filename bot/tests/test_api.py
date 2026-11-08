@@ -139,6 +139,10 @@ def test_export_csv(client, auth, fmt):
     if fmt == "freee":   # T-012b: 公式「取引インポート」列順
         assert rows[0][:3] == ["収支区分", "管理番号", "発生日"]
         assert rows[1][2] == "2026/10/15" and rows[1][7] == "課対仕入10%（控70）"
+    if fmt == "mf":      # T-012c: 公式27列
+        assert len(rows[0]) == 27 and rows[0][7] == "借方インボイス"
+        assert rows[1][1] == "2026/10/15" and rows[1][6] == "課税仕入 10%" and rows[1][7] == "70％控除"
+        assert rows[2][14] == "課税売上 10%" and rows[2][13] == "A社"
 
 
 def test_export_bad_format(client, auth):

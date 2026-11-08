@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 13:55 JST · developer · T-012c マネーフォワード 仕訳帳インポート CSV
+- Kaynak: MF 公式「仕訳帳インポート（マネーフォワード クラウド会計形式）」 (更新日 2026-07-09) 27 sütun 取引No〜最終更新者; 税区分一覧 FAQ s15 (正式名称) ve 対象外 FAQ tax-class02 (2026-07-29). URL'ler `export.py` docstring'inde, kontrol 2026-11-08.
+- `export.py` mf: eski 9 sütunlu tahmini biçim → resmî 27 sütun (`MF_HEADER`). 税区分: 課税仕入 10% / 課税仕入 (軽)8% / 課税売上 10% / 課税売上 (軽)8% / 非課税売上 (受取利息) / 対象外. 借方/貸方取引先 = 取引先, 摘要 = 取引先, 登録番号 → 仕訳メモ. インボイス: 適格 / 80％・70％・50％・30％控除 / 控除なし (`input_credit_ratio` ile aynı sınırlar = TAX_RULES §1), 売上・税率0・制度前仕入 boş (MF'de boş = 適格). 税額 boş (resmî talimat). Karşı hesap freee/弥生 ile aynı `_counter` (BANK → 普通預金; önceden MF'de hep 事業主借). Uzunluk sınırları 30/255/200.
+- Yeni test 22 (`tests/test_export_mf.py`: başlık, gider/gelir satırı, 軽減 adları, 税率0, 経過措置 10 sınır tarihi, 適格, banka kaynağı, uzunluk, cp932, formül kaçışı) + `test_api` mf kontrolleri.
+- Kapı (reviewer rebase sonrası): pytest SQLite 777 geçti/8 atlandı; rebase öncesi PostgreSQL 16 777 geçti/3 atlandı. dashboard-next değişmedi.
+- Not: MF'ye gerçek içe aktarma denemesi yapılmadı (hesap yok); 税区分 adları kullanıcının MF 税区分 ayarlarında kapalıysa eşleştirme ekranı çıkar. Sonraki: kalan todo yalnızca T-033b (örnek CSV bekliyor); T-067〜069 Q-19'a bağlı. Yeni soru yok.
 ## 2026-11-08 13:50 JST · reviewer · son 26 saat incelemesi
 - İncelenen (son review'dan sonra): T-033 (bank_csv yön sütunu/bölünmüş tarih), T-035 (Playwright e2e + fixture testi), T-045b (docs/ETAX.md, kod yok), T-046c (scripts/backup.sh). Doğruluk/güvenlik sorunu bulunmadı: yönü bilinmeyen satır atlanıyor, backup.sh `pipefail` + `.partial` + 600 izin + URL sızmıyor.
 - 5 yeni test (`tests/test_bank_csv_formats.py`): boş 入出金区分 → atlanır, 0/boş tutar → atlanır, 全角 括弧 bölünmüş tarih + geçersiz gün (2/30) atlanır, yalnızca 年/月 sütunu → başlık yok hatası, 現在高 bakiye sütunu.
