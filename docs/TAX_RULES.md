@@ -63,6 +63,22 @@ Beyanname (第一表/第二表/付表) satırları **国税 (7.8% / 6.24%) ile �
 | 基礎控除 令和10年分以後 (2028〜) | ≤132万: **99万** (62万 + 37万) kesin. 132万超 kademeleri: 大綱'a göre 62万 (特例上限 132万); NTA No.1199 tablosu 489万超〜655万 için 67万 gösteriyor gibi — birleşik hücre okuması belirsiz | ⚠️ | NTA No.1199, 年末調整のしかた 102.pdf, 大綱 · kontrol: 2026-11-06 · koda ekleme (2028年分 henüz gerekli değil); bir sonraki tax-watcher çalışmasında No.1199 metniyle doğrula |
 | 給与所得控除 最低保障額 (参考; ürün 給与所得 hesaplamıyor) | 65万 → 69万 (本則) + 令和8・9年分 特例 +5万 = **74万** | ✅ | [NTA 102.pdf](https://www.nta.go.jp/publication/pamph/gensen/nencho2026/pdf/102.pdf), [大綱 概要](https://www.mof.go.jp/tax_policy/tax_reform/outline/fy2026/08taikou_gaiyou.htm) · kontrol: 2026-11-06 |
 
+### 減価償却 (個人事業者, T-073, kontrol: 2026-11-08)
+Motor kapsamı (T-074): **平成19年4月1日以後に取得**, **定額法**, 月割, 備忘価額1円, 一括償却資産, 少額減価償却資産の特例. 定率法・旧定額法・除却/売却・特別償却は **uygulanmadı** (kayıt reddedilir veya uyarı). Parametreler: `bot/tax/params/depreciation.toml`.
+
+| Kural | Değer | Durum | Kaynak · kontrol |
+|---|---|---|---|
+| 定額法 | 各年の償却費 = 取得価額 × 定額法の償却率 | ✅ | [NTA No.2106](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2106.htm) (令和8年4月1日現在法令等) · 2026-11-08 |
+| 月割 | 取得/事業供用の年は 12 で割り、**その年に業務に使用した月数**を掛ける (月の途中は1か月として数える) | ✅ | No.2106; [NTA 確定申告の手引き 償却期間](https://www.nta.go.jp/taxes/shiraberu/shinkoku/tebiki/2021/pdf/041.pdf) · 2026-11-08 |
+| 備忘価額 | 有形減価償却資産は取得価額から **1円**を控除した額まで償却 (最終年 = 期首帳簿価額 − 1円) | ✅ | No.2106 · 2026-11-08 |
+| 償却率 | 別表第八 (定額法). 耐用年数2〜12 の値 0.500 / 0.334 / 0.250 / 0.200 / 0.167 / 0.143 / 0.125 / 0.112 / 0.100 / 0.091 / 0.084 は 2 つの二次資料と一致し、`ceil(1000/耐用年数)/1000` の規則と整合. 一次資料 (e-Gov 耐用年数省令 別表八) は**この環境から取得できず未照合** | ⚠️ | 二次: [創業手帳](https://sogyotecho.jp/genkashoukyaku-taiyounensu/), [luft](https://www.luft.co.jp/cgi/depreciation.php); 一次 (要照合): [e-Gov 340M50000040015 別表八](https://elaws.e-gov.go.jp/search/elawsSearch/elaws_search/lsg0500/detail?lawId=340M50000040015) · 2026-11-08 |
+| 建物・建物附属設備・構築物 | 定額法のみ (建物: 平成10年4月以後取得 / 附属設備・構築物: 平成28年4月以後取得). 個人は届出がなければ定額法 (定率法は届出が必要) | ✅ | No.2105 注2・注3, No.2106 · 2026-11-08 |
+| 10万円未満 | 全額を取得した年に必要経費 (固定資産台帳の対象外) | ⚠️ | 二次: [マネーフォワード](https://biz.moneyforward.com/accounting/basic/65238/) (所令138) · 2026-11-08 |
+| 一括償却資産 | 取得価額 10万円以上 **20万円未満**: 3年間で 1/3 ずつ必要経費 (月割なし) | ⚠️ | 二次: [マネーフォワード](https://biz.moneyforward.com/accounting/basic/79255/) (所令139) · 2026-11-08 |
+| 少額減価償却資産の特例 (措法28の2) | 青色申告者. 取得価額 **30万円未満** (令和8年3月31日以前取得) / **40万円未満** (令和8年4月1日以後取得), 年間合計 **300万円**まで. 適用期限 **令和11年3月31日**まで (令和8年度改正) | ✅ | [中小企業庁 リーフレット 令和8年5月](https://www.chusho.meti.go.jp/zaimu/zeisei/pamphlet/syougaku_shisan.pdf), [弥生 2026-04-07](https://www.yayoi-kk.co.jp/lawinfo/detail.20260407/), [dosai.jp](https://dosai.jp/news/shougaku-genka-shokyaku-40man-2026/) · 2026-11-08 |
+| 事業専用割合 | 事業と家事の両方に使う資産は、償却費に事業専用割合を乗じた額が必要経費 (決算書 ㋠ 欄) | ✅ | NTA 手引き (上記 PDF) · 2026-11-08 |
+| 端数 | 1円未満切捨てとして実装 (一括償却の第3年は残額) | ⚠️ | 規定の明記を未確認 (TODO(verify)) |
+
 ## 3. 源泉所得税 / takvim (3月決算法人 ve bireyler)
 | Olay | Tarih | Durum |
 |---|---|---|

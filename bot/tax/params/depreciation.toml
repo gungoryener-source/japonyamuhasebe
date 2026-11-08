@@ -1,0 +1,61 @@
+# 減価償却（個人事業者）パラメータ。正本: docs/TAX_RULES.md §2 「減価償却」。年分ではなく取得日で版を分ける。
+# verified = false の値は TODO(verify)（一次資料未照合）。
+[depreciation.life_range]
+value = [2, 100]
+verified = true
+source = "耐用年数省令（定額法の償却率表は2年以上）"
+rule = "減価償却#償却率"
+checked = "2026-11-08"
+
+[depreciation.rate_rule]
+value = "ceil_3dp"
+verified = false
+source = "別表第八（二次資料2件と耐用年数2〜12で一致）"
+rule = "減価償却#償却率"
+checked = "2026-11-08"
+note = "TODO(verify): e-Gov 耐用年数省令 別表八 と全耐用年数を照合"
+
+[depreciation.acquired_from]
+value = "2007-04-01"
+verified = true
+source = "NTA No.2106（平成19年4月1日以後に取得）"
+rule = "減価償却#定額法"
+checked = "2026-11-08"
+
+[depreciation.expense_limit]
+value = 100000
+verified = false
+source = "所令138（二次: マネーフォワード）"
+rule = "減価償却#10万円未満"
+checked = "2026-11-08"
+note = "TODO(verify): 10万円未満は台帳の対象外（全額経費）"
+
+[depreciation.lump_limit]
+value = 200000
+verified = false
+source = "所令139（二次: マネーフォワード）"
+rule = "減価償却#一括償却資産"
+checked = "2026-11-08"
+note = "TODO(verify): 20万円未満・3年均等"
+
+[depreciation.small_asset_annual_cap]
+value = 3000000
+verified = true
+source = "中小企業庁 リーフレット 令和8年5月 / 弥生 2026-04-07"
+rule = "減価償却#少額特例"
+checked = "2026-11-08"
+
+[depreciation.small_asset_deadline]
+value = "2029-03-31"
+verified = true
+source = "中小企業庁 リーフレット 令和8年5月 / 弥生 2026-04-07"
+rule = "減価償却#少額特例"
+checked = "2026-11-08"
+
+# 少額特例の上限（取得日の開始日, 未満の金額）。開始日以後に取得した資産に適用。
+[depreciation.small_asset_limits]
+value = [["2007-04-01", 300000], ["2026-04-01", 400000]]
+verified = true
+source = "中小企業庁 リーフレット 令和8年5月 / 弥生 2026-04-07 / dosai.jp"
+rule = "減価償却#少額特例"
+checked = "2026-11-08"

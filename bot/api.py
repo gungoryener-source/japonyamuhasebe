@@ -31,6 +31,7 @@ import store
 import team
 from store import MAX_ENTRY_AMOUNT
 from tax import consumption as ct
+from tax import depreciation as dep
 from tax import income as it
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
@@ -905,11 +906,64 @@ def profit_and_loss(year: int = Query(..., ge=2023, le=2035), uid: str = Depends
     for r in rows:
         if r["kind"] == "exp":
             by_cat[r["category"]] = by_cat.get(r["category"], 0) + r["amount"]
+    # T-074: 固定資産台帳の減価償却費（必要経費算入額）を ⑱ 減価償却費 として加える
+    dep_total = dep.schedule(_assets_of(uid), year).total_expense
+    if dep_total:
+        by_cat["減価償却費"] = by_cat.get("減価償却費", 0) + dep_total
     expenses = sum(by_cat.values())
     return {"year": year, "revenue": revenue,
             "expenses": [{"category": k, "amount": v} for k, v in sorted(by_cat.items(), key=lambda x: -x[1])],
             "expenses_total": expenses, "income_before_blue": revenue - expenses,
             "note": "税込経理（消費税込みの金額）で集計しています。"}
+
+
+# ---------------------------------------------------------------- 固定資産台帳 (T-074)
+class AssetIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    acquired: str = Field(..., pattern=DATE.pattern)
+    in_service: str = Field(..., pattern=DATE.pattern)
+    cost: int = Field(..., gt=0, lt=10**9)
+    life: int = Field(0, ge=0, le=100)
+    method: str = Field("straight", pattern="^(straight|lump|small)$")
+    business_pct: int = Field(100, ge=1, le=100)
+
+
+def _asset_of(r: dict) -> "dep.Asset":
+    return dep.Asset(r["id"], r["name"], date.fromisoformat(r["acquired"]), date.fromisoformat(r["in_service"]),
+                     r["cost"], r["life"], r["method"], r["business_pct"])
+
+
+def _assets_of(uid: str) -> list["dep.Asset"]:
+    return [_asset_of(r) for r in store.list_assets(uid)]
+
+
+@router.get("/assets")
+def assets_list(uid: str = Depends(current_user)):
+    return store.list_assets(uid)
+
+
+@router.post("/assets", status_code=201)
+def assets_add(body: AssetIn, uid: str = Depends(writer_user)):
+    try:
+        a = dep.Asset(0, body.name, date.fromisoformat(body.acquired), date.fromisoformat(body.in_service),
+                      body.cost, body.life, body.method, body.business_pct)  # type: ignore[arg-type]
+        warnings = dep.validate(a)
+    except (dep.AssetError, ValueError) as ex:
+        raise HTTPException(400, str(ex))
+    row = store.add_asset(uid, body.model_dump())
+    return {**row, "warnings": warnings}
+
+
+@router.delete("/assets/{asset_id}", status_code=204)
+def assets_delete(asset_id: int, uid: str = Depends(writer_user)):
+    if not store.delete_asset(uid, asset_id):
+        raise HTTPException(404, "asset not found")
+
+
+@router.get("/assets/schedule")
+def assets_schedule(year: int = Query(..., ge=2023, le=2035), uid: str = Depends(current_user)):
+    """減価償却費の計算（青色申告決算書 「減価償却費の計算」欄に相当）。"""
+    return dep.schedule(_assets_of(uid), year).to_dict()
 
 
 @router.get("/tax/income")

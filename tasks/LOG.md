@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 18:10 JST · developer · T-073/T-074 減価償却 + 固定資産台帳
+- TAX_RULES'a 減価償却 bölümü; `tax/params/depreciation.toml` (+`load_static`); `tax/depreciation.py` (定額法 月割, 備忘価額1円, 一括償却, 少額特例 30万→40万 sınırı 2026-04-01, 300万 üst sınır uyarısı). 償却率 kuralı ve 10万/20万 eşikleri `verified=false` (別表第八 birincil kaynak doğrulanamadı).
+- `fixed_assets` tablosu (yalnızca ekleme, audit `asset`), `/assets` CRUD + `/assets/schedule`, `/pl` 減価償却費 otomatik (varlık yoksa /pl değişmez).
+- Kapı: pytest 865 geçti. docs/API.md güncellendi.
+- Sonraki: T-075 (panel /assets), T-076 (家事按分), 申告前チェックリスト.
+
 ## 2026-11-08 17:05 JST · developer · T-071b 消費税申告書 detay ekranı
 - `/tax` sayfasına `ConsumptionReturn.tsx` kartı: T-071 API'sinin satırları (国税/地方 ayrı), formül + kural no + 未検証 rozeti, Japonca uyarılar, 仕入 割戻し/帳簿積上げ seçimi (canlı mod), iade durumu. Demo modu `consumption-return-example.json` (motordan üretilir, elle yazılmadı; `test_demo_example_is_fresh` güncelliği denetler).
 - Eski 消費税 kartı değişmedi (国税+地方 toplam tahmini); yeni kart beyanname biçimi. Aynı örnekte toplamlar uyumlu: yeni 1,419,400 vs eski 1,419,500 (satır bazlı yuvarlama farkı).

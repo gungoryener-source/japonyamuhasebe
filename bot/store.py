@@ -227,6 +227,20 @@ SCHEMA = [
         used_at TEXT DEFAULT '',
         used_by BIGINT NOT NULL DEFAULT 0
     )""",
+    # T-074 固定資産台帳 (yalnızca ekleme; veri silme yok — kullanıcı kendi kaydını silebilir, audit_log'da kalır)
+    """CREATE TABLE IF NOT EXISTS fixed_assets(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        acquired TEXT NOT NULL,
+        in_service TEXT NOT NULL,
+        cost INTEGER NOT NULL,
+        life INTEGER NOT NULL DEFAULT 0,
+        method TEXT NOT NULL DEFAULT 'straight',
+        business_pct INTEGER NOT NULL DEFAULT 100,
+        created_at TEXT NOT NULL
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_assets_user ON fixed_assets(user_id)",
     # T-046b hesap silme talebi (deletion.py) — yalnızca kayıt; veri silinmez (işlem insan adımı)
     """CREATE TABLE IF NOT EXISTS deletion_requests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -422,7 +436,7 @@ def check_amount(amount) -> int:
 
 
 # ---------------------------------------------------------------- audit (T-065)
-AUDIT_ENTITIES = ("entry", "invoice", "bank_tx")
+AUDIT_ENTITIES = ("entry", "invoice", "bank_tx", "asset")
 
 
 def _audit(con: "_Conn", user_id: str, entity: str, entity_id, action: str,
@@ -776,6 +790,42 @@ def get_entry(user_id: str, entry_id: int) -> dict | None:
     with tx() as con:
         row = con.execute("SELECT * FROM entries WHERE id=? AND user_id=?", (entry_id, user_id)).fetchone()
     return dict(row) if row else None
+
+
+# ---------------------------------------------------------------- 固定資産台帳 (T-074)
+def _asset_snapshot(con: "_Conn", user_id: str, asset_id: int) -> dict | None:
+    r = con.execute("SELECT * FROM fixed_assets WHERE id=? AND user_id=?", (asset_id, user_id)).fetchone()
+    return dict(r) if r else None
+
+
+def list_assets(user_id: str) -> list[dict]:
+    with tx() as con:
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM fixed_assets WHERE user_id=? ORDER BY in_service, id", (user_id,)).fetchall()]
+
+
+def add_asset(user_id: str, a: dict, actor: str = "") -> dict:
+    check_amount(a["cost"])
+    with tx() as con:
+        cur = con.execute(
+            """INSERT INTO fixed_assets(user_id,name,acquired,in_service,cost,life,method,business_pct,created_at)
+               VALUES(?,?,?,?,?,?,?,?,?) RETURNING id""",
+            (user_id, a["name"], a["acquired"], a["in_service"], int(a["cost"]), int(a.get("life") or 0),
+             a.get("method", "straight"), int(a.get("business_pct", 100)), now()))
+        aid = cur.fetchone()["id"]
+        after = _asset_snapshot(con, user_id, aid)
+        _audit(con, user_id, "asset", aid, "create", None, after, actor)
+    return after  # type: ignore[return-value]
+
+
+def delete_asset(user_id: str, asset_id: int, actor: str = "") -> bool:
+    with tx() as con:
+        before = _asset_snapshot(con, user_id, asset_id)
+        cur = con.execute("DELETE FROM fixed_assets WHERE id=? AND user_id=?", (asset_id, user_id))
+        if cur.rowcount > 0:
+            _audit(con, user_id, "asset", asset_id, "delete", before, None, actor)
+            return True
+    return False
 
 
 def delete_entry(user_id: str, entry_id: int, actor: str = "") -> bool:

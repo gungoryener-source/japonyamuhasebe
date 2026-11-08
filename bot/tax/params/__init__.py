@@ -63,6 +63,19 @@ def load(year: int) -> dict[str, Param]:
     return out
 
 
+@lru_cache(maxsize=None)
+def load_static(name: str) -> dict[str, Param]:
+    """年分に依存しないパラメータファイル（例: depreciation.toml）。"""
+    path = _DIR / f"{name}.toml"
+    if not path.exists():
+        raise ParamsNotAvailable(f"{name}.toml がありません")
+    with path.open("rb") as f:
+        data = tomllib.load(f)
+    out: dict[str, Param] = {}
+    _flatten("", data, out)
+    return out
+
+
 def get(year: int, key: str) -> Param:
     try:
         return load(year)[key]

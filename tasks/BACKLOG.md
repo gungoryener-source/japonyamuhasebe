@@ -93,8 +93,8 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-071 | P1 | done (bu commit; params → T-080) | `bot/tax/consumption_return.py`: 消費税申告書 第一表/第二表 相当 alanlar (本則/簡易/2割/3割) + sınır testleri; `GET /api/v1/tax/consumption/return?year=` |
 | T-071b | P1 | done (bu commit) | Panel `/tax`: 消費税申告書 detay kartı (国税/地方 ayrı satırlar, her rakamın formül+kaynak izi, uyarılar, 割戻し/帳簿積上げ seçimi, demo verisi motordan üretilir `dashboard-next/scripts/make_consumption_example.py`, ja/tr/en, e2e fixture) |
 | T-072 | P2 | todo (T-071'den sonra) | 消費税申告書 参考 PDF `GET /api/v1/reports/consumption-return.pdf?year=` + panel 税務 indirme düğmesi |
-| T-073 | P1 | todo | TAX_RULES'a 減価償却 bölümü (個人 定額法, 償却率, 月割, 10万未満 / 一括償却資産 / 少額減価償却資産特例 eşik ve yıllık üst sınır, başlıca 耐用年数) — yalnızca belge, kaynak + tarih |
-| T-074 | P1 | todo (T-073'ten sonra) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
+| T-073 | P1 | done (2026-11-08) | TAX_RULES'a 減価償却 bölümü (個人 定額法, 償却率, 月割, 10万未満 / 一括償却資産 / 少額減価償却資産特例 eşik ve yıllık üst sınır, başlıca 耐用年数) — yalnızca belge, kaynak + tarih |
+| T-074 | P1 | done (2026-11-08) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
 | T-075 | P2 | todo (T-074'ten sonra) | Panel `/assets` 固定資産 sayfası (ja/tr/en) + 青色申告決算書 PDF'e 減価償却費の計算 tablosu; e2e fixture güncellemesi |
 | T-076 | P1 | todo | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
 | T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
