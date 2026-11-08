@@ -47,7 +47,8 @@ def monthly(entries: list[dict]) -> list[tuple[int, int, int]]:
     return [(m, v[0], v[1]) for m, v in out.items()]
 
 
-def render_blue_return_pdf(year: int, pl: dict, entries: list[dict], profile: dict, blue: int) -> bytes:
+def render_blue_return_pdf(year: int, pl: dict, entries: list[dict], profile: dict, blue: int,
+                           depreciation: dict | None = None) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfbase import pdfmetrics
@@ -149,5 +150,40 @@ def render_blue_return_pdf(year: int, pl: dict, entries: list[dict], profile: di
     text(cols[2], y, yen(e_tot), 10, right=True)
     y -= 12 * mm
     text(L, y, "作成: てがる会計（J-SaaS 会計）", 8)
+
+    # ---- 3 ページ目: 減価償却費の計算（T-075b。固定資産があるときだけ）
+    if depreciation and depreciation.get("rows"):
+        c.showPage()
+        y = H - 22 * mm
+        text(L, y, f"{year}年分　減価償却費の計算", 14)
+        y -= 6 * mm
+        text(L, y, "※ 転記用の参考資料です（公式様式ではありません）。償却率は暫定値を含みます。", 8.5)
+        y -= 9 * mm
+        heads = ("資産名", "償却方法", "取得価額", "月数", "本年分の普通償却費", "事業割合%", "必要経費算入額", "未償却残高")
+        xs = (L + 1 * mm, L + 38 * mm, L + 72 * mm, L + 80 * mm, L + 108 * mm, L + 121 * mm, L + 149 * mm, R)
+        c.setFillGray(0.93)
+        c.rect(L, y - 2 * mm, R - L, 6 * mm, stroke=0, fill=1)
+        c.setFillGray(0)
+        for i, h in enumerate(heads):
+            text(xs[i], y, h, 6.5, right=i >= 2)
+        y -= 6.5 * mm
+        names = {"straight": "定額法", "lump": "一括償却", "small": "少額特例"}
+        for r in depreciation["rows"]:
+            text(xs[0], y, str(r["name"])[:14], 8)
+            text(xs[1], y, names.get(r["method"], r["method"]), 8)
+            for i, v in ((2, yen(r["cost"])), (3, str(r["months"])), (4, yen(r["ordinary"])), (5, str(r["business_pct"])),
+                         (6, yen(r["expense"])), (7, yen(r["book_end"]))):
+                text(xs[i], y, v, 8, right=True)
+            c.setStrokeGray(0.85)
+            c.line(L, y - 2 * mm, R, y - 2 * mm)
+            y -= 6 * mm
+        text(xs[0], y, "計", 9.5)
+        text(xs[4], y, yen(depreciation["total_ordinary"]), 9.5, right=True)
+        text(xs[6], y, yen(depreciation["total_expense"]), 9.5, right=True)
+        y -= 9 * mm
+        for line in ("・必要経費算入額の合計が損益計算書の「減価償却費」に入ります。",
+                     "・少額減価償却資産の特例は青色申告者が対象です。提出前に税理士・税務署に確認してください。"):
+            text(L, y, line, 7.8)
+            y -= 4.3 * mm
     c.save()
     return buf.getvalue()

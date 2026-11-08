@@ -101,3 +101,19 @@ def test_pdf_blue_by_year(client, auth):
     assert client.get("/api/v1/reports/blue-return.pdf?year=2027&blue=750000", headers=auth).status_code == 200
     assert client.get("/api/v1/reports/blue-return.pdf?year=2027&blue=550000", headers=auth).status_code == 400
     assert client.get("/api/v1/reports/blue-return.pdf?year=2026&blue=750000", headers=auth).status_code == 400
+
+
+def test_pdf_depreciation_page(client, auth):
+    """T-075b: 固定資産があると 3 ページ目に 減価償却費の計算 が出る。なければ 2 ページのまま。"""
+    from pypdf import PdfReader
+    add(client, auth, kind="inc", category="売上高", amount=900000, store="A")
+    url = "/api/v1/reports/blue-return.pdf?year=2026&blue=650000"
+    assert len(PdfReader(io.BytesIO(client.get(url, headers=auth).content)).pages) == 2
+    r = client.post("/api/v1/assets", headers=auth, json={"name": "ノートPC", "acquired": "2026-07-10", "in_service": "2026-07-10",
+                                                           "cost": 500000, "life": 5})
+    assert r.status_code == 201
+    pdf = PdfReader(io.BytesIO(client.get(url, headers=auth).content))
+    assert len(pdf.pages) == 3
+    t3 = pdf.pages[2].extract_text()
+    assert "減価償却費の計算" in t3 and "500,000" in t3 and "50,000" in t3 and "450,000" in t3
+    assert "50,000" in pdf.pages[0].extract_text()          # 損益計算書の 減価償却費 にも入る

@@ -7,6 +7,7 @@ from __future__ import annotations
 import hmac
 import os
 import re
+from dataclasses import asdict
 from datetime import date
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
@@ -1129,7 +1130,11 @@ def blue_return_pdf(year: int = Query(..., ge=2023, le=2035),
         raise HTTPException(400, f"blue must be one of {', '.join(map(str, it.blue_options(year)))} for {year}")
     pl = profit_and_loss(year, uid)
     rows = store.entries_in_range(uid, f"{year}-01-01", f"{year}-12-31")
-    pdf = reports.render_blue_return_pdf(year, pl, rows, store.get_profile(uid), blue)
+    sched = dep.schedule(_assets_of(uid), year)
+    pdf = reports.render_blue_return_pdf(year, pl, rows, store.get_profile(uid), blue,
+                                         depreciation={"rows": [asdict(r) for r in sched.rows],
+                                                       "total_ordinary": sched.total_ordinary,
+                                                       "total_expense": sched.total_expense})
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'inline; filename="blue-return-{year}.pdf"'})
 

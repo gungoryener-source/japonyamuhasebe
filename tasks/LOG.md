@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 20:45 JST · developer · T-075b 決算書 PDF 減価償却費の計算
+- `render_blue_return_pdf(..., depreciation=)`:固定資産 varsa 3. sayfa (資産名・償却方法・取得価額・月数・普通償却費・事業割合・必要経費算入額・未償却残高 + toplam); yoksa 2 sayfa (geri uyum). `test_pdf_depreciation_page`.
+- Kapı: pytest tam; dashboard-next değişmedi.
+- Sonraki: T-080, T-072, T-077.
+
 ## 2026-11-08 20:10 JST · developer · 申告前チェックリスト (T-081)
 - `bot/tax/precheck.py` (saf fonksiyon) + `GET /tax/precheck`: eksik profil, 登録番号なし 課税仕入, 経過措置 üst sınır, fatura numarası boşlukları, eşleşmemiş banka kayıtları, 家事按分 ayarsız, varlık uyarıları, doğrulanmamış parametreler. Vergi hükmü vermez; sonda 税理士 uyarısı.
 - /tax sayfasına `Precheck.tsx` kartı, tr/en, e2e fixture.

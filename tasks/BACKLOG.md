@@ -96,7 +96,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-073 | P1 | done (2026-11-08) | TAX_RULES'a 減価償却 bölümü (個人 定額法, 償却率, 月割, 10万未満 / 一括償却資産 / 少額減価償却資産特例 eşik ve yıllık üst sınır, başlıca 耐用年数) — yalnızca belge, kaynak + tarih |
 | T-074 | P1 | done (2026-11-08) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
 | T-075 | P2 | done (2026-11-08; PDF tablosu → T-075b) | Panel `/assets` 固定資産 sayfası (ja/tr/en) + 青色申告決算書 PDF'e 減価償却費の計算 tablosu; e2e fixture güncellemesi |
-| T-075b | P2 | todo | 青色申告決算書 PDF'e 「減価償却費の計算」 tablosu (`/assets/schedule` verisinden) + pytest PDF testi |
+| T-075b | P2 | done (2026-11-08) | 青色申告決算書 PDF'e 「減価償却費の計算」 tablosu (`/assets/schedule` verisinden) + pytest PDF testi |
 | T-076 | P1 | done (2026-11-08) | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
 | T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
 | T-081 | P1 | done (2026-11-08) | 申告前チェックリスト: `bot/tax/precheck.py` + `GET /tax/precheck` + /tax kartı (kullanıcı isteğiyle eklendi) |
