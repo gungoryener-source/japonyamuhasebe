@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 12:50 JST · developer · T-046c PostgreSQL yedekleme
+- `scripts/backup.sh`: `pg_dump --dbname="$DATABASE_URL" --no-owner --no-privileges | gzip -9` → `backups/tegaru-YYYYMMDD-HHMMSS-JST.sql.gz` (`BACKUP_DIR`), izin 600, önce `.partial` → gzip testi + 「dump complete」 satırı doğrulanınca yeniden adlandırma; hata/kesik dökümde dosya kalmaz (çıkış kodları 2/3/5/6/7). URL hiçbir çıktıya yazılmaz; DB'de ve eski yedeklerde silme yok.
+- `docs/OPERATIONS.md`: yedek alma (`read -rs` ile URL), boş yeni DB'ye geri yükleme (`gunzip -c … | psql -v ON_ERROR_STOP=1 --single-transaction`) + doğrulama, fiş görselleri kapsam dışı, Render free DB ~30 gün (Q-07 → Basic). `.gitignore`: `backups/`, `*.sql.gz`.
+- Yerel PG 16 ile gerçek yedek → boş DB'ye geri yükleme denendi (Japonca metin dahil birebir). `bash -n` + shellcheck 0.10 temiz.
+- Kapı: pytest SQLite 750 geçti/8 atlandı, PostgreSQL 16 755 geçti/3 atlandı; 11 yeni test (`tests/test_backup_script.py`: sahte pg_dump ile başarı/600/dosya adı, sır sızmaz, URL yok/boş, pg_dump hatası, kesik döküm, pg_dump yok, eski yedek korunur; PG varsa gerçek döküm). dashboard-next değişmedi.
+- Sonraki: P2 — T-012c (MF CSV), T-033b (örnek CSV bekliyor). Yeni soru yok.
+
 ## 2026-11-08 11:55 JST · developer · T-045b e-Tax araştırması
 - `docs/ETAX.md` (yalnızca belge, kod yok): e-Tax 仕様書 listesi (項番1/2/3/7/8/9/11/19, 令和8年 güncelleme tarihleri, ドラフト版 令和9年1月4日), 個人 所得税 帳票 seti (令和7年分), gönderim yolları — her iddia 国税庁/e-Tax sayfası + kontrol tarihi 2026-11-08.
 - Bulgular: e-Taxソフト(WEB版 / ダウンロード版) 民間ソフトの .xtx'ini okuyup gönderebilir; 作成コーナー yalnızca kendi 決算書'ını ekler; e-Tax API 申告データ gönderimi desteklemez. Öneri: ürün yalnızca .xtx üretir, imza/gönderim kullanıcıda (sertifika/sır saklama yok).
