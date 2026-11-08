@@ -35,8 +35,9 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-030 | P1 | done | dashboard-next: 経費精算 sayfası (kayıt listesi/arama, fiş yükleme + OCR, ekle/düzenle/sil) |
 | T-031 | P1 | done | dashboard-next: 銀行連携 sayfası (banka CSV içe aktarma, faturalarla otomatik eşleştirme) |
 | T-032 | P1 | done | dashboard-next: 設定 sayfası (事業者情報, kanal bağlantıları, oturum) + sayfa yönlendirmeli menü |
-| T-033 | P2 | doing (developer, 2026-11-08) | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
+| T-033 | P2 | done (e418cb2; ⚠️ MUFG/SMBC/みずほ/SBI/GMO → T-033b) | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
 | T-034 | P1 | done | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
+| T-033b | P2 | todo | Banka CSV: ⚠️ bankalar (MUFG, SMBC, みずほ, 住信SBI, GMOあおぞら, 楽天 güncel) için gerçek başlık satırı — ürün sahibinden anonim örnek veya erişilebilir resmî kaynak gelince fixture + test (docs/BANK_CSV.md) |
 | T-035 | P2 | todo | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
@@ -306,6 +307,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-033 · Banka CSV gerçek başlıkları (P2)
 - Her banka için kamuya açık örnek/yardım sayfasındaki başlık satırı (kaynak URL `docs/BANK_CSV.md`), kişisel veri içermeyen sentetik fixture + `bank_csv.parse` testi. Doğrulanamayan banka ⚠️ ile listelenir.
 - Kabul: ≥5 banka testli; mevcut testler yeşil.
+- ✅ Yapıldı (2026-11-08): docs/BANK_CSV.md; ✅ resmî: ゆうちょBiz, 京都銀行; 🟡 üçüncü taraf: 楽天(イーバンク), PayPay(JNB), ソニー. Ayrıştırıcıya 入出金区分/入払区分 yön sütunu, 3 sütunlu tarih, 番号/口数 sütun atlama, ソニー anahtarları eklendi. Kalan ⚠️ → T-033b.
 
 ## T-034 · Panelde fiş görseli (P2, T-011'den sonra)
 - `GET /api/v1/entries/{id}/image` (yetki kontrollü, storage üzerinden) + 経費 listesinde küçük önizleme / büyütme. `/receipts/ocr` → 「画像も保存」 seçeneği.

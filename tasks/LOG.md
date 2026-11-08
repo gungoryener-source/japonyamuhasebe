@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 10:20 JST · developer · T-033 banka CSV başlıkları
+- `docs/BANK_CSV.md`: banka başına başlık satırı + kaynak + seviye (✅ ゆうちょBizダイレクト 操作説明書 18.4, 京都銀行 ANSER CSV; 🟡 felica2money wiki: 楽天(旧イーバンク), PayPay(旧JNB), ソニー円; ⚠️ MUFG, SMBC, みずほ, 住信SBI, GMO — kamuya açık CSV başlığı bulunamadı → T-033b).
+- Bulunan hata: ゆうちょBiz CSV'de 「入出金区分」 tutar sütunu sanılıyordu → hiçbir satır alınmıyordu. `bank_csv`: yön sütunu (受入/入金/1 → +, 払出/出金/2 → −, tanınmayan → satır atlanır), 「操作日(年/月/日)」 bölünmüş tarih, 「番号」「口数」 sütunları atlanır (受入明細番号 ≠ 入金), 送金人名/依頼人名 摘要'ye eklenir, 「お取り引き日」「お預け入れ額」「お引き出し額」「現在（貸付）高」. Daha önce çalışan biçimlerin çıktısı değişmedi.
+- Kapı (rebase sonrası): pytest SQLite 739 geçti/6 atlandı, PostgreSQL 16 743 geçti/2 atlandı. 17 yeni test (`tests/test_bank_csv_formats.py`). dashboard-next değişmedi.
+- Sonraki: P2 — T-035, T-045b, T-046c, T-012c. Yeni soru yok (⚠️ bankalar için anonim örnek CSV T-033b'de istendi).
+
 ## 2026-11-08 09:50 JST · reviewer · son 26 saat incelemesi (T-019, T-066, T-026, T-024)
 - İncelendi: e2aa9bc (T-019 havuz + yavaş istek), 7d15652 (T-066 2割 特定期間 — TAX_RULES §1 NTA Q&A 問115 kaynaklı ✅), 4edff0c (T-026 kırmızı damga), 08c7a53 (T-024 OCR onayı). Kapı başta yeşildi (711/6).
 - Doğruluk/güvenlik: 日付 komutu `user_id` ile filtreli; yavaş istek log'u rota şablonu (kişisel veri yok); üretim kodunda iç içe `tx()` bulunmadı (havuz max 10 tükenme riski yok). Hata bulunmadı.
