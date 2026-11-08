@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 22:50 JST · developer · T-080 eski sabitleri params dosyalarına taşıma
+- `tax/params/consumption_static.toml` (RATES, TRANSITIONAL_CREDIT, KANI_RATIO, SMALL_BUSINESS_LIMIT, TRANSITIONAL_CAP) ve `income_static.toml` (速算表, 復興特別所得税 21/1000, 基礎控除 2025–2027, 青色控除 tabloları): her değerde source/rule/checked. `consumption.py` ve `income.py` aynı isimlerle bunları yükler; imza/çıktı aynı (mevcut testler + TS parite testleri kanıt).
+- `tests/test_static_params.py`: şema (source+rule+checked), değerlerin birebir aynılığı, tablo sıralaması.
+- Kalan küçük sabitler: yuvarlama birimleri (1,000/100 yen) ve 2割/3割 oranları `consumption_return` yıl dosyasında; `income.py` yuvarlamaları kodda (oran değil, kural).
+- Kapı: pytest 902 geçti (dashboard değişmedi).
+
 ## 2026-11-08 22:10 JST · developer · 国税庁 otomatik firma/登録番号 kontrolü (T-082)
 - `POST /bank/review/enrich`: eşleşmemiş harcama satırları için 法人番号 Web-API + インボイス公表サイト; tek aday ve valid ise `source=nta` ile 取引先 kaydı, aksi halde yalnızca öneri. `NTA_APP_ID` yoksa 503. 通帳 sayfasında 「国税庁で一括確認」 düğmesi; 通帳 yüklemesinden sonra otomatik.
 - Sunucu tarafı çağrı: geliştirme oturumunun tarayıcı/ağ erişimine bağlı değil. Canlıda Q-20 (NTA_APP_ID) girilmeden çalışmaz.

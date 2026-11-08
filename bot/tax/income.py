@@ -3,48 +3,27 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# 速算表: (課税所得の上限, 税率%, 控除額)
-BRACKETS = (
-    (1_950_000, 5, 0),
-    (3_300_000, 10, 97_500),
-    (6_950_000, 20, 427_500),
-    (9_000_000, 23, 636_000),
-    (18_000_000, 33, 1_536_000),
-    (40_000_000, 40, 2_796_000),
-    (None, 45, 4_796_000),
-)
+from tax import params as _params
+
+_P = _params.load_static("income_static")
+_INF = -1   # 上限なし
+
+
+def _table(value) -> tuple[tuple, ...]:
+    return tuple(tuple(None if x == _INF and i == 0 else x for i, x in enumerate(row)) for row in value)
+
+
+# 速算表: (課税所得の上限, 税率%, 控除額)。値は bot/tax/params/income_static.toml（出典・確認日つき）
+BRACKETS = _table(_P["income.brackets"].value)
+RECONSTRUCTION = tuple(_P["income.reconstruction_rate"].value)      # 復興特別所得税率 [分子, 分母]
 
 # 基礎控除（合計所得金額の上限, 控除額）。年ごと。TAX_RULES §2 ✅ の年のみ。
-_BASIC_R8_R9 = (  # 令和8年度改正: 本則62万 + 措法41の16の2 特例（≤489万 +42万, ≤655万 +5万）
-    (4_890_000, 1_040_000),
-    (6_550_000, 670_000),
-    (23_500_000, 620_000),
-    (24_000_000, 480_000),
-    (24_500_000, 320_000),
-    (25_000_000, 160_000),
-    (None, 0),
-)
-BASIC_DEDUCTION = {
-    2025: (
-        (1_320_000, 950_000),
-        (3_360_000, 880_000),
-        (4_890_000, 680_000),
-        (6_550_000, 630_000),
-        (23_500_000, 580_000),
-        (24_000_000, 480_000),
-        (24_500_000, 320_000),
-        (25_000_000, 160_000),
-        (None, 0),
-    ),
-    2026: _BASIC_R8_R9,  # 令和8年分
-    2027: _BASIC_R8_R9,  # 令和9年分
-    # 2028〜 (令和10年分以後): 132万超の段階が TAX_RULES で ⚠️。確定するまで未実装。
-}
+# 令和10年分以後 (2028〜): 132万超の段階が TAX_RULES で ⚠️。確定するまで未実装。
+BASIC_DEDUCTION = {int(k): _table(p.value) for k, p in
+                   ((key.rsplit(".", 1)[1], prm) for key, prm in _P.items() if key.startswith("income.basic_deduction."))}
 
-BLUE_RETURN = (650_000, 550_000, 100_000, 0)   # 令和8年分（2026）まで — TAX_RULES §2, NTA No.2072
-# 令和9年分以後（令和8年度改正）: 75万（65万要件 + 優良な電子帳簿 等 + 届出）/ 65万 / 55万 廃止 / 10万（簡易簿記）
-# 簡易簿記で前々年の事業・不動産収入 > 1,000万 → 0（ここでは利用者が 0 を選ぶ）。TAX_RULES §2, NTA リーフレット 0026007-003_02
-BLUE_RETURN_FROM_2027 = (750_000, 650_000, 100_000, 0)
+BLUE_RETURN = tuple(_P["income.blue_return.to_2026"].value)            # 令和8年分（2026）まで — TAX_RULES §2, NTA No.2072
+BLUE_RETURN_FROM_2027 = tuple(_P["income.blue_return.from_2027"].value)  # 令和9年分以後（令和8年度改正）
 
 
 def blue_options(year: int) -> tuple[int, ...]:
@@ -103,6 +82,6 @@ def compute(
     deductions = bd + max(0, social_insurance) + max(0, other_deductions)
     taxable = max(0, total_income - deductions) // 1000 * 1000
     base = income_tax_on(taxable)
-    recon = base * 21 // 1000
+    recon = base * RECONSTRUCTION[0] // RECONSTRUCTION[1]
     total = (base + recon) // 100 * 100
     return IncomeTaxResult(business, blue_used, bd, taxable, base, recon, total)

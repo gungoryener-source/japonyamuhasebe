@@ -105,7 +105,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-081 | P1 | done (2026-11-08) | 申告前チェックリスト: `bot/tax/precheck.py` + `GET /tax/precheck` + /tax kartı (kullanıcı isteğiyle eklendi) |
 | T-078 | P1 | done | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 | T-079 | P1 | blocked (法案成立待ち — tax-watcher izler) | 飲食料品 消費税率 1% (国税0.78%+地方0.22%, 2027-04-01〜2029-03-31; 2026-09-15 閣議決定, TAX_RULES §1 ⚠️): yasa çıkınca TAX_RULES ✅ → `RATES`/parser/OCR/CSV 税区分/申告書 付表/簡易課税 特例 için alt görevler |
-| T-080 | P1 | todo | Vergi parametrelerini yıl dosyalarına taşıma (vergi motoru kuralı: kodda oran yok): `consumption.py` (`RATES`, `TRANSITIONAL_CREDIT`, `KANI_RATIO`, `SMALL_BUSINESS_LIMIT`, `TRANSITIONAL_CAP`) ve `income.py` tabloları → `bot/tax/params/<yıl>.toml` (tarih bazlı tablolar ayrı dosya); fonksiyon imzası/çıktısı birebir aynı (mevcut testler kanıt) + parametre şema testi |
+| T-080 | P1 | done (2026-11-08) | Vergi parametrelerini yıl dosyalarına taşıma (vergi motoru kuralı: kodda oran yok): `consumption.py` (`RATES`, `TRANSITIONAL_CREDIT`, `KANI_RATIO`, `SMALL_BUSINESS_LIMIT`, `TRANSITIONAL_CAP`) ve `income.py` tabloları → `bot/tax/params/<yıl>.toml` (tarih bazlı tablolar ayrı dosya); fonksiyon imzası/çıktısı birebir aynı (mevcut testler kanıt) + parametre şema testi |
 
 ---
 

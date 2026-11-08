@@ -1,0 +1,42 @@
+# 消費税（年分に依存しない／日付で版を分ける）パラメータ。正本: docs/TAX_RULES.md §1。
+# bot/tax/consumption.py が読み込む。コードに税率・割合・上限を直接書かない（T-080）。
+# 日付は ISO 文字列、表は [開始日, 値] の昇順。verified = false は TODO(verify)。
+
+[consumption.rates]
+value = [10, 8]
+verified = true
+source = "NTA No.6363 / No.6371（標準10%・軽減8%）"
+rule = "§1 税率"
+checked = "2026-11-08"
+note = "飲食料品1%（2027-04-01〜）は法案成立待ちのため未実装（T-079）"
+
+[consumption.transitional_credit]
+value = [["2023-10-01", 80], ["2026-10-01", 70], ["2028-10-01", 50], ["2030-10-01", 30], ["2031-10-01", 0]]
+verified = true
+source = "令和8年度改正後の免税事業者等からの課税仕入れに係る経過措置（docs/TAX_RULES.md §1）"
+rule = "§1 経過措置"
+checked = "2026-11-06"
+note = "[開始日, 控除割合%]。開始日以後に行った課税仕入れに適用"
+
+[consumption.kani_ratio]
+value = { "1" = 90, "2" = 80, "3" = 70, "4" = 60, "5" = 50, "6" = 40 }
+verified = true
+source = "NTA No.6505 / No.6509"
+rule = "§1 簡易課税"
+checked = "2026-11-06"
+
+[consumption.small_business_limit]
+value = 10000000
+verified = true
+source = "国税庁 2割特例・3割特例リーフレット 0026004-099-01-2"
+rule = "§1 2割特例・3割特例"
+checked = "2026-11-06"
+note = "基準期間（3割は特定期間も）の課税売上高 ≤ 1,000万円"
+
+[consumption.transitional_cap]
+value = [["2024-10-01", 1000000000], ["2026-10-01", 100000000]]
+verified = true
+source = "国税庁 お知らせ 0026004-066_02 / インボイスQ&A 経過措置"
+rule = "§1 経過措置 上限"
+checked = "2026-11-06"
+note = "[課税期間の開始日, 上限円（税込）]。それ以前は上限なし"

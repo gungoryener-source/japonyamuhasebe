@@ -8,34 +8,20 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterable, Literal
 
-RATES = (10, 8)
 Method = Literal["honsoku", "kani", "niwari", "sanwari"]
 
-# 免税事業者等からの課税仕入れに係る経過措置（令和8年度改正後）
+# 税率・経過措置・みなし仕入率・上限は bot/tax/params/consumption_static.toml（出典・確認日つき）から読む。
+# 値を直接書かない（T-080）。名前は従来のまま公開する。
+from tax import params as _params  # noqa: E402
+
+_P = _params.load_static("consumption_static")
+RATES: tuple[int, ...] = tuple(_P["consumption.rates"].value)
 # (開始日, 控除割合 %)。開始日以後に行った課税仕入れに適用。
-TRANSITIONAL_CREDIT = (
-    (date(2023, 10, 1), 80),
-    (date(2026, 10, 1), 70),
-    (date(2028, 10, 1), 50),
-    (date(2030, 10, 1), 30),
-    (date(2031, 10, 1), 0),
-)
-
-# 簡易課税 みなし仕入率（第1種〜第6種）%。docs/TAX_RULES.md §1 ✅
-# 出典: 国税庁 タックスアンサー No.6505（令和8年4月1日現在法令等）、事業区分は No.6509（確認 2026-11-06）
-KANI_RATIO = {1: 90, 2: 80, 3: 70, 4: 60, 5: 50, 6: 40}
-
-# 2割特例・3割特例の適用要件: 基準期間（3割は特定期間も）の課税売上高 ≤ 1,000万円。docs/TAX_RULES.md §1 ✅
-# 出典: 国税庁 2割特例 / 3割特例リーフレット 0026004-099-01-2（確認 2026-11-06）
-SMALL_BUSINESS_LIMIT = 10_000_000
-
-# 一の免税事業者等からの経過措置対象仕入れの上限（税込・課税期間ごと）。docs/TAX_RULES.md §1 ✅
+TRANSITIONAL_CREDIT = tuple((date.fromisoformat(d), int(pct)) for d, pct in _P["consumption.transitional_credit"].value)
+KANI_RATIO = {int(k): int(v) for k, v in _P["consumption.kani_ratio"].value.items()}
+SMALL_BUSINESS_LIMIT: int = int(_P["consumption.small_business_limit"].value)
 # (課税期間の開始日, 上限円)。開始日以後に開始する課税期間に適用。それ以前は上限なし。
-# 出典: 国税庁 お知らせ 0026004-066_02 / インボイスQ&A 経過措置（確認 2026-11-06）
-TRANSITIONAL_CAP = (
-    (date(2024, 10, 1), 1_000_000_000),
-    (date(2026, 10, 1), 100_000_000),
-)
+TRANSITIONAL_CAP = tuple((date.fromisoformat(d), int(y)) for d, y in _P["consumption.transitional_cap"].value)
 
 
 def tax_included(gross: int, rate: int) -> int:
