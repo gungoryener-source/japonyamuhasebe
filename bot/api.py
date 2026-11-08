@@ -17,6 +17,7 @@ import accounts
 import ai_usage
 import archive
 import bank_csv
+import card_csv
 import billing
 import companies
 import pricing
@@ -459,6 +460,18 @@ async def bank_import(request: Request, account: str = "", uid: str = Depends(wr
         raise HTTPException(400, str(ex))
     added, dup = store.insert_bank_rows(uid, rows, account)
     return {"parsed": len(rows), "imported": added, "duplicates": dup, "suggestions": bank_suggestions(uid)}
+
+
+@router.post("/card/import")
+async def card_import(request: Request, account: str = "", uid: str = Depends(writer_user)):
+    """T-077: クレジットカード利用明細 CSV。銀行明細と同じ未確認の一覧に入り、「経費に登録」で仕訳になる。"""
+    raw = await _body(request)
+    try:
+        rows = card_csv.parse(raw)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    added, dup = store.insert_bank_rows(uid, rows, account or "クレジットカード")
+    return {"parsed": len(rows), "imported": added, "duplicates": dup}
 
 
 @router.get("/bank/transactions")

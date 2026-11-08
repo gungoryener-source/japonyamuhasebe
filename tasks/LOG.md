@@ -2,6 +2,11 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 21:20 JST · developer · T-077 クレジットカード明細 CSV
+- `bot/card_csv.py` (sütun eşlemesi sözcüklerle; 返金 → giriş, 合計/分割・リボ notları atlanır, 支払区分/支払日 摘要'ye), `POST /card/import` → mevcut bank_tx hattı (`src=card`, 未確認). `docs/CARD_CSV.md`: şirket CSV başlıkları için birincil kaynak bulunamadı → ⚠️, başlık uydurulmadı.
+- 未払金 karşı hesabı `entries` şemasında olmadığı için yapılmadı (T-077b). Panel sekmesi eklenmedi (BACKLOG: isteğe bağlı).
+- Kapı: pytest tam yeşil.
+
 ## 2026-11-08 20:45 JST · developer · T-075b 決算書 PDF 減価償却費の計算
 - `render_blue_return_pdf(..., depreciation=)`:固定資産 varsa 3. sayfa (資産名・償却方法・取得価額・月数・普通償却費・事業割合・必要経費算入額・未償却残高 + toplam); yoksa 2 sayfa (geri uyum). `test_pdf_depreciation_page`.
 - Kapı: pytest tam; dashboard-next değişmedi.

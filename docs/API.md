@@ -33,6 +33,7 @@ Para birimi tamsayı yen. Hatalar: 400 (doğrulama), 401 (token), 404, 422 (şem
 | PATCH / DELETE | `/entries/{id}` | Kaydı düzelt (tarih, karşı taraf, tutar, kalem, oran, 登録番号) / sil |
 | POST | `/receipts/ocr` | Ham görsel gövdesi (image/*, ≤10MB) → okunan kayıt önerileri (kaydetmez) |
 | POST | `/bank/import?account=` | Banka CSV (Shift_JIS/UTF-8) içe aktar; tekrar eden satırlar atlanır |
+| POST | `/card/import?account=` | クレジットカード利用明細 CSV (T-077, `bot/card_csv.py`, gövde = ham CSV): `{parsed, imported, duplicates}`; 銀行明細と同じ未確認一覧 (`src=card`) に入る, 見出し不明 400 |
 | GET | `/bank/transactions` | Hareketler + 消込 önerileri (入金 = 未入金請求書合計) |
 | POST | `/bank/match` | `{tx_id, invoice_no}` → fatura 支払済 (ödeme tarihi = hareket tarihi) |
 | POST | `/bank/{id}/entry` | Çekimi 経費 olarak kaydet `{category, rate}` |
