@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 23:20 JST · developer · T-072 消費税申告書 PDF
+- `reports.render_consumption_return_pdf` + `GET /reports/consumption-return.pdf` (hesap = `/tax/consumption/return`; satır başına formül/kural, 未検証 işareti, uyarılar, 税理士・税務署 notu, çok sayfa taşması). /tax kartında 「申告書PDF」 düğmesi (canlı mod).
+- Testler: içerik (toplamlar API ile aynı), 401, geçersiz method 400, yıl 422, kullanıcı izolasyonu.
+- Kapı: pytest, next build, check:*, Playwright 31/31.
+- Sonraki: T-082b, T-065c/T-067 (izin/onay gerekir).
+
 ## 2026-11-08 22:50 JST · developer · T-080 eski sabitleri params dosyalarına taşıma
 - `tax/params/consumption_static.toml` (RATES, TRANSITIONAL_CREDIT, KANI_RATIO, SMALL_BUSINESS_LIMIT, TRANSITIONAL_CAP) ve `income_static.toml` (速算表, 復興特別所得税 21/1000, 基礎控除 2025–2027, 青色控除 tabloları): her değerde source/rule/checked. `consumption.py` ve `income.py` aynı isimlerle bunları yükler; imza/çıktı aynı (mevcut testler + TS parite testleri kanıt).
 - `tests/test_static_params.py`: şema (source+rule+checked), değerlerin birebir aynılığı, tablo sıralaması.

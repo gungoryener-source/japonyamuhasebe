@@ -1175,6 +1175,21 @@ def invoice_pdf(no: str, uid: str = Depends(current_user)):
 
 
 # ---------------------------------------------------------------- reports (T-045)
+@router.get("/reports/consumption-return.pdf")
+def consumption_return_pdf(year: int = Query(..., ge=2023, le=2035), method: str = "honsoku", kani_type: int | None = None,
+                           purchase_calc: str = Query("warimodoshi", pattern="^(warimodoshi|ledger)$"),
+                           base_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                           specific_period_sales: int | None = Query(None, ge=0, lt=10**13),
+                           specific_period_salaries: int | None = Query(None, ge=0, lt=10**13),
+                           uid: str = Depends(current_user)):
+    """消費税申告書（計算結果）の参考 PDF (T-072)。計算は /tax/consumption/return と同じ。"""
+    res = consumption_return(year, method, kani_type, purchase_calc, base_period_sales, specific_period_sales,
+                             specific_period_salaries, uid)
+    pdf = reports.render_consumption_return_pdf(res, store.get_profile(uid))
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="consumption-return-{year}.pdf"'})
+
+
 @router.get("/reports/blue-return.pdf")
 def blue_return_pdf(year: int = Query(..., ge=2023, le=2035),
                     blue: int = Query(650_000), uid: str = Depends(current_user)):

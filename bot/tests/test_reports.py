@@ -117,3 +117,29 @@ def test_pdf_depreciation_page(client, auth):
     t3 = pdf.pages[2].extract_text()
     assert "減価償却費の計算" in t3 and "500,000" in t3 and "50,000" in t3 and "450,000" in t3
     assert "50,000" in pdf.pages[0].extract_text()          # 損益計算書の 減価償却費 にも入る
+
+
+def test_consumption_return_pdf(client, auth):
+    """T-072: 消費税申告書 PDF。計算結果・根拠・税理士確認の注記が入る。"""
+    from pypdf import PdfReader
+    url = "/api/v1/reports/consumption-return.pdf?year=2026&method=honsoku"
+    assert client.get(url).status_code == 401
+    add(client, auth, kind="inc", category="売上高", amount=1_100_000, store="A")
+    add(client, auth, amount=110_000)
+    r = client.get(url, headers=auth)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf" and r.content[:5] == b"%PDF-"
+    text = "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)
+    j = client.get("/api/v1/tax/consumption/return?year=2026&method=honsoku", headers=auth).json()
+    assert "消費税及び地方消費税" in text and "原則課税" in text and "税理士・税務署" in text
+    assert f"{j['total_payable']:,}" in text and f"{j['output_tax']:,}" in text
+    assert client.get("/api/v1/reports/consumption-return.pdf?year=2026&method=bogus", headers=auth).status_code == 400
+    assert client.get("/api/v1/reports/consumption-return.pdf?year=2019", headers=auth).status_code == 422
+
+
+def test_consumption_return_pdf_user_isolation(client, auth):
+    from pypdf import PdfReader
+    add(client, auth, kind="inc", category="売上高", amount=7_777_700, store="A")
+    other = client.post("/api/v1/admin/tokens", json={"user_id": "UOTHER2"}, headers=ADMIN).json()["token"]
+    r = client.get("/api/v1/reports/consumption-return.pdf?year=2026", headers={"Authorization": f"Bearer {other}"})
+    assert r.status_code == 200
+    assert "7,777,700" not in "".join(p.extract_text() for p in PdfReader(io.BytesIO(r.content)).pages)

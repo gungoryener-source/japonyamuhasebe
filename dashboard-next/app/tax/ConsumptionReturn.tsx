@@ -2,11 +2,11 @@
 
 /** 消費税申告書（第一表・第二表相当）— 国税／地方消費税を分け、各数値の計算式と根拠を表示する（T-071b）。 */
 import { useEffect, useState } from "react";
-import { TriangleAlert } from "lucide-react";
-import { api, type ApiConsumptionReturn, type ApiReturnLine } from "../lib/api";
+import { FileText, TriangleAlert } from "lucide-react";
+import { api, openBlob, type ApiConsumptionReturn, type ApiReturnLine } from "../lib/api";
 import { methodUnavailable, type Method } from "../lib/tax";
 import EXAMPLE from "../lib/consumption-return-example.json";
-import { Badge, Card, cx, Field, selectCls, Stat, yen } from "../components/ui";
+import { Badge, Btn, Card, cx, Field, selectCls, Stat, yen } from "../components/ui";
 import { T } from "../lib/i18n";
 
 const DEMO = EXAMPLE as unknown as { year: number; results: Record<string, ApiConsumptionReturn> };
@@ -59,10 +59,17 @@ export default function ConsumptionReturn({ year, method, kani, live }: { year: 
     return () => { off = true; };
   }, [live, year, method, kani, calc]);
 
+  const pdf = async () => {
+    try { openBlob(await api.consumptionReturnPdf(year, method, method === "kani" ? kani : undefined, calc)); }
+    catch (e) { setMsg(T("PDFを取得できませんでした") + `: ${e instanceof Error ? e.message : e}`); }
+  };
   const refund = res ? res.total_payable < 0 : false;
   return (
     <Card title="消費税申告書（国税・地方消費税）" en="Consumption Tax Return" className="lg:col-span-12"
-      right={res && res.unverified.length > 0 ? <Badge tone="warn">{T("未検証の項目あり")}</Badge> : undefined}>
+      right={<span className="flex items-center gap-2">
+        {res && res.unverified.length > 0 && <Badge tone="warn">{T("未検証の項目あり")}</Badge>}
+        {live && res && <Btn onClick={pdf}><FileText size={13} />{T("申告書PDF")}</Btn>}
+      </span>}>
       {method === "honsoku" && live && (
         <Field label={T("仕入税額の計算方法")} className="max-w-xs">
           <select id="cr-calc" value={calc} onChange={(e) => setCalc(e.target.value as "warimodoshi" | "ledger")} className={selectCls}>

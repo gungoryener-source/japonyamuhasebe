@@ -187,3 +187,94 @@ def render_blue_return_pdf(year: int, pl: dict, entries: list[dict], profile: di
             y -= 4.3 * mm
     c.save()
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------- 消費税申告書 参考資料 (T-072)
+METHOD_NAMES = {"honsoku": "原則課税（本則）", "kani": "簡易課税", "niwari": "2割特例", "sanwari": "3割特例"}
+
+
+def render_consumption_return_pdf(res: dict, profile: dict) -> bytes:
+    """消費税及び地方消費税の申告書（第一表相当）の計算結果と各数値の根拠。公式様式ではない。"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    from reportlab.pdfgen import canvas
+
+    font = _register_font(pdfmetrics, UnicodeCIDFont)
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    year = int(res["year"])
+    c.setTitle(f"消費税申告書 参考資料 {year}年分")
+    W, H = A4
+    L, R = 20 * mm, W - 20 * mm
+    yen = lambda n: f"{n:,}"  # noqa: E731
+
+    def text(x, y, s, size=9.5, right=False):
+        c.setFont(font, size)
+        (c.drawRightString if right else c.drawString)(x, y, s)
+
+    def wrap(s: str, width: int) -> list[str]:
+        return [s[i:i + width] for i in range(0, len(s), width)] or [""]
+
+    y = H - 22 * mm
+    text(L, y, f"令和{year - 2018}年分　消費税及び地方消費税の申告書（計算結果）", 14)
+    y -= 7 * mm
+    text(L, y, f"事業者名　{profile.get('business_name') or '（未設定）'}", 10)
+    text(R, y, f"登録番号　{profile.get('registration_no') or '—'}", 9, right=True)
+    y -= 5 * mm
+    text(L, y, f"課税方式　{METHOD_NAMES.get(res['method'], res['method'])}　／　仕入税額　"
+         f"{'帳簿積上げ計算' if res['purchase_calc'] == 'ledger' else '割戻し計算'}", 9)
+    y -= 5 * mm
+    c.setFillColorRGB(0.75, 0.1, 0.1)
+    text(L, y, "※ 計算結果の参考資料です（公式様式ではありません）。申告前に税理士・税務署に確認してください。", 8.5)
+    c.setFillColorRGB(0, 0, 0)
+    y -= 8 * mm
+
+    def head():
+        nonlocal y
+        c.setFillGray(0.93)
+        c.rect(L, y - 2 * mm, R - L, 6 * mm, stroke=0, fill=1)
+        c.setFillGray(0)
+        text(L + 2 * mm, y, "項目", 8.5)
+        text(L + 95 * mm, y, "金額（円）", 8.5, right=True)
+        text(L + 100 * mm, y, "計算式・根拠", 8.5)
+        y -= 6.5 * mm
+
+    head()
+    emphasis = {"national_payable", "national_refund", "local_payable", "local_refund", "total"}
+    for ln in res["lines"]:
+        formula = ln["formula"] + ("　※未検証" if not ln["verified"] else "")
+        parts = wrap(formula, 36)
+        need = max(1, len(parts)) * 4 * mm + 3 * mm
+        if y - need < 25 * mm:
+            c.showPage()
+            y = H - 22 * mm
+            head()
+        big = ln["key"].split(".")[0] in emphasis
+        text(L + 2 * mm, y, ln["label"][:30], 9.5 if big else 8.5)
+        text(L + 95 * mm, y, yen(ln["value"]), 10 if big else 9, right=True)
+        for i, part in enumerate(parts):
+            text(L + 100 * mm, y - i * 4 * mm, part, 7)
+        y -= need
+        c.setStrokeGray(0.85)
+        c.line(L, y + 1.5 * mm, R, y + 1.5 * mm)
+    y -= 2 * mm
+    total = int(res["total_payable"])
+    text(L + 2 * mm, y, "納付税額合計（国税＋地方消費税）" if total >= 0 else "還付税額合計（国税＋地方消費税）", 10)
+    text(L + 95 * mm, y, yen(abs(total)), 10.5, right=True)
+    y -= 9 * mm
+    for w in res["warnings"]:
+        for part in wrap("・" + w["message"], 62):
+            if y < 20 * mm:
+                c.showPage()
+                y = H - 22 * mm
+            text(L, y, part, 7.8)
+            y -= 4.3 * mm
+    if res["unverified"]:
+        text(L, y, "・出典未確認のパラメータ: " + "、".join(res["unverified"])[:70], 7.8)
+        y -= 4.3 * mm
+    y -= 4 * mm
+    text(L, max(y, 12 * mm), "作成: てがる会計（J-SaaS 会計）", 8)
+    c.save()
+    return buf.getvalue()
