@@ -5,6 +5,7 @@ Token alma: LINE'da 「パネル」 yaz **veya** admin: `POST /api/v1/admin/toke
 Hesap (T-040): `POST /auth/signup` / `POST /auth/login` `{email, password}` → `{account:{id,email}, user_id, token}` (token yukarıdaki Bearer ile aynı).
 Deneme verisi: `POST /api/v1/admin/demo-seed` (`X-Admin-Key`) → `demo` defteri + token.
 Bekleyen silme talepleri: `GET /api/v1/admin/deletion-requests` (`X-Admin-Key`) → `{requests:[{id,user_id,account_id,email,requested_at,status}]}` (T-046b).
+Canlıya alma kontrolü: `GET /admin/config-check` (kökte, `/api/v1` değil; yalnızca `X-Admin-Key` başlığı, yoksa 401) → `{ready, missing_required[], open_questions[], env:[{name,set,question,level}], runtime:{db,storage,tesseract,mail_provider_supported}}`; değer/uzunluk/önek dönmez (T-078, `docs/GO_LIVE.md`).
 
 | Yöntem | Yol | Açıklama |
 |---|---|---|

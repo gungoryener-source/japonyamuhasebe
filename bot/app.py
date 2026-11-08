@@ -734,6 +734,18 @@ async def admin_richmenu(x_admin_key: str = Header(default=""), key: str = ""):
     return {"richMenuId": rid}
 
 
+@app.get("/admin/config-check")
+def admin_config_check(x_admin_key: str = Header(default="")):
+    """T-078: canlıya alma kontrolü. Her ortam değişkeni için yalnızca girildi mi (true/false) + Q numarası;
+    değer/uzunluk/önek asla dönmez. Yalnızca X-Admin-Key başlığı (sorgu dizesi kabul edilmez, T-028).
+    curl -s -H "X-Admin-Key: $ADMIN_KEY" https://<adres>/admin/config-check   (docs/GO_LIVE.md)"""
+    if not ADMIN_KEY or not hmac.compare_digest(x_admin_key.encode(), ADMIN_KEY.encode()):
+        raise HTTPException(401, "admin key required")
+    from fastapi.responses import JSONResponse
+    import config_check
+    return JSONResponse(config_check.report(), headers={"Cache-Control": "no-store"})
+
+
 # ---------------------------------------------------------------- WhatsApp
 from whatsapp import router as wa_router  # noqa: E402
 

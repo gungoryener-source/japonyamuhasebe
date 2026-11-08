@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 14:55 JST · developer · T-078 canlıya alma kontrolü
+- `GET /admin/config-check` (`bot/config_check.py` + `app.py`): yalnızca `X-Admin-Key` başlığı (sorgu dizesi yok, yoksa/yanlışsa 401, `Cache-Control: no-store`). Yanıt: 23 değişken için `set` (bool, boşluk = yok) + Q numarası + düzey (required/recommended/optional), `ready`, `missing_required`, `open_questions`; `runtime`: db (sqlite/postgres), storage (local/s3), tesseract, `mail_provider_supported`. Değer/uzunluk/önek dönmez (Stripe test/live türü de önekten türediği için bilinçli olarak eklenmedi).
+- `docs/GO_LIVE.md`: insan adımları sırası (Q-07/Q-09 plan → Q-08 Docker → Q-01 LINE → Q-05 PANEL_URL → Q-14 R2 → Q-13 Resend → Q-10 Stripe test → Q-12/Q-21 panel değişkenleri, her adımda kontrol) + 9 adımlı uçtan uca duman testi. `docs/API.md`'ye uç nokta satırı.
+- 12 yeni test (`tests/test_config_check.py`): 401 (anahtarsız/boş/yanlış/`?key=`/ADMIN_KEY yok), sahte değerlerin ve ilk 8 karakterinin yanıtta geçmediği, eksik zorunlu → Q listesi, boşluk = yok, desteklenmeyen MAIL_PROVIDER değeri sızmaz, render.yaml bot sırlarının listede olduğu, `/` ve `/callback` sözleşmesi.
+- Kapı: pytest SQLite 788 geçti/8 atlandı, PostgreSQL 16 793 geçti/3 atlandı. dashboard-next değişmedi.
+- Sonraki: T-070 (消費税申告書 hesap adımları, yalnızca belge). Yeni soru yok.
+
 ## 2026-11-08 14:25 JST · planner · haftalık planlama
 - ROADMAP: Faz 2 gider akışı/登録番号 (T-063), Faz 5 kalanları (T-044/b, T-046/b/c, T-047, T-048/b, T-021/T-035), Faz 3 青色決算書 + e-Tax araştırması, Faz 4 çok dilli bot ✅ işaretlendi; Faz 5 kod tarafı tamam.
 - Teşhis: todo kuyruğu boşalmıştı (yalnızca T-033b + Q-19'a bağlı T-068/069). T-033b → blocked (Q-22 yeni: banka CSV örnekleri), T-068/069 → blocked (Q-19). 24 saati aşan `doing` yok.

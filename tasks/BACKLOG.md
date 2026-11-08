@@ -97,7 +97,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-075 | P2 | todo (T-074'ten sonra) | Panel `/assets` 固定資産 sayfası (ja/tr/en) + 青色申告決算書 PDF'e 減価償却費の計算 tablosu; e2e fixture güncellemesi |
 | T-076 | P1 | todo | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
 | T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
-| T-078 | P1 | doing (developer, 2026-11-08) | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
+| T-078 | P1 | done (bu commit) | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 
 ---
 
