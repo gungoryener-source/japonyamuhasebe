@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 14:25 JST · planner · haftalık planlama
+- ROADMAP: Faz 2 gider akışı/登録番号 (T-063), Faz 5 kalanları (T-044/b, T-046/b/c, T-047, T-048/b, T-021/T-035), Faz 3 青色決算書 + e-Tax araştırması, Faz 4 çok dilli bot ✅ işaretlendi; Faz 5 kod tarafı tamam.
+- Teşhis: todo kuyruğu boşalmıştı (yalnızca T-033b + Q-19'a bağlı T-068/069). T-033b → blocked (Q-22 yeni: banka CSV örnekleri), T-068/069 → blocked (Q-19). 24 saati aşan `doing` yok.
+- Yeni görevler (kabul ölçütlü, tek çalışmalık): T-070/071/072 消費税申告書 (belge → hesap → PDF), T-073/074/075 減価償却 (belge → 台帳+hesap → panel), T-076 家事按分, T-077 kart CSV, T-078 config-check + GO_LIVE. Önerilen sıra BACKLOG başında.
+- QUESTIONS: çift numaralar düzeltildi (NTA_APP_ID → Q-20, LINE 友だち追加 → Q-21; BACKLOG T-044 referansı güncellendi; kod yorumlarındaki Q-16 = çok şirket fiyatı, değişmedi). WEEKLY hafta 2 raporu yazıldı.
+- Kapı: pytest SQLite 777 geçti/8 atlandı. Kod değişmedi.
+
 ## 2026-11-08 13:55 JST · developer · T-012c マネーフォワード 仕訳帳インポート CSV
 - Kaynak: MF 公式「仕訳帳インポート（マネーフォワード クラウド会計形式）」 (更新日 2026-07-09) 27 sütun 取引No〜最終更新者; 税区分一覧 FAQ s15 (正式名称) ve 対象外 FAQ tax-class02 (2026-07-29). URL'ler `export.py` docstring'inde, kontrol 2026-11-08.
 - `export.py` mf: eski 9 sütunlu tahmini biçim → resmî 27 sütun (`MF_HEADER`). 税区分: 課税仕入 10% / 課税仕入 (軽)8% / 課税売上 10% / 課税売上 (軽)8% / 非課税売上 (受取利息) / 対象外. 借方/貸方取引先 = 取引先, 摘要 = 取引先, 登録番号 → 仕訳メモ. インボイス: 適格 / 80％・70％・50％・30％控除 / 控除なし (`input_credit_ratio` ile aynı sınırlar = TAX_RULES §1), 売上・税率0・制度前仕入 boş (MF'de boş = 適格). 税額 boş (resmî talimat). Karşı hesap freee/弥生 ile aynı `_counter` (BANK → 普通預金; önceden MF'de hep 事業主借). Uzunluk sınırları 30/255/200.

@@ -2,7 +2,7 @@
 
 Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her görevin kabul ölçütü vardır; tek çalışmada bitmeyecekse önce böl.
 
-**Önerilen sıra (planner, 2026-11-07):** P0 bitti. Sprint sonuna kadar (2026-11-09 00:00 JST): review-fix → T-021 → T-048 → T-048b → T-046 → T-046b → T-045 → T-044 → T-044b → T-011 → T-049. Sonra P2.
+**Önerilen sıra (planner, 2026-11-08):** Sprint kod hedefi tamamlandı (Faz 0–2 + Faz 5 kod tarafı). Sıradaki odak Faz 3 (確定申告 sezonu, Q-04: önce 個人): review-fix → T-078 → T-070 → T-071 → T-076 → T-073 → T-074 → T-072 → T-075 → T-077. Blocked: T-033b (Q-22), T-064b (Q-16), T-065c (Q-18), T-067/068/069 (Q-19).
 
 | ID | Öncelik | Durum | Görev |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-032 | P1 | done | dashboard-next: 設定 sayfası (事業者情報, kanal bağlantıları, oturum) + sayfa yönlendirmeli menü |
 | T-033 | P2 | done (e418cb2; ⚠️ MUFG/SMBC/みずほ/SBI/GMO → T-033b) | Banka CSV: gerçek banka dosyalarıyla doğrulama (MUFG, SMBC, みずほ, ゆうちょ, 楽天, PayPay, 住信SBI, GMOあおぞら örnek başlıkları + testler) |
 | T-034 | P1 | done | Panel: fiş görselini kayıtla birlikte saklama/gösterme (`/api/v1/receipts/ocr` → kaydetme seçeneği, 電帳法 görsel arşivi) |
-| T-033b | P2 | todo | Banka CSV: ⚠️ bankalar (MUFG, SMBC, みずほ, 住信SBI, GMOあおぞら, 楽天 güncel) için gerçek başlık satırı — ürün sahibinden anonim örnek veya erişilebilir resmî kaynak gelince fixture + test (docs/BANK_CSV.md) |
+| T-033b | P2 | blocked (Q-22 örnek CSV) | Banka CSV: ⚠️ bankalar (MUFG, SMBC, みずほ, 住信SBI, GMOあおぞら, 楽天 güncel) için gerçek başlık satırı — ürün sahibinden anonim örnek veya erişilebilir resmî kaynak gelince fixture + test (docs/BANK_CSV.md) |
 | T-035 | P2 | done (bu commit) | Panel: e2e testleri (Playwright) CI'a — tüm menüler demo + canlı mod |
 | T-040 | P0 | done (bu commit; panel → T-040b) | Hesap sistemi: e-posta + şifre kayıt/giriş, oturum token'ı, LINE defterini hesaba bağlama, panelde /signup ve /login |
 | T-040b | P0 | done (bu commit) | Panel: /signup, /login, /reset sayfaları + /connect'te hesaba LINE bağlama (T-040 API'si) |
@@ -46,7 +46,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-042 | P0 | done (bu commit; panel+LINE → T-042b) | Abonelik: planlar + Stripe test modu (Checkout, webhook, iptal), plan bazlı sınırlar; anahtar yoksa ödeme kapalı |
 | T-042b | P0 | done (bu commit) | Abonelik: panel 料金プラン sayfası (/billing: plan kartları, Checkout yönlendirme, 解約, kullanım, 準備中 durumu) + LINE/WhatsApp kayıt yolunda sınır (Japonca uyarı) |
 | T-043 | P0 | done (bu commit; içerik onayı Q-12) | Yasal sayfalar: 利用規約, プライバシーポリシー (APPI), 特定商取引法に基づく表記 — şablon + yapılandırma, 「要確認」 işaretli |
-| T-044 | P1 | done (bu commit; LINE URL Q-16) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
+| T-044 | P1 | done (bu commit; LINE URL Q-21) | Tanıtım sayfası `/lp` (ürün, LINE ile başla, fiyat tablosu `PLANS`'tan, SSS) |
 | T-044b | P1 | done (bu commit) | Kayıt sonrası 3 adımlı kurulum sihirbazı `/welcome` (事業者情報 → LINE bağlantısı → ilk fiş) |
 | T-045 | P1 | done | 青色申告決算書 (損益計算書) PDF: `GET /api/v1/reports/blue-return.pdf?year=` + panel 確定申告 sayfasında indirme |
 | T-045b | P2 | done (bu commit; uygulama → T-067/068/069) | e-Tax xtx araştırma notu `docs/ETAX.md` (resmi şema/仕様 kaynakları, yalnızca belge) |
@@ -87,8 +87,17 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-065c | P2 | blocked (Q-18) | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
 | T-066 | P2 | done (bu commit) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
 | T-067 | P2 | blocked (Q-19) | e-Tax 仕様書 (項番7 手続一覧, 9 所得税, 19 XMLスキーマ) → 青色申告決算書(一般用) 様式ID/sürüm + alan ↔ `/api/v1/pl` 科目 eşleme tablosu `docs/ETAX_MAPPING.md` (kod yok) |
-| T-068 | P2 | todo (T-067'den sonra) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |
-| T-069 | P2 | todo (T-068'den sonra) | Panel 確定申告: 「e-Tax用データ(.xtx)」 indirme + Japonca adım kılavuzu (e-Taxソフト(WEB版) → 署名 → 送信) |
+| T-068 | P2 | blocked (Q-19 → T-067) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |
+| T-069 | P2 | blocked (Q-19 → T-068) | Panel 確定申告: 「e-Tax用データ(.xtx)」 indirme + Japonca adım kılavuzu (e-Taxソフト(WEB版) → 署名 → 送信) |
+| T-070 | P1 | todo | TAX_RULES §1'e 消費税申告書 hesap adımları (課税標準額 千円未満切捨, 国税 7.8/6.24, 地方 22/78, 百円未満切捨, 積上げ/割戻し; 簡易・2割・3割'nın 申告書 satırları) — yalnızca belge, kaynak + tarih |
+| T-071 | P1 | todo (T-070'ten sonra) | `bot/tax/consumption_return.py`: 消費税申告書 第一表/第二表 相当 alanlar (本則/簡易/2割/3割) + sınır testleri; `GET /api/v1/tax/consumption/return?year=` |
+| T-072 | P2 | todo (T-071'den sonra) | 消費税申告書 参考 PDF `GET /api/v1/reports/consumption-return.pdf?year=` + panel 税務 indirme düğmesi |
+| T-073 | P1 | todo | TAX_RULES'a 減価償却 bölümü (個人 定額法, 償却率, 月割, 10万未満 / 一括償却資産 / 少額減価償却資産特例 eşik ve yıllık üst sınır, başlıca 耐用年数) — yalnızca belge, kaynak + tarih |
+| T-074 | P1 | todo (T-073'ten sonra) | 固定資産台帳: `fixed_assets` tablosu (yalnızca ekleme), CRUD API, `bot/tax/depreciation.py` (定額法 月割), `/pl` 減価償却費'ye otomatik yansıma + sınır testleri |
+| T-075 | P2 | todo (T-074'ten sonra) | Panel `/assets` 固定資産 sayfası (ja/tr/en) + 青色申告決算書 PDF'e 減価償却費の計算 tablosu; e2e fixture güncellemesi |
+| T-076 | P1 | todo | 家事按分: 勘定科目 başına 事業割合 (0–100%) ayarı; `/pl`, 青色申告決算書 ve 本則 仕入税額 按分後 tutarla; panel 設定 kartı + testler |
+| T-077 | P2 | todo | クレジットカード明細 CSV içe aktarma (`card_csv`, kaynak `card`, karşı hesap 未払金) + `docs/CARD_CSV.md` (yalnızca kaynaklı başlıklar) + testler |
+| T-078 | P1 | todo | Canlıya alma: `GET /admin/config-check` (ADMIN_KEY; ortam değişkenleri yalnızca var/yok, değer yok) + `docs/GO_LIVE.md` (insan adımları sırası + uçtan uca duman testi) |
 
 ---
 
@@ -264,7 +273,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 ## T-044 · Tanıtım sayfası (P1)
 - `dashboard-next/app/lp/page.tsx` (sunucu bileşeni, JS'siz okunur): kahraman bölümü (LINE'a fiş at → 帳簿・インボイス・確定申告), 3 özellik kartı, fiyat tablosu (`/billing/plans` yer tutucu fiyatlar 「仮」; API yoksa statik yedek), SSS (≥5 soru, vergi danışmanlığı değildir notu), 「無料で始める」 → `/signup/`, alt bilgide yasal sayfa bağlantıları.
 - Kabul: `next build` geçer; 375px'te yatay taşma yok (Playwright notu LOG'a); metinler Japonca, uydurma rakam/iddia yok (ör. "電帳法対応" yalnızca T-011/T-034 bitince).
-- ✅ Yapıldı: `app/lp/page.tsx` (sunucu bileşeni) + içerik `app/lib/lp.ts` (kahraman, 3 özellik, 3 adım, fiyat tablosu `LP_PLANS` = `billing.PLANS` kopyası — statik export olduğu için API çağrılmaz, eşitlik `check:lp` + `tests/test_lp_plan_parity.py` ile denetlenir; SSS 7 soru, 税理士法 notu). 「LINEで友だち追加」 düğmesi `NEXT_PUBLIC_LINE_ADD_URL` (render.yaml `sync: false`, Q-16) doluysa görünür. `check:lp` CI'a eklendi (yasak ifadeler: 仮, 電帳法, WhatsApp, abartılı rakamlar).
+- ✅ Yapıldı: `app/lp/page.tsx` (sunucu bileşeni) + içerik `app/lib/lp.ts` (kahraman, 3 özellik, 3 adım, fiyat tablosu `LP_PLANS` = `billing.PLANS` kopyası — statik export olduğu için API çağrılmaz, eşitlik `check:lp` + `tests/test_lp_plan_parity.py` ile denetlenir; SSS 7 soru, 税理士法 notu). 「LINEで友だち追加」 düğmesi `NEXT_PUBLIC_LINE_ADD_URL` (render.yaml `sync: false`, Q-21 — eski Q-16) doluysa görünür. `check:lp` CI'a eklendi (yasak ifadeler: 仮, 電帳法, WhatsApp, abartılı rakamlar).
 
 ## T-044b · Kurulum sihirbazı (P1)
 - `/welcome`: kayıt sonrası yönlendirme; adım 1 事業者情報 (mevcut settings API), adım 2 LINE bağlantısı (`/connect` akışı veya 「あとで」), adım 3 ilk fiş (経費 sayfasına yükleme veya LINE). İlerleme adım göstergesi; atlanabilir; tamamlanınca ホーム.
@@ -371,3 +380,45 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 - Reviewer notu (2026-11-08): NTA 2割特例 sayfasına göre 特定期間 課税売上高 (veya 給与) 1,000万 aşımıyla 課税事業者 olan (ve 課税期間短縮/高額資産 vb.) durumlar da 2割特例 dışı olabilir. Bu çalışmada birincil kaynak açılamadı → **önce tax-watcher doğrulasın**, TAX_RULES §1 2割 satırını kaynak + tarihle güncellesin.
 - **Doğrulandı (developer, 2026-11-08):** NTA インボイスQ&A 問115 — 消法9の2① (特定期間) ile免税点制度 sınırlanan課税期間 2割特例 dışı; TAX_RULES §1 güncellendi.
 - Doğrulanırsa beklenen: niwari'de `_check_small_business("2割特例", base, specific, salaries)` (3割 ile aynı kural), `tax.ts` parite, `test_niwari_ignores_specific_period` beklentisi tersine çevrilir + sınır testleri (10,000,000 / 10,000,001, 給与 ile kurtarma).
+
+## T-070 · 消費税申告書 hesap adımları — belge (P1, planner 2026-11-08)
+- Neden: `consumption.compute` 国税+地方'yi birlikte hesaplayıp tek `_floor100` uyguluyor; gerçek 申告書 önce 課税標準額 (千円未満切捨) → 国税 7.8%/6.24% → 地方消費税 = 差引税額 × 22/78 (百円未満切捨) sırasıyla gider; birkaç yüz yen fark çıkabilir. Kod T-071'de.
+- Kabul: TAX_RULES §1'e alt bölüm: her adım (課税標準額, 消費税額, 控除対象仕入税額 積上げ/割戻し, 差引税額, 譲渡割額, 納付税額; 簡易課税 事業区分別 計算, 2割/3割'nın 申告書'deki yeri) için ✅/⚠️ + NTA URL + kontrol tarihi. Emin olunmayan satır ⚠️ ve QUESTIONS'a. Kod yok; pytest yeşil.
+
+## T-071 · 消費税申告書 kesin hesap (P1, T-070'ten sonra)
+- `bot/tax/consumption_return.py` (yeni; mevcut `compute()` sonuçları değişmez): girdi `compute` ile aynı; çıktı 第一表 相当 sözlük (①課税標準額 … ㉖納付税額 numaralarıyla, adlar Japonca) + 第二表 税率別 kırılım. Yalnızca TAX_RULES'ta ✅ olan adımlar.
+- API: `GET /api/v1/tax/consumption/return?year=&method=` (mevcut `/tax/consumption` parametreleriyle aynı yetki). `docs/API.md` güncelle.
+- Test: 千円未満 sınırı (課税標準額 x,999 / x,000), 22/78 yuvarlama, 8%+10% karışık, 本則 経過措置 80/50, 簡易 第1〜6種, 2割 2026 / 3割 2027; 小計 tutarlılığı (納付 = 国税 + 地方).
+
+## T-072 · 消費税申告書 参考 PDF (P2, T-071'den sonra)
+- `reports.render_consumption_return_pdf` (mevcut 青色申告決算書 PDF altyapısı ve fontu); başlıkta 「参考資料（申告書そのものではありません）」. Panel 税務 sayfasına indirme düğmesi (ja/tr/en, demo modunda gizli/devre dışı).
+- Kabul: PDF `%PDF` ile başlar, değerler `/tax/consumption/return` JSON'u ile aynı (test), `next build` + check:* + e2e yeşil.
+
+## T-073 · 減価償却 kuralları — belge (P1, planner 2026-11-08)
+- 個人事業主 (Q-04) için: 法定 定額法, 償却率 (耐用年数省令 別表), 取得月からの月割, 10万円未満 即時経費, 一括償却資産 (10万以上20万未満 3年均等), 少額減価償却資産の特例 (青色; 取得価額 eşiği ve 年合計 üst sınırı — 令和8年度改正 sonrası güncel değer **doğrulanmalı**), 中古資産 簡便法 (opsiyonel ⚠️), PC/車/ソフトウェア gibi başlıca 耐用年数.
+- Kabul: TAX_RULES'ta yeni §; her satır kaynak URL (NTA タックスアンサー / e-Gov) + kontrol tarihi + ✅/⚠️. Kod yok.
+
+## T-074 · 固定資産台帳 + 減価償却 hesabı (P1, T-073'ten sonra)
+- Şema: `fixed_assets` (id, user_id/tenant, 名称, 取得日, 取得価額 tamsayı yen, 耐用年数, 償却方法 enum, 事業専用割合 0–100, 除却日 NULL) — yalnızca yeni tablo, SQLite + PG. CRUD `/api/v1/assets` (owner/accountant yazar, viewer okur), audit log'a yazılır (`_audit(..., "asset", ...)`).
+- `bot/tax/depreciation.py`: yıl için 償却費 (月割, 端数 1円未満切上げ/切捨 kuralı TAX_RULES'a göre, 備忘価額 1円), 一括償却 1/3, 少額特例 eşik; yalnızca ✅ kurallar.
+- `/pl` 減価償却費 = 台帳 hesabı + elle girilmiş 減価償却費 kayıtları (çift sayım uyarısı). Test: 1月/12月 取得, 最終年 備忘価額, eşik ±1円, 事業専用割合, 除却年.
+
+## T-075 · Panel 固定資産 + 決算書 3. sayfa (P2, T-074'ten sonra)
+- `/assets` sayfası (liste, ekle/düzenle/除却, yıllık 償却費 sütunu; bento düzeni, `tabular-nums`), menüye ekle, i18n ja/tr/en. 青色申告決算書 PDF'e 「減価償却費の計算」 tablosu. `e2e/make_fixtures.py` ile yeni uç fixture'ı.
+- Kabul: `next build`, check:*, e2e (yeni menü demo + canlı) yeşil; pytest PDF testi.
+
+## T-076 · 家事按分 (P1, planner 2026-11-08)
+- 個人事業主'nin en sık ihtiyacı (地代家賃, 水道光熱費, 通信費, 車両費). Yeni tablo `apportionments` (tenant, 勘定科目, 事業割合 0–100) — yalnızca ekleme. API `GET/PUT /api/v1/settings/apportionment`.
+- Uygulama: `/pl` ve 青色申告決算書'de 事業分 = `floor(amount × ratio / 100)` (kategori toplamında bir kez), 本則 仕入税額 de 事業分 tutardan. Ham kayıtlar değişmez; CSV dışa aktarma etkilenmez (not `docs/API.md`). Gerekçe kaynağı TAX_RULES §2'ye (NTA; emin değilsen ⚠️).
+- Panel 設定'te 「家事按分」 kartı (ja/tr/en). Test: 0%/100%/33% yuvarlama, ayar yokken eski sonuç birebir, 消費税 本則 etkisi, viewer yazamaz.
+
+## T-077 · クレジットカード明細 CSV (P2, planner 2026-11-08)
+- `bot/card_csv.py` (bank_csv mimarisine benzer): 利用日 / 利用店名(ご利用先) / 利用金額 sütunları; kayıtlar 未確認 olarak `entries`'e (karşı hesap 未払金, 支払日 bilgisi varsa 摘要'ye). Cp932 + UTF-8. Panel 銀行連携 sayfasında 「カード明細」 sekmesi isteğe bağlı (yalnızca API de kabul).
+- `docs/CARD_CSV.md`: kart şirketi başına başlık + kaynak + ✅/🟡/⚠️ (BANK_CSV.md gibi); kaynak bulunamayan başlık uydurulmaz, genel sütun eşleştirmesi ile çalışır.
+- Test: başlık eşleme, iade (マイナス) satırı, 分割/リボ notu satırı atlanır, formül kaçışı korunur, kota (Q-11 fiş sayısına girmez).
+
+## T-078 · Canlıya alma kontrolü (P1, planner 2026-11-08)
+- Neden: tüm Faz 1/5 kodu hazır; canlıya alma 10+ ortam değişkenine (Q-01, Q-05, Q-10, Q-12, Q-13, Q-14, Q-20, Q-21) bağlı ve hangisinin girildiğini görmek zor.
+- `GET /admin/config-check` (`X-Admin-Key`, `/admin/richmenu` ile aynı doğrulama): her değişken için yalnızca `true/false` + ilgili Q numarası; değer, uzunluk veya önek **asla** dönmez. Ek: `tesseract`, DB türü (sqlite/postgres), depolama (local/s3).
+- `docs/GO_LIVE.md`: insan adımları sırası (Render plan yükseltmeleri Q-07/Q-09 → Docker Q-08 → LINE Q-01 → PANEL_URL Q-05 → R2 Q-14 → Resend Q-13 → Stripe test Q-10) + uçtan uca duman testi (LINE'a fiş → panelde görünür → CSV/PDF indirme).
+- Test: anahtarsız 401/403, doğru anahtarla değer sızmaz (sahte değerlerin yanıtta geçmediği denetlenir), `/` ve `/callback` sözleşmesi değişmez.

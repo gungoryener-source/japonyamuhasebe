@@ -68,14 +68,14 @@ Fiş görselleri şu an sunucu konteynerinin diskine (`receipts/`) yazılıyor. 
 ## Q-15 · Hesap silme talebinin işlenmesi (açık — developer, 2026-11-07, T-046b)
 Panelden gelen silme talepleri artık `deletion_requests` tablosuna kaydediliyor (veri silinmiyor; operatör listesi `GET /api/v1/admin/deletion-requests`, adımlar `docs/OPERATIONS.md`). Karar gerekiyor: (1) talep sonrası kaç gün içinde silinsin (öneri: 30 gün), (2) 電子帳簿保存法 / 法人税法 saklama yükümlülüğü kullanıcıda olduğundan silmeden önce ZIP yedeği yeterli mi, yoksa belirli süre (ör. 7 yıl) bizde de tutulacak mı (gizlilik politikası Q-12 ile uyumlu olmalı), (3) talebi kullanıcı panelden geri alabilsin mi. Cevap gelene kadar silme tamamen elle ve ürün sahibi onayıyla; otomatik silme betiği yazılmaz.
 
-## Q-16 · Resmî LINE hesabı "友だち追加" bağlantısı (açık — developer, 2026-11-07, T-044)
+## Q-21 · Resmî LINE hesabı "友だち追加" bağlantısı (açık — developer, 2026-11-07, T-044; eski numara Q-16, planner 2026-11-08 çift numarayı düzeltti)
 Tanıtım sayfası `/lp/` 「LINEで友だち追加」 düğmesini yalnızca bağlantı tanımlıysa gösterir. Render → jsaas-panel → Environment'a **değer girilmeli**: `NEXT_PUBLIC_LINE_ADD_URL` (LINE Official Account Manager → 友だち追加ガイド → URL, ör. `https://lin.ee/xxxx`; yalnızca `https://lin.ee/` veya `https://line.me/` kabul edilir), sonra Manual Deploy. Boşken sayfa yalnızca 「無料で始める」 (/signup/) gösterir. Ayrıca: kök `/` yerine `/lp/` ziyaretçilerin açılış sayfası olsun mu (şu an `/` = panel)?
 
 ## Q-17 · Muhasebe yazılımı CSV'sinde formül nötrleme (açık — developer, 2026-11-07, T-059)
 Tüm veri ZIP'indeki `entries.csv` artık `=`/`+`/`-`/`@`/TAB/CR ile başlayan 取引先/摘要 hücrelerine `'` ekliyor (Excel'de formül çalışmaz). Ancak freee / マネーフォワード / 弥生 içe aktarımının bu `'`'yu silip silmediği resmi belgelerden doğrulanamadı; silmezse 取引先 adı `'=…` olarak içe aktarılır. Bu yüzden içe aktarma amaçlı `/api/v1/export.csv` **değişmedi** (Shift_JIS, Japonca Excel'de doğrudan açılabildiği için risk sürüyor). Karar: (a) `/export.csv`'de de nötrle (öneri: güvenlik öncelikli; böyle adlar nadir), (b) olduğu gibi bırak, (c) T-012b'de gerçek içe aktarma denemesinden sonra karar ver. Kod hazır: `api.py` içinde `export.to_csv(rows, format, escape_formulas=True)`.
 
 
-## Q-15 · 国税庁 法人番号 Web-API アプリケーションID (açık — ürün sahibi)
+## Q-20 · 国税庁 法人番号 Web-API アプリケーションID (açık — ürün sahibi; eski numara Q-15, planner 2026-11-08 çift numarayı düzeltti)
 Banka defterindeki firma adlarını resmi kayıttan bulmak için. Başvuru ücretsiz: https://www.houjin-bangou.nta.go.jp/webapi/ → 「アプリケーションIDの発行届出」. Gelen kimlik Render'a `NTA_APP_ID` olarak girilir. O zamana kadar firma rehberi (Excel + onaylar) ile çalışır.
 **Cevap:**
 
@@ -89,4 +89,8 @@ entries / invoices / bank_tx değişiklikleri artık `audit_log`'a yazılıyor v
 
 ## Q-19 · e-Tax 仕様書 indirme — 利用上の注意 kabulü (açık — developer, 2026-11-08, T-045b/T-067)
 e-Tax .xtx üretimi (T-067/T-068) için 国税庁'nin 仕様書'si (項番7 手続一覧, 9 所得税, 19 XMLスキーマ; CAB arşivi) gerekiyor. Sayfa: indirme, 「利用上の注意」'yi kabul etmek sayılır — ajan bunu ürün sahibi adına kabul etmemeli. Seçenekler: (a) ürün sahibi https://www.e-tax.nta.go.jp/shiyo/ksk2/ksk2_shiyo3.htm 'deki 利用上の注意'yi okuyup ajanın indirmesine izin verir (öneri), (b) ürün sahibi dosyaları kendisi indirip depoya değil özel bir yere koyar, (c) e-Tax çıktısı şimdilik yapılmaz (PDF + elle giriş yeter). Ayrıntı: `docs/ETAX.md`.
+**Cevap:**
+
+## Q-22 · Banka CSV örnekleri — MUFG / SMBC / みずほ / 住信SBI / GMOあおぞら / 楽天 (açık — planner, 2026-11-08, T-033b)
+Bu bankaların CSV başlık satırı kamuya açık resmî kaynakta bulunamadı (`docs/BANK_CSV.md` ⚠️). Ajanlar başlık uyduramaz. İstenen: her bankadan internet bankacılığı CSV'sinin **yalnızca başlık satırı + 1–2 satır anonim örnek** (tutarlar/adlar değiştirilmiş). Gelene kadar genel sütun eşleştirme çalışıyor; tanınmayan biçimde panel hata mesajı gösterir.
 **Cevap:**
