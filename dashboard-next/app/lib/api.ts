@@ -145,6 +145,15 @@ export type ApiTax = {
   /** 一の免税事業者等からの経過措置上限（税込）を超えた取引先（T-050、古いサーバーでは無い） */
   transitional_over_cap?: { seller: string; gross: number; cap: number; excess: number }[];
 };
+/** T-071: 消費税申告書 相当の計算結果（各行に式・規則・検証状態の根拠付き） */
+export type ApiReturnLine = { key: string; label: string; value: number; formula: string; rule: string; verified: boolean; inputs: Record<string, number> };
+export type ApiConsumptionReturn = {
+  year: number; method: string; purchase_calc: string;
+  output_tax: number; credit: number; national_payable: number; national_refund: number;
+  local_payable: number; local_refund: number; total_payable: number;
+  lines: ApiReturnLine[]; warnings: { code: string; message: string }[]; unverified: string[];
+  transitional_over_cap?: { seller: string; gross: number; cap: number; excess: number }[];
+};
 export type ApiInvoice = {
   no: string; client: string; issued: string; due: string; total: number;
   subtotal10: number; subtotal8: number; tax10: number; tax8: number;
@@ -251,6 +260,8 @@ export const api = {
   pl: (year: number) => call<ApiPL>(`/pl?year=${year}`),
   incomeTax: (year: number, p: { blue?: number; social_insurance?: number; other_deductions?: number }) => call<ApiIncomeTax>(`/tax/income${qs({ year, ...p })}`),
   consumption: (year: number, method = "honsoku", kani_type?: number) => call<ApiTax>(`/tax/consumption${qs({ year, method, kani_type })}`),
+  consumptionReturn: (year: number, method = "honsoku", kani_type?: number, purchase_calc = "warimodoshi") =>
+    call<ApiConsumptionReturn>(`/tax/consumption/return${qs({ year, method, kani_type, purchase_calc })}`),
   exportCsv: (format: "freee" | "mf" | "yayoi", year: number) => fetchBlob(`/export.csv${qs({ format, year })}`),
   /** T-045: 青色申告決算書（損益計算書）転記用 PDF */
   blueReturnPdf: (year: number, blue: number) => fetchBlob(`/reports/blue-return.pdf${qs({ year, blue })}`),

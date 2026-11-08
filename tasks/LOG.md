@@ -2,6 +2,13 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-08 17:05 JST · developer · T-071b 消費税申告書 detay ekranı
+- `/tax` sayfasına `ConsumptionReturn.tsx` kartı: T-071 API'sinin satırları (国税/地方 ayrı), formül + kural no + 未検証 rozeti, Japonca uyarılar, 仕入 割戻し/帳簿積上げ seçimi (canlı mod), iade durumu. Demo modu `consumption-return-example.json` (motordan üretilir, elle yazılmadı; `test_demo_example_is_fresh` güncelliği denetler).
+- Eski 消費税 kartı değişmedi (国税+地方 toplam tahmini); yeni kart beyanname biçimi. Aynı örnekte toplamlar uyumlu: yeni 1,419,400 vs eski 1,419,500 (satır bazlı yuvarlama farkı).
+- tr/en çevirileri (`locales/*.json`), e2e fixture'a `/tax/consumption/return`.
+- Kapı: pytest 819 geçti, next build + check:* yeşil, Playwright e2e 29/29.
+- Sonraki: T-080, T-072 (PDF), T-076 (家事按分), T-073–075 (減価償却).
+
 ## 2026-11-08 16:20 JST · developer · T-071 消費税申告書 hesap motoru
 - `bot/tax/params/` (yeni, paket yok: stdlib `tomllib`): yıl dosyaları 2024–2028.toml, her değer `{value, verified, source, rule, checked}`, kesirler `[pay, payda]` tamsayı. `params.unverified(yıl)` = TODO(verify) raporu (2027/2028: 3割 様式 ドラフト, 飲食料品 1% beklemede).
 - `bot/tax/consumption_return.py` `compute_return`: TAX_RULES §1 申告書#1–13 — 課税標準額 千円未満切捨て, 7.8/6.24%, 仕入 割戻し / 帳簿積上げ, 経過措置 oranı税率ごと sonda, 差引 百円未満, 地方 22/78, 還付, 簡易 (tek 区分)/2割/3割. Her satırda formül + girdi + kural + verified; Japonca uyarılar (未反映項目, 税理士 確認). Saf fonksiyon.

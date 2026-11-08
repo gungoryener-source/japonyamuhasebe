@@ -1,0 +1,458 @@
+{
+ "_note": "生成物。python dashboard-next/scripts/make_consumption_example.py で更新（手編集しない）。",
+ "year": 2026,
+ "results": {
+  "honsoku": {
+   "year": 2026,
+   "method": "honsoku",
+   "purchase_calc": "warimodoshi",
+   "output_tax": 1822080,
+   "credit": 714854,
+   "national_payable": 1107200,
+   "national_refund": 0,
+   "local_payable": 312200,
+   "local_refund": 0,
+   "total_payable": 1419400,
+   "lines": [
+    {
+     "key": "base.10",
+     "label": "課税標準額（7.8%適用分）",
+     "value": 22400000,
+     "formula": "floor(24,640,000 × 100/110, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 24640000
+     }
+    },
+    {
+     "key": "output.10",
+     "label": "消費税額（7.8%適用分）",
+     "value": 1747200,
+     "formula": "floor(22,400,000 × 78/1000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 22400000
+     }
+    },
+    {
+     "key": "base.8",
+     "label": "課税標準額（6.24%適用分）",
+     "value": 1200000,
+     "formula": "floor(1,296,000 × 100/108, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 1296000
+     }
+    },
+    {
+     "key": "output.8",
+     "label": "消費税額（6.24%適用分）",
+     "value": 74880,
+     "formula": "floor(1,200,000 × 624/10000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 1200000
+     }
+    },
+    {
+     "key": "base",
+     "label": "課税標準額",
+     "value": 23600000,
+     "formula": "税率ごとの課税標準額の合計",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "output",
+     "label": "消費税額",
+     "value": 1822080,
+     "formula": "税率ごとの消費税額の合計",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "input.10.100",
+     "label": "控除対象仕入税額（7.8%適用分）",
+     "value": 647400,
+     "formula": "floor(9,130,000 × 78/1100)",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {
+      "purchases_gross": 9130000,
+      "count": 2,
+      "credit_ratio": 100
+     }
+    },
+    {
+     "key": "input.10.80",
+     "label": "控除対象仕入税額（適格請求書なし・控除80%）（7.8%適用分）",
+     "value": 7488,
+     "formula": "floor(132,000 × 78/1100) × 80/100（経過措置）",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {
+      "purchases_gross": 132000,
+      "count": 1,
+      "credit_ratio": 80
+     }
+    },
+    {
+     "key": "input.10.70",
+     "label": "控除対象仕入税額（適格請求書なし・控除70%）（7.8%適用分）",
+     "value": 4368,
+     "formula": "floor(88,000 × 78/1100) × 70/100（経過措置）",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {
+      "purchases_gross": 88000,
+      "count": 1,
+      "credit_ratio": 70
+     }
+    },
+    {
+     "key": "input.8.100",
+     "label": "控除対象仕入税額（6.24%適用分）",
+     "value": 54288,
+     "formula": "floor(939,600 × 624/10800)",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {
+      "purchases_gross": 939600,
+      "count": 1,
+      "credit_ratio": 100
+     }
+    },
+    {
+     "key": "input.8.70",
+     "label": "控除対象仕入税額（適格請求書なし・控除70%）（6.24%適用分）",
+     "value": 1310,
+     "formula": "floor(32,400 × 624/10800) × 70/100（経過措置）",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {
+      "purchases_gross": 32400,
+      "count": 1,
+      "credit_ratio": 70
+     }
+    },
+    {
+     "key": "credit",
+     "label": "控除対象仕入税額",
+     "value": 714854,
+     "formula": "Σ控除対象仕入税額",
+     "rule": "申告書#4-6",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "national_payable",
+     "label": "差引税額",
+     "value": 1107200,
+     "formula": "floor(1,822,080 − 714,854, 100円)",
+     "rule": "申告書#8",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "local_payable",
+     "label": "譲渡割額（納税額）",
+     "value": 312200,
+     "formula": "floor(1,107,200 × 22/78, 100円)",
+     "rule": "申告書#9",
+     "verified": true,
+     "inputs": {
+      "local_base": 1107200
+     }
+    },
+    {
+     "key": "total",
+     "label": "消費税及び地方消費税の合計（納付又は還付）税額",
+     "value": 1419400,
+     "formula": "国税 + 地方消費税（還付は負）",
+     "rule": "申告書#10",
+     "verified": true,
+     "inputs": {}
+    }
+   ],
+   "warnings": [
+    {
+     "code": "not_included",
+     "message": "売上げの返還等・貸倒れ・中間納付税額・控除過大調整税額は反映していません。"
+    },
+    {
+     "code": "purchase_warimodoshi",
+     "message": "仕入税額は割戻し計算です（売上税額も割戻し計算の場合に限り選択できます）。"
+    },
+    {
+     "code": "disclaimer",
+     "message": "これは帳簿データからの計算結果です。申告前に税理士・税務署に確認してください。"
+    }
+   ],
+   "unverified": []
+  },
+  "kani": {
+   "year": 2026,
+   "method": "kani",
+   "purchase_calc": "",
+   "output_tax": 1822080,
+   "credit": 911040,
+   "national_payable": 911000,
+   "national_refund": 0,
+   "local_payable": 256900,
+   "local_refund": 0,
+   "total_payable": 1167900,
+   "lines": [
+    {
+     "key": "base.10",
+     "label": "課税標準額（7.8%適用分）",
+     "value": 22400000,
+     "formula": "floor(24,640,000 × 100/110, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 24640000
+     }
+    },
+    {
+     "key": "output.10",
+     "label": "消費税額（7.8%適用分）",
+     "value": 1747200,
+     "formula": "floor(22,400,000 × 78/1000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 22400000
+     }
+    },
+    {
+     "key": "base.8",
+     "label": "課税標準額（6.24%適用分）",
+     "value": 1200000,
+     "formula": "floor(1,296,000 × 100/108, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 1296000
+     }
+    },
+    {
+     "key": "output.8",
+     "label": "消費税額（6.24%適用分）",
+     "value": 74880,
+     "formula": "floor(1,200,000 × 624/10000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 1200000
+     }
+    },
+    {
+     "key": "base",
+     "label": "課税標準額",
+     "value": 23600000,
+     "formula": "税率ごとの課税標準額の合計",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "output",
+     "label": "消費税額",
+     "value": 1822080,
+     "formula": "税率ごとの消費税額の合計",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "credit",
+     "label": "控除対象仕入税額（第5種 みなし仕入率50%）",
+     "value": 911040,
+     "formula": "floor(1,822,080 × 割合)",
+     "rule": "申告書#11",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "national_payable",
+     "label": "差引税額",
+     "value": 911000,
+     "formula": "floor(1,822,080 − 911,040, 100円)",
+     "rule": "申告書#8",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "local_payable",
+     "label": "譲渡割額（納税額）",
+     "value": 256900,
+     "formula": "floor(911,000 × 22/78, 100円)",
+     "rule": "申告書#9",
+     "verified": true,
+     "inputs": {
+      "local_base": 911000
+     }
+    },
+    {
+     "key": "total",
+     "label": "消費税及び地方消費税の合計（納付又は還付）税額",
+     "value": 1167900,
+     "formula": "国税 + 地方消費税（還付は負）",
+     "rule": "申告書#10",
+     "verified": true,
+     "inputs": {}
+    }
+   ],
+   "warnings": [
+    {
+     "code": "kani_single_business",
+     "message": "簡易課税は単一の事業区分として計算しています。2種類以上の事業がある場合は税理士・税務署に確認してください。"
+    },
+    {
+     "code": "not_included",
+     "message": "売上げの返還等・貸倒れ・中間納付税額・控除過大調整税額は反映していません。"
+    },
+    {
+     "code": "disclaimer",
+     "message": "これは帳簿データからの計算結果です。申告前に税理士・税務署に確認してください。"
+    }
+   ],
+   "unverified": []
+  },
+  "niwari": {
+   "year": 2026,
+   "method": "niwari",
+   "purchase_calc": "",
+   "output_tax": 1822080,
+   "credit": 1457664,
+   "national_payable": 364400,
+   "national_refund": 0,
+   "local_payable": 102700,
+   "local_refund": 0,
+   "total_payable": 467100,
+   "lines": [
+    {
+     "key": "base.10",
+     "label": "課税標準額（7.8%適用分）",
+     "value": 22400000,
+     "formula": "floor(24,640,000 × 100/110, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 24640000
+     }
+    },
+    {
+     "key": "output.10",
+     "label": "消費税額（7.8%適用分）",
+     "value": 1747200,
+     "formula": "floor(22,400,000 × 78/1000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 22400000
+     }
+    },
+    {
+     "key": "base.8",
+     "label": "課税標準額（6.24%適用分）",
+     "value": 1200000,
+     "formula": "floor(1,296,000 × 100/108, 1,000円)",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {
+      "taxable_sales_gross": 1296000
+     }
+    },
+    {
+     "key": "output.8",
+     "label": "消費税額（6.24%適用分）",
+     "value": 74880,
+     "formula": "floor(1,200,000 × 624/10000)",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {
+      "base": 1200000
+     }
+    },
+    {
+     "key": "base",
+     "label": "課税標準額",
+     "value": 23600000,
+     "formula": "税率ごとの課税標準額の合計",
+     "rule": "申告書#1",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "output",
+     "label": "消費税額",
+     "value": 1822080,
+     "formula": "税率ごとの消費税額の合計",
+     "rule": "申告書#2",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "credit",
+     "label": "特別控除税額（2割特例）",
+     "value": 1457664,
+     "formula": "floor(1,822,080 × 割合)",
+     "rule": "申告書#12",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "national_payable",
+     "label": "差引税額",
+     "value": 364400,
+     "formula": "floor(1,822,080 − 1,457,664, 100円)",
+     "rule": "申告書#8",
+     "verified": true,
+     "inputs": {}
+    },
+    {
+     "key": "local_payable",
+     "label": "譲渡割額（納税額）",
+     "value": 102700,
+     "formula": "floor(364,400 × 22/78, 100円)",
+     "rule": "申告書#9",
+     "verified": true,
+     "inputs": {
+      "local_base": 364400
+     }
+    },
+    {
+     "key": "total",
+     "label": "消費税及び地方消費税の合計（納付又は還付）税額",
+     "value": 467100,
+     "formula": "国税 + 地方消費税（還付は負）",
+     "rule": "申告書#10",
+     "verified": true,
+     "inputs": {}
+    }
+   ],
+   "warnings": [
+    {
+     "code": "eligibility_unchecked",
+     "message": "2割特例の適用要件（基準期間・特定期間の課税売上高1,000万円以下など）は確認していません。"
+    },
+    {
+     "code": "not_included",
+     "message": "売上げの返還等・貸倒れ・中間納付税額・控除過大調整税額は反映していません。"
+    },
+    {
+     "code": "disclaimer",
+     "message": "これは帳簿データからの計算結果です。申告前に税理士・税務署に確認してください。"
+    }
+   ],
+   "unverified": []
+  }
+ }
+}

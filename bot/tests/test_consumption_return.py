@@ -236,3 +236,15 @@ def test_api_return(client, auth):
     assert client.get("/api/v1/tax/consumption/return?year=2027&method=niwari", headers=auth).status_code == 400
     assert client.get("/api/v1/tax/consumption/return?year=2023", headers=auth).status_code == 409
     assert client.get("/api/v1/tax/consumption/return?year=2026&purchase_calc=x", headers=auth).status_code == 422
+
+
+def test_demo_example_is_fresh():
+    """dashboard-next のデモ表示データ（生成物）が、現在のエンジン出力と一致する。"""
+    import importlib.util
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2] / "dashboard-next"
+    spec = importlib.util.spec_from_file_location("mk_ex", root / "scripts" / "make_consumption_example.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    saved = json.loads((root / "app" / "lib" / "consumption-return-example.json").read_text(encoding="utf-8"))
+    assert saved == json.loads(json.dumps(mod.build())), "python dashboard-next/scripts/make_consumption_example.py を実行"
