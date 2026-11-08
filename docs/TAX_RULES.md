@@ -26,6 +26,31 @@ Durum etiketleri: ✅ birincil kaynakla doğrulandı · ⚠️ ikincil kaynak / 
 - Durum ✅ (birincil kaynak) · Kaynaklar: [NTA お知らせ 経過措置が変わります](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/0026004-066_02.pdf), [NTA インボイスQ&A 問113-3 / 経過措置](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/qa/01-15.pdf) · ikincil: [弥生](https://www.yayoi-kk.co.jp/kaiketsu/invoice/zeiseikaisei-r8/) · kontrol: 2026-11-06
 - `web/` prototipleri T-001 ile düzeltildi; motor: `bot/tax/consumption.py` `TRANSITIONAL_CREDIT` (tablo ile uyumlu, kontrol: 2026-11-06).
 
+### 消費税申告書の計算手順 (T-070, kontrol: 2026-11-08)
+Beyanname (第一表/第二表/付表) satırları **国税 (7.8% / 6.24%) ile 地方消費税'i ayrı** hesaplar. `consumption.compute` toplam oranla (10/8) yaklaşık hesap yapar; beyanname motoru (T-071) bu tabloya göre çalışır. Tüm ara hesaplarda 1円未満 kesirler **her adımda** atılır.
+
+| # | Adım | Kural | Durum | Kaynak · kontrol |
+|---|---|---|---|---|
+| 1 | 課税標準額 (税率ごと) | 税込課税売上合計 × 100/110 (標準) · × 100/108 (軽減) → **千円未満切捨て** (第二表①, 付表 ①A/B) | ✅ | [NTA No.6371 端数計算](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shohi/6371.htm) (令和8年4月1日現在法令等), [NTA 消費税のあらまし 端数計算](https://www.nta.go.jp/publication/pamph/shohi/aramashi/pdf/012.pdf), [付表 記載要領](https://www.nta.go.jp/taxes/tetsuzuki/shinsei/shinkoku/shohi/07/06.pdf) · 2026-11-08 |
+| 2 | 課税標準額に対する消費税額 — 割戻し (原則) | 課税標準額 × 7.8% (標準) / 6.24% (軽減) → 1円未満切捨て | ✅ | No.6371, [NTA No.6383](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shohi/6383.htm) · 2026-11-08 |
+| 3 | 同 — 積上げ (特例) | 交付した適格請求書等の**写しを保存**している場合: 記載した消費税額等の合計 × 78/100 (1円未満切捨て). 売上側では取引ごとに割戻しと併用可 | ✅ | No.6383, あらまし 012 · 2026-11-08 |
+| 4 | 仕入税額 — 積上げ (原則) | 受領した適格請求書等の消費税額等合計 × 78/100. 帳簿積上げ: 仕入ごとに 10/110 · 8/108 (切捨て/四捨五入) を仮払消費税とし合計 × 78/100 | ✅ | [NTA No.6351](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shohi/6351.htm) (令和8年4月1日現在法令等) · 2026-11-08 |
+| 5 | 仕入税額 — 割戻し (特例) | 税込課税仕入合計 × 7.8/110 · 6.24/108 (1円未満切捨て). **Yalnızca satış tarafı da割戻し ise**; 仕入側で積上げ ile併用不可 (売上 積上げ + 仕入 割戻し yasak) | ✅ | No.6351, No.6371 · 2026-11-08 |
+| 6 | 経過措置 (免税事業者等からの仕入) | Seçilen yöntemle (割戻し/積上げ) aynı şekilde hesaplanır; **控除割合 (80/70/50/30) 税率ごとに en sonda** çarpılır | ✅ | [NTA 経過措置 計算資料](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/0024002-044_130.pdf) (örnekler eski 80/50 tablosuyla; güncel oranlar yukarıdaki 経過措置 tablosunda) · 2026-11-08 |
+| 7 | 売上返還等・貸倒れに係る税額 | 返還等/貸倒れ税込額 × 7.8/110 · 6.24/108 → 1円未満切捨て | ✅ | No.6371 · 2026-11-08 |
+| 8 | 差引税額 (国税, 第一表⑨) | ② 消費税額 + ③ 控除過大調整税額 − ⑦ 控除税額小計 → **百円未満切捨て**. Eksi ise 控除不足還付税額 (1円未満切捨て; 1円未満の還付は1円) | ✅ | No.6371, [NTA 申告書(一般用)の書き方 令和7年10月1日以後終了課税期間](https://www.nta.go.jp/publication/pamph/shohi/kaisei/yoshiki/pdf/202411_01.pdf) ■7 · 2026-11-08 |
+| 9 | 地方消費税 (譲渡割額, 第一表⑬) | 地方消費税の課税標準となる消費税額 (= 差引税額) × **22/78** → **百円未満切捨て**. Test vektörü (NTA 設例 甲野商店): 231,200 × 22/78 = 65,210 → **65,200** | ✅ | [NTA 確定申告の手引き 個人事業者用 step.17](https://www.nta.go.jp/publication/pamph/shohi_kojin/r05/pdf/02-07.pdf), 書き方 ■9, [NTA 軽減税率制度 税率表](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/01.htm) (地方 = 消費税額の22/78) · 2026-11-08 |
+| 10 | 納付税額 | 国税 差引税額 + 譲渡割額 (中間納付税額 varsa her biri ayrı düşülür) | ✅ | 書き方 (第一表 構成) · 2026-11-08 |
+| 11 | 簡易課税 | 控除対象仕入税額 = 売上げに係る消費税額 × みなし仕入率 (tek 事業区分). 2+ 事業区分: 原則法 / 簡便法 / 75%特例 — **uygulanmadı** (tek 事業区分 varsayımı; panelde uyarı). 貸倒回収・返還等 terimlerinin formüldeki yeri No.6505'te yalnızca görsel → ⚠️ | ⚠️ | No.6505 (令和8年4月1日現在法令等; formül görsel, metin olarak doğrulanamadı) · 2026-11-08 |
+| 12 | 2割特例 | 特別控除税額 = (課税標準額に対する消費税額 − 売上げに係る対価の返還等の金額に係る消費税額) × **80/100**; 付表6 kullanılır; 差引税額 = 第二表⑪ − 付表6⑦ − ⑰ (百円未満切捨て); 地方 = × 22/78 (百円未満切捨て) | ✅ | [NTA 確定申告の手引き 2割特例用 〈令和8年11月版〉](https://www.nta.go.jp/publication/pamph/pdf/0023008-043.pdf) · 2026-11-08 |
+| 13 | 3割特例 (令和9・10年分) | Aynı yapı, oran **70/100** (納付 = 売上税額の3割). 令和9年分 申告書/付表 ve 手引き henüz yayımlanmadı (yalnızca R9.4.1以後終了課税期間用 **ドラフト版** 様式) → satır numaraları ⚠️ | ⚠️ | 3割特例 リーフレット (yukarıda), [NTA 申告書様式 ドラフト版](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/pdf/0026010-002-01.pdf) · 2026-11-08 |
+| 14 | 申告・納付期限 (個人) | 翌年3月31日 (令和7年分 → 令和8年3月31日) | ✅ | [NTA 広報 令和8年3月](https://www.nta.go.jp/publication/pamph/koho/campaign/r8/Mar/01.htm) · 2026-11-08 |
+
+### 飲食料品 税率 1% (令和9年4月1日〜令和11年3月31日) — ⚠️ **法案成立前**
+- 2026-09-15 閣議決定 「飲食料品消費税率の臨時的な引下げ…に関する大綱」: 現行の軽減税率対象 飲食料品 → **1% (国税 0.78% + 地方 0.22%)**, 2027-04-01〜2029-03-31. NTA 特設サイト açıldı; NTA No.6371 / No.6505 / 軽減税率 sayfaları 「引き下げられます」 notu taşıyor. Yan özel kurallar: 簡易課税'te 飲食料品 satış için 売上税額と同額の仕入控除, 届出 özel süreleri, 総額表示 özel dönemi (2027-02-01〜05-31), bazı sözleşmelerde 8% kalır.
+- Durum ⚠️: kaynaklar (TKC 2026-11) 「今後、必要な法制上の措置等が講じられる予定」 diyor → **kod değiştirilmez**; yasa çıkınca tax-watcher ✅ yapar (T-079). Etki: `RATES`, OCR/parser 税率, CSV 税区分, 申告書 (付表 yeni sütun), 簡易課税.
+- Kaynak: [NTA 軽減税率制度の概要 (引下げ notu)](https://www.nta.go.jp/taxes/shiraberu/zeimokubetsu/shohi/keigenzeiritsu/01.htm), [岡山市 NTA 特設サイト案内](https://www.city.okayama.jp/kurashi/0000085867.html), [TKC 2026-11](https://www.tkc.jp/ao/topics/202611_kaisei01) · kontrol: 2026-11-08
+
 ## 2. 所得税 (Gelir vergisi, bireyler)
 | Kural | Değer | Durum | Kaynak · kontrol |
 |---|---|---|---|
