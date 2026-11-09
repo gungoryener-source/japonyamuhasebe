@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-09 13:10 JST · developer · T-067 e-Tax 青色申告決算書 eşleme (Q-19 onaylı)
+- Ürün sahibi 3 CAB'i (項番7/9/19) yükledi; çıkarıp inceledim: 青色申告決算書(一般用) = **KOA210 v11.0**, 手続 **RKO0010** (XSD RKO0010-250), 申告書B = KOA020 v23.0. `docs/ETAX_MAPPING.md`: /pl 科目 ↔ AMF tag, 月別, 減価償却 sütunları, hesaplı alanlar, desteklenmeyenler (貸借対照表 vb.). Dosyalar depoya konmadı.
+- Açık: 項番8 帳票間連動 ve 2027 taslağı indirilmedi; 月別 仕入 tag'leri örüntüden (T-068'de XSD ile doğrula).
+- Kapı: yalnızca doküman (kod yok).
+- Sonraki: T-068 (.xtx), T-082b.
+
 ## 2026-11-09 09:40 JST · developer · T-065c 仕切書 değişiklik geçmişi (Q-18 onaylı)
 - `slips.create/update/approve/reject` aynı transaction'da `store._audit(..., "slip", ...)` yazar (updated_at tek başına fark sayılmaz; değişiklik yoksa kayıt yok); actor API'den (`actor_of`). `GET /slips/{id}/history`; `AUDIT_ENTITIES`'e "slip".
 - Panel: `components/HistoryDrawer.tsx` ortak bileşen (経費精算 geçmişi de buna taşındı), 仕切書 editöründe 履歴 düğmesi, ja/tr/en.

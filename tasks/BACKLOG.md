@@ -86,7 +86,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-065b | P1 | done (bu commit; slips → T-065c) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
 | T-065c | P2 | done (2026-11-09; Q-18 onaylı) | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
 | T-066 | P2 | done (bu commit) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
-| T-067 | P2 | todo | e-Tax 仕様書 (項番7 手続一覧, 9 所得税, 19 XMLスキーマ) → 青色申告決算書(一般用) 様式ID/sürüm + alan ↔ `/api/v1/pl` 科目 eşleme tablosu `docs/ETAX_MAPPING.md` (kod yok) |
+| T-067 | P2 | done (2026-11-09; docs/ETAX_MAPPING.md) | e-Tax 仕様書 (項番7 手続一覧, 9 所得税, 19 XMLスキーマ) → 青色申告決算書(一般用) 様式ID/sürüm + alan ↔ `/api/v1/pl` 科目 eşleme tablosu `docs/ETAX_MAPPING.md` (kod yok) |
 | T-068 | P2 | blocked (T-067) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |
 | T-069 | P2 | blocked (T-068) | Panel 確定申告: 「e-Tax用データ(.xtx)」 indirme + Japonca adım kılavuzu (e-Taxソフト(WEB版) → 署名 → 送信) |
 | T-070 | P1 | done (bu commit) | TAX_RULES §1'e 消費税申告書 hesap adımları (課税標準額 千円未満切捨, 国税 7.8/6.24, 地方 22/78, 百円未満切捨, 積上げ/割戻し; 簡易・2割・3割'nın 申告書 satırları) — yalnızca belge, kaynak + tarih |
