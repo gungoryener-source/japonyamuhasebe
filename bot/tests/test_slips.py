@@ -184,3 +184,36 @@ async def test_line_slip_turkish(bot, monkeypatch, tmp_path):
     assert "30 dakika" in msg
     text, _ = await bot.process_image("UT", b"\xff\xd8", "m3", "LINE")
     assert "Hurda fişi alındı" in text and "Tutarları panelde girin" in text
+
+
+def test_slip_history_create_update_approve_reject(client, auth, bot):
+    """T-065c: 仕切書の作成・修正・承認・却下が audit_log に残り、GET /slips/{id}/history で見える。"""
+    s = slips.create("US", slips.parse_ai(ai_text({**SANTSU, "lines": [SANTSU["lines"][0]]})))
+    sid = s["id"]
+    h = client.get(f"/api/v1/slips/{sid}/history", headers=auth).json()
+    assert [r["action"] for r in h] == ["create"] and h[0]["before"] is None
+    client.patch(f"/api/v1/slips/{sid}", json={"issuer": "修正後商店"}, headers=auth)
+    client.patch(f"/api/v1/slips/{sid}", json={"issuer": "修正後商店"}, headers=auth)        # 変更なし → 履歴を増やさない
+    h = client.get(f"/api/v1/slips/{sid}/history", headers=auth).json()
+    assert [r["action"] for r in h] == ["create", "update"] and h[1]["changed"] == ["issuer"]
+    assert h[1]["after"]["issuer"] == "修正後商店" and h[1]["actor"].startswith("WEB:")
+    s3 = slips.create("US", slips.parse_ai(ai_text({**SANTSU, "lines": [SANTSU["lines"][0],
+                                                                     {**SANTSU["lines"][1], "unit_price": 545}]})))
+    client.patch(f"/api/v1/slips/{s3['id']}", json={"lines": [SANTSU["lines"][0], {**SANTSU["lines"][1], "unit_price": 54.5}]}, headers=auth)
+    assert client.post(f"/api/v1/slips/{s3['id']}/approve", headers=auth).status_code == 200
+    h = client.get(f"/api/v1/slips/{s3['id']}/history", headers=auth).json()
+    assert [r["action"] for r in h] == ["create", "update", "update"]
+    assert h[-1]["changed"] == ["entry_id", "status"] and h[-1]["after"]["status"] == "approved"
+    s2 = slips.create("US", {"kind": "exp", "d": "2026-10-01", "issuer": "X", "total": 100})
+    assert client.post(f"/api/v1/slips/{s2['id']}/reject", headers=auth).json()["status"] == "rejected"
+    h2 = client.get(f"/api/v1/slips/{s2['id']}/history", headers=auth).json()
+    assert h2[-1]["changed"] == ["status"] and h2[-1]["after"]["status"] == "rejected"
+    assert client.get("/api/v1/audit?entity=slip", headers=auth).status_code == 200
+
+
+def test_slip_history_isolation_and_404(client, auth, bot):
+    s = slips.create("US", {})
+    assert client.get("/api/v1/slips/99999/history", headers=auth).status_code == 404
+    other = client.post("/api/v1/admin/tokens", json={"user_id": "UX9"}, headers={"X-Admin-Key": "test-admin"}).json()["token"]
+    assert client.get(f"/api/v1/slips/{s['id']}/history", headers={"Authorization": f"Bearer {other}"}).status_code == 404
+    assert client.get(f"/api/v1/slips/{s['id']}/history").status_code == 401

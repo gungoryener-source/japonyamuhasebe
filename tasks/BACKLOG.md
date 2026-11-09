@@ -84,7 +84,7 @@ Kurallar ve durum sözlüğü: `CLAUDE.md`. Öncelik: P0 (önce) > P1 > P2. Her 
 | T-064b | P1 | done (fiyat ayar ekranı) | Fiyatlandırma ayarları ekranı (Q-16): yönetici `/admin/pricing` (plan başına dahil şirket sayısı, ek şirket ücreti, açık/kapalı; varsayılan ücretsiz). Kod sabit kural içermez, ayar tablosundan okur |
 | T-065 | P1 | done (bu commit; dilim 1: entries + invoices API, panel/bank_tx/slips → T-065b) | 訂正・削除の履歴 (audit log): entries/invoices/slips/bank_tx değişiklik ve silmelerini ayrı tabloya yaz, panelde kayıt geçmişi; 電帳法 優良 şartı için (docs/DENCHOHO.md) |
 | T-065b | P1 | done (bu commit; slips → T-065c) | Audit dilim 2: panel 経費精算'te kayıt başına 「履歴」 (GET /api/v1/entries/{id}/history, actor → üye e-postası) + bank_tx durum/tutar düzeltmeleri `_audit` ile; slips için ürün sahibi onayı (T-060 dosyalarına ajan dokunmaz) |
-| T-065c | P2 | todo | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
+| T-065c | P2 | done (2026-11-09; Q-18 onaylı) | Audit dilim 3: 仕切書 (slips) onay/red/düzeltme geçmişi — `bot/slips*.py` T-060 kapsamında, izin gerekli |
 | T-066 | P2 | done (bu commit) | review-fix: 2割特例'te 特定期間 şartı doğrulanmalı — `consumption.compute` niwari yalnızca 基準期間'e bakıyor (TAX_RULES §1 de yalnızca 基準期間 diyor) |
 | T-067 | P2 | todo | e-Tax 仕様書 (項番7 手続一覧, 9 所得税, 19 XMLスキーマ) → 青色申告決算書(一般用) 様式ID/sürüm + alan ↔ `/api/v1/pl` 科目 eşleme tablosu `docs/ETAX_MAPPING.md` (kod yok) |
 | T-068 | P2 | blocked (T-067) | `bot/etax.py`: 青色申告決算書(一般用) .xtx üretimi, yıl parametreli, XSD doğrulamalı testler; `GET /api/v1/reports/blue-return.xtx?year=` |

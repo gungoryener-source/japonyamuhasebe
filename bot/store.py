@@ -444,7 +444,7 @@ def check_amount(amount) -> int:
 
 
 # ---------------------------------------------------------------- audit (T-065)
-AUDIT_ENTITIES = ("entry", "invoice", "bank_tx", "asset")
+AUDIT_ENTITIES = ("entry", "invoice", "bank_tx", "asset", "slip")
 
 
 def _audit(con: "_Conn", user_id: str, entity: str, entity_id, action: str,

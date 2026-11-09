@@ -160,7 +160,19 @@ def _row(r) -> dict:
     return s
 
 
-def create(user_id: str, data: dict, image_path: str = "", source: str = "LINE", reader: str = "manual") -> dict:
+def _snap(con, user_id: str, sid: int) -> dict | None:
+    """audit_log 用の行の写し（lines は JSON 文字列のまま）。"""
+    r = con.execute("SELECT * FROM slips WHERE id=? AND user_id=?", (sid, user_id)).fetchone()
+    return dict(r) if r else None
+
+
+def history(user_id: str, sid: int) -> list[dict]:
+    """仕切書の作成・修正・承認・却下の履歴 (T-065c)。"""
+    return store.audit_history(user_id, "slip", sid)
+
+
+def create(user_id: str, data: dict, image_path: str = "", source: str = "LINE", reader: str = "manual",
+           actor: str = "") -> dict:
     lines = clean_lines(data.get("lines") or [])
     with store.tx() as con:
         cur = con.execute(
@@ -170,6 +182,7 @@ def create(user_id: str, data: dict, image_path: str = "", source: str = "LINE",
              data.get("registration_no") or "", int(data.get("total") or 0), json.dumps(lines, ensure_ascii=False),
              image_path, source, reader, _now(), _now()))
         sid = cur.fetchone()["id"]
+        store._audit(con, user_id, "slip", sid, "create", None, _snap(con, user_id, sid), actor)
     return get(user_id, sid)
 
 
@@ -210,7 +223,7 @@ def duplicate_of(user_id: str, s: dict) -> int | None:
     return r["id"] if r else None
 
 
-def update(user_id: str, sid: int, data: dict) -> dict:
+def update(user_id: str, sid: int, data: dict, actor: str = "") -> dict:
     s = get(user_id, sid)
     if not s:
         raise KeyError(sid)
@@ -227,11 +240,15 @@ def update(user_id: str, sid: int, data: dict) -> dict:
         return s
     sets = ",".join(f"{k}=?" for k in fields) + ",updated_at=?"
     with store.tx() as con:
+        before = _snap(con, user_id, sid)
         con.execute(f"UPDATE slips SET {sets} WHERE id=? AND user_id=?", (*fields.values(), _now(), sid, user_id))
+        after = _snap(con, user_id, sid)
+        before.pop("updated_at", None), after.pop("updated_at", None)       # 時刻だけの差は履歴にしない
+        store._audit(con, user_id, "slip", sid, "update", before, after, actor)
     return get(user_id, sid)
 
 
-def approve(user_id: str, sid: int) -> dict:
+def approve(user_id: str, sid: int, actor: str = "") -> dict:
     """確認済みの伝票を帳簿に記録（売上: 売上高 / 仕入: 仕入高）。税込・10%。"""
     s = get(user_id, sid)
     if not s:
@@ -245,21 +262,29 @@ def approve(user_id: str, sid: int) -> dict:
         "date": s["d"], "kind": s["kind"], "store": s["issuer"], "amount": int(s["total"]),
         "category": "売上高" if s["kind"] == "inc" else "仕入高", "rate": 10,
         "invoice_no": s["registration_no"],
-    }, image_path=s["image_path"], source=f"仕切書:{items}" if items else "仕切書")
+    }, image_path=s["image_path"], source=f"仕切書:{items}" if items else "仕切書", actor=actor)
     with store.tx() as con:
+        before = _snap(con, user_id, sid)
         con.execute("UPDATE slips SET status='approved', entry_id=?, updated_at=? WHERE id=? AND user_id=?",
                     (entry_id, _now(), sid, user_id))
+        after = _snap(con, user_id, sid)
+        before.pop("updated_at", None), after.pop("updated_at", None)
+        store._audit(con, user_id, "slip", sid, "update", before, after, actor)
     return get(user_id, sid)
 
 
-def reject(user_id: str, sid: int) -> dict:
+def reject(user_id: str, sid: int, actor: str = "") -> dict:
     s = get(user_id, sid)
     if not s:
         raise KeyError(sid)
     if s["status"] != "pending":
         raise ValueError("この伝票はすでに処理済みです")
     with store.tx() as con:
+        before = _snap(con, user_id, sid)
         con.execute("UPDATE slips SET status='rejected', updated_at=? WHERE id=? AND user_id=?", (_now(), sid, user_id))
+        after = _snap(con, user_id, sid)
+        before.pop("updated_at", None), after.pop("updated_at", None)
+        store._audit(con, user_id, "slip", sid, "update", before, after, actor)
     return get(user_id, sid)
 
 

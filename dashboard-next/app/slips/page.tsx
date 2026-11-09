@@ -2,9 +2,10 @@
 
 /** T-060: 仕切書（買取伝票）の確認・承認。LINE で送られた伝票を画像と並べて確認し、承認で売上に記録。 */
 import { useEffect, useRef, useState } from "react";
-import { CircleCheck, FileText, FileUp, LoaderCircle, Plus, Trash2, TriangleAlert, X } from "lucide-react";
-import { api, ApiError, openBlob, type ApiSlip, type ApiSlipList, type SlipLine } from "../lib/api";
+import { CircleCheck, FileText, History, FileUp, LoaderCircle, Plus, Trash2, TriangleAlert, X } from "lucide-react";
+import { api, ApiError, openBlob, type ApiAuditRow, type ApiSlip, type ApiSlipList, type SlipLine } from "../lib/api";
 import { AppShell, useShell } from "../components/shell";
+import HistoryDrawer from "../components/HistoryDrawer";
 import { Badge, Btn, Card, Empty, Field, inputCls, ReadOnlyNote, selectCls, Stat, yen } from "../components/ui";
 import { useLoad } from "../components/useLoad";
 import { T } from "../lib/i18n";
@@ -160,6 +161,15 @@ export default function SlipsPage() {
   );
 }
 
+const SLIP_FIELDS: Record<string, string> = { d: "日付", issuer: "発行元", registration_no: "登録番号", kind: "区分", total: "合計", status: "状態", note: "備考" };
+function fmtSlip(k: string, v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (k === "total" && typeof v === "number") return yen(v);
+  if (k === "kind") return v === "inc" ? T("売上") : T("仕入");
+  if (k === "status") return T(STATUS_LABEL[v as Status] ?? String(v));
+  return String(v);
+}
+
 function SlipEditor({ slip, live, canEdit, toast, onChange, onDone }: {
   slip: ApiSlip; live: boolean; canEdit: boolean; toast: (m: string) => void;
   onChange: (s: ApiSlip) => void; onDone: () => Promise<void>;
@@ -167,6 +177,7 @@ function SlipEditor({ slip, live, canEdit, toast, onChange, onDone }: {
   const [s, setS] = useState<ApiSlip>(slip);
   const [img, setImg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const editable = canEdit && s.status === "pending";
   const problems = checkSlip(s);
 
@@ -226,7 +237,13 @@ function SlipEditor({ slip, live, canEdit, toast, onChange, onDone }: {
       right={<div className="flex items-center gap-2">
         <Badge tone={s.status === "approved" ? "ok" : s.status === "rejected" ? "muted" : "warn"}>{T(STATUS_LABEL[s.status])}</Badge>
         <Badge tone="info" icon={false}>{s.reader === "ai" ? T("AI読取") : T("手入力")}</Badge>
+        <button type="button" onClick={() => setShowHistory(true)} className="text-slate-300 hover:text-navy" title={T("履歴")} aria-label={T("履歴")}><History size={14} /></button>
       </div>}>
+      {showHistory && <HistoryDrawer onClose={() => setShowHistory(false)} load={() => api.slipHistory(s.id)}
+        demo={[{ id: 1, entity: "slip", entity_id: String(s.id), action: "create", actor: "LINE", created_at: `${s.d || "2026-01-01"}T09:00:00+09:00`, before: null, after: null,
+          changed: [], actor_kind: "line", actor_role: "", actor_email: null, actor_is_me: false, actor_former: false }]}
+        fieldLabels={SLIP_FIELDS} fmt={fmtSlip} emptyText={T("この伝票には記録された履歴がありません。")}
+        subtitle={<><span className="font-mono tabular">{s.d.replaceAll("-", "/")}</span>　{s.issuer}　<span className="font-mono font-semibold tabular text-navy">{yen(s.total)}</span></>} />}
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50">
           {img ? <a href={img} target="_blank" rel="noreferrer"><img src={img} alt={T("仕切書の画像")} className="max-h-[560px] w-full object-contain" /></a>

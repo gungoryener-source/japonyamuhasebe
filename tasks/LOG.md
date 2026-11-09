@@ -2,6 +2,12 @@
 
 Biçim: `## YYYY-MM-DD HH:MM JST · <rol> · <görev>` + 3–6 satır: ne yapıldı, testler, sonraki adım/engeller.
 
+## 2026-11-09 09:40 JST · developer · T-065c 仕切書 değişiklik geçmişi (Q-18 onaylı)
+- `slips.create/update/approve/reject` aynı transaction'da `store._audit(..., "slip", ...)` yazar (updated_at tek başına fark sayılmaz; değişiklik yoksa kayıt yok); actor API'den (`actor_of`). `GET /slips/{id}/history`; `AUDIT_ENTITIES`'e "slip".
+- Panel: `components/HistoryDrawer.tsx` ortak bileşen (経費精算 geçmişi de buna taşındı), 仕切書 editöründe 履歴 düğmesi, ja/tr/en.
+- Kapı: pytest, next build, check:*, Playwright 31/31.
+- Sonraki: T-067 (e-Tax 仕様書, Q-19 onaylı), T-082b.
+
 ## 2026-11-08 23:20 JST · developer · T-072 消費税申告書 PDF
 - `reports.render_consumption_return_pdf` + `GET /reports/consumption-return.pdf` (hesap = `/tax/consumption/return`; satır başına formül/kural, 未検証 işareti, uyarılar, 税理士・税務署 notu, çok sayfa taşması). /tax kartında 「申告書PDF」 düğmesi (canlı mod).
 - Testler: içerik (toplamlar API ile aynı), 401, geçersiz method 400, yıl 422, kullanıcı izolasyonu.

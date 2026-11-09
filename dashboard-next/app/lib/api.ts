@@ -306,6 +306,7 @@ export const api = {
   bankXlsx: (date_from: string, date_to: string) => fetchBlob(`/reports/bank.xlsx${qs({ date_from, date_to })}`),
   slips: (status = "") => call<ApiSlipList>(`/slips${qs({ status })}`),
   slipImage: (id: number) => fetchBlob(`/slips/${id}/image`),
+  slipHistory: (id: number) => call<ApiAuditRow[]>(`/slips/${id}/history`),
   slipPatch: (id: number, body: Partial<Pick<ApiSlip, "d" | "issuer" | "registration_no" | "kind" | "total" | "note" | "lines">>) =>
     call<ApiSlip>(`/slips/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   slipApprove: (id: number) => call<ApiSlip>(`/slips/${id}/approve`, { method: "POST" }),

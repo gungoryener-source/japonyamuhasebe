@@ -397,7 +397,8 @@ async def slip_image(sid: int, uid: str = Depends(current_user)):
 
 
 @router.patch("/slips/{sid}")
-def slip_patch(sid: int, body: SlipPatch, uid: str = Depends(writer_user)):
+def slip_patch(sid: int, body: SlipPatch, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     _slip_or_404(uid, sid)
     data = body.model_dump(exclude_none=True)
     if "d" in data:
@@ -405,25 +406,34 @@ def slip_patch(sid: int, body: SlipPatch, uid: str = Depends(writer_user)):
     if "lines" in data:
         data["lines"] = [ln for ln in data["lines"]]
     try:
-        return slips.update(uid, sid, data)
+        return slips.update(uid, sid, data, actor=actor_of(p))
     except ValueError as ex:
         raise HTTPException(409, str(ex))
 
 
+@router.get("/slips/{sid}/history")
+def slip_history(sid: int, p: dict = Depends(current_principal)):
+    """仕切書の作成・修正・承認・却下の履歴 (T-065c)。誰が: `with_actors`。"""
+    _slip_or_404(p["user_id"], sid)
+    return with_actors(p, slips.history(p["user_id"], sid))
+
+
 @router.post("/slips/{sid}/approve")
-def slip_approve(sid: int, uid: str = Depends(writer_user)):
+def slip_approve(sid: int, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     _slip_or_404(uid, sid)
     try:
-        return slips.approve(uid, sid)
+        return slips.approve(uid, sid, actor=actor_of(p))
     except ValueError as ex:
         raise HTTPException(409, str(ex))
 
 
 @router.post("/slips/{sid}/reject")
-def slip_reject(sid: int, uid: str = Depends(writer_user)):
+def slip_reject(sid: int, p: dict = Depends(writer_principal)):
+    uid = p["user_id"]
     _slip_or_404(uid, sid)
     try:
-        return slips.reject(uid, sid)
+        return slips.reject(uid, sid, actor=actor_of(p))
     except ValueError as ex:
         raise HTTPException(409, str(ex))
 
